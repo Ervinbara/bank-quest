@@ -12,6 +12,12 @@ import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 
+// Dashboard
+import DashboardLayout from './components/Dashboard/DashboardLayout'
+import Overview from './pages/Dashboard/Overview'
+import Clients from './pages/Dashboard/Clients'
+import Settings from './pages/Dashboard/Settings'
+
 function App() {
   return (
     <AuthProvider>
@@ -26,20 +32,19 @@ function App() {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           
-          {/* Routes protégées (Dashboard à venir) */}
-          <Route 
-            path="/dashboard" 
+          {/* Routes Dashboard (protégées) */}
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
-                <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-4">🎯 Dashboard</h1>
-                    <p className="text-gray-600">Cette page sera bientôt disponible !</p>
-                  </div>
-                </div>
+                <DashboardLayout />
               </ProtectedRoute>
-            } 
-          />
+            }
+          >
+            <Route index element={<Overview />} />
+            <Route path="clients" element={<Clients />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
           
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
