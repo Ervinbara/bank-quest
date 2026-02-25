@@ -23,6 +23,18 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables - IMPORTANT!
+.env
+.env.local
+.env.production
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Supabase
 supabase/.env
 supabase/.temp
 supabase/.branches
+
+# Vercel
+.vercel
