@@ -1,15 +1,33 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Loader2 } from 'lucide-react'
 
 export default function Header() {
+  const navigate = useNavigate()
   const { user, advisor, logout, isAuthenticated } = useAuth()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const handleLogout = async () => {
+    if (loggingOut) return // Empêcher double-clic
+    
     try {
+      setLoggingOut(true)
+      console.log('🚪 Déconnexion depuis Header...')
+      
       await logout()
+      
+      // Redirection après nettoyage complet
+      navigate('/', { replace: true })
+      
+      // Forcer le rechargement pour nettoyer complètement
+      window.location.href = '/'
     } catch (error) {
       console.error('Erreur de déconnexion:', error)
+      // En cas d'erreur, forcer quand même la redirection
+      window.location.href = '/'
+    } finally {
+      setLoggingOut(false)
     }
   }
 
@@ -52,10 +70,17 @@ export default function Header() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 font-medium transition"
+                  disabled={loggingOut}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Déconnexion</span>
+                  {loggingOut ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <LogOut className="w-5 h-5" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {loggingOut ? 'Déconnexion...' : 'Déconnexion'}
+                  </span>
                 </button>
               </>
             ) : (

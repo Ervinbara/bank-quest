@@ -54,6 +54,21 @@ export const logout = async () => {
   if (error) throw error
 }
 
+export const isUserAuthenticated = async () => {
+  try {
+    const session = await getSession()
+    return !!session?.user
+  } catch (error) {
+    return false
+  }
+}
+
+export const refreshSession = async () => {
+  const { data, error } = await supabase.auth.refreshSession()
+  if (error) throw error
+  return data.session
+}
+
 // Récupérer la session actuelle
 export const getSession = async () => {
   const { data: { session }, error } = await supabase.auth.getSession()
@@ -84,3 +99,4 @@ export const getUserInitials = (name) => {
     .toUpperCase()
     .slice(0, 2)
 }
+

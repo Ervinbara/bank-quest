@@ -19,38 +19,59 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Vérifier la session au chargement
-    authService.getSession().then(session => {
-      if (session?.user) {
-        setUser(session.user)
-        loadAdvisor(session.user.email)
-      }
-      setLoading(false)
-    })
+    checkSession()
 
     // Écouter les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
-        if (session?.user) {
+        console.log('🔐 Auth event:', event) // Pour debug
+        
+        if (event === 'SIGNED_OUT') {
+          // Nettoyage complet lors de la déconnexion
+          clearAllData()
+        } else if (session?.user) {
+          setUser(session.user)
           await loadAdvisor(session.user.email)
         } else {
+          setUser(null)
           setAdvisor(null)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    // Cleanup: unsubscribe quand le composant se démonte
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const loadAdvisor = async (email) => {
-    const { data, error } = await supabase
-      .from('advisors')
-      .select('*')
-      .eq('email', email)
-      .single()
+  const checkSession = async () => {
+    try {
+      const session = await authService.getSession()
+      if (session?.user) {
+        setUser(session.user)
+        await loadAdvisor(session.user.email)
+      }
+    } catch (error) {
+      console.error('Erreur vérification session:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    if (!error && data) {
-      setAdvisor(data)
+  const loadAdvisor = async (email) => {
+    try {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('*')
+        .eq('email', email)
+        .single()
+
+      if (!error && data) {
+        setAdvisor(data)
+      }
+    } catch (error) {
+      console.error('Erreur chargement advisor:', error)
     }
   }
 
@@ -69,9 +90,67 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = async () => {
-    await authService.logout()
+    try {
+      console.log('🚪 Déconnexion en cours...')
+      
+      // 1. Déconnexion Supabase (gère automatiquement les cookies et le storage)
+      await authService.logout()
+      
+      // 2. Nettoyage complet du stockage local
+      clearAllData()
+      
+      console.log('✅ Déconnexion réussie')
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error)
+      // Même en cas d'erreur, on nettoie localement
+      clearAllData()
+      throw error
+    }
+  }
+
+  const clearAllData = () => {
+    console.log('🧹 Nettoyage de toutes les données...')
+    
+    // Nettoyer le state React
     setUser(null)
     setAdvisor(null)
+    
+    // Nettoyer localStorage (toutes les clés Supabase)
+    const keysToRemove = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (
+        key.startsWith('sb-') || 
+        key.includes('supabase') ||
+        key.includes('auth-token') ||
+        key.includes('bankquest')
+      )) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => {
+      console.log('  - Suppression localStorage:', key)
+      localStorage.removeItem(key)
+    })
+    
+    // Nettoyer sessionStorage
+    const sessionKeysToRemove = []
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i)
+      if (key && (
+        key.startsWith('sb-') || 
+        key.includes('supabase') ||
+        key.includes('auth-token')
+      )) {
+        sessionKeysToRemove.push(key)
+      }
+    }
+    sessionKeysToRemove.forEach(key => {
+      console.log('  - Suppression sessionStorage:', key)
+      sessionStorage.removeItem(key)
+    })
+    
+    console.log('✅ Nettoyage terminé')
   }
 
   const updateProfile = async (updates) => {

@@ -1,18 +1,33 @@
+import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import Sidebar from './Sidebar'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Loader2 } from 'lucide-react'
 
 export default function DashboardLayout() {
   const { advisor, logout } = useAuth()
   const navigate = useNavigate()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const handleLogout = async () => {
+    if (loggingOut) return
+    
     try {
+      setLoggingOut(true)
+      console.log('🚪 Déconnexion depuis Dashboard...')
+      
       await logout()
-      navigate('/')
+      
+      // Redirection vers l'accueil
+      navigate('/', { replace: true })
+      
+      // Forcer le rechargement complet
+      window.location.href = '/'
     } catch (error) {
       console.error('Erreur de déconnexion:', error)
+      window.location.href = '/'
+    } finally {
+      setLoggingOut(false)
     }
   }
 
@@ -54,10 +69,15 @@ export default function DashboardLayout() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="p-2 hover:bg-red-50 rounded-lg transition"
-                  title="Déconnexion"
+                  disabled={loggingOut}
+                  className="p-2 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={loggingOut ? 'Déconnexion...' : 'Déconnexion'}
                 >
-                  <LogOut className="w-5 h-5 text-red-600" />
+                  {loggingOut ? (
+                    <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
+                  ) : (
+                    <LogOut className="w-5 h-5 text-red-600" />
+                  )}
                 </button>
               </div>
             </div>
