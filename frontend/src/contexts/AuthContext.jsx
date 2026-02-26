@@ -17,61 +17,99 @@ export const AuthProvider = ({ children }) => {
   const [advisor, setAdvisor] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Vérifier la session au chargement
-    checkSession()
+useEffect(() => {
+  let mounted = true
 
-    // Écouter les changements d'auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔐 Auth event:', event) // Pour debug
-        
-        if (event === 'SIGNED_OUT') {
-          // Nettoyage complet lors de la déconnexion
-          clearAllData()
-        } else if (session?.user) {
-          setUser(session.user)
-          await loadAdvisor(session.user.email)
-        } else {
-          setUser(null)
-          setAdvisor(null)
-        }
-      }
-    )
-
-    // Cleanup: unsubscribe quand le composant se démonte
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const checkSession = async () => {
+  // Initialisation via getSession() — fiable même avec React StrictMode.
+  // Le finally sans garde mounted garantit que setLoading(false) est toujours appelé.
+  const initAuth = async () => {
     try {
-      const session = await authService.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!mounted) return
+
       if (session?.user) {
         setUser(session.user)
-        await loadAdvisor(session.user.email)
+        const { data } = await supabase
+          .from('advisors')
+          .select('*')
+          .eq('email', session.user.email)
+          .single()
+        if (mounted && data) {
+          console.log('✅ Advisor chargé:', data.name)
+          setAdvisor(data)
+        }
       }
     } catch (error) {
-      console.error('Erreur vérification session:', error)
+      console.error('❌ Erreur init auth:', error)
     } finally {
+      // Pas de garde mounted — finally s'exécute toujours, même après un return dans try.
+      // Cela garantit que loading passe à false dans tous les cas, y compris StrictMode.
       setLoading(false)
     }
   }
 
+  initAuth()
+
+  // Timeout de sécurité : si l'init n'a pas terminé dans les 5 secondes (réseau lent,
+  // erreur silencieuse), on force loading à false pour ne jamais bloquer l'UI.
+  const safetyTimer = setTimeout(() => {
+    setLoading(false)
+  }, 5000)
+
+  // Écoute uniquement les changements après l'init (login/logout/refresh token).
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (!mounted) return
+
+    if (event === 'SIGNED_OUT') {
+      setUser(null)
+      setAdvisor(null)
+    } else if (event === 'SIGNED_IN' && session?.user) {
+      setUser(session.user)
+      try {
+        const { data } = await supabase
+          .from('advisors')
+          .select('*')
+          .eq('email', session.user.email)
+          .single()
+        if (mounted && data) setAdvisor(data)
+      } catch (e) {
+        console.error('❌ Erreur advisor (SIGNED_IN):', e)
+      }
+    } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+      setUser(session.user)
+    }
+  })
+
+  return () => {
+    mounted = false
+    clearTimeout(safetyTimer)
+    subscription.unsubscribe()
+  }
+}, [])
+
   const loadAdvisor = async (email) => {
     try {
+      console.log('📊 Chargement advisor pour:', email)
       const { data, error } = await supabase
         .from('advisors')
         .select('*')
         .eq('email', email)
         .single()
 
-      if (!error && data) {
+      if (error) {
+        console.error('❌ Erreur Supabase loadAdvisor:', error)
+        throw error
+      }
+
+      if (data) {
+        console.log('✅ Advisor chargé:', data.name)
         setAdvisor(data)
+      } else {
+        console.warn('⚠️ Aucun advisor trouvé pour:', email)
       }
     } catch (error) {
-      console.error('Erreur chargement advisor:', error)
+      console.error('❌ Exception loadAdvisor:', error)
+      throw error
     }
   }
 
@@ -92,17 +130,11 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       console.log('🚪 Déconnexion en cours...')
-      
-      // 1. Déconnexion Supabase (gère automatiquement les cookies et le storage)
       await authService.logout()
-      
-      // 2. Nettoyage complet du stockage local
       clearAllData()
-      
       console.log('✅ Déconnexion réussie')
     } catch (error) {
       console.error('❌ Erreur lors de la déconnexion:', error)
-      // Même en cas d'erreur, on nettoie localement
       clearAllData()
       throw error
     }
@@ -111,11 +143,10 @@ export const AuthProvider = ({ children }) => {
   const clearAllData = () => {
     console.log('🧹 Nettoyage de toutes les données...')
     
-    // Nettoyer le state React
     setUser(null)
     setAdvisor(null)
     
-    // Nettoyer localStorage (toutes les clés Supabase)
+    // Nettoyer localStorage
     const keysToRemove = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
@@ -128,10 +159,7 @@ export const AuthProvider = ({ children }) => {
         keysToRemove.push(key)
       }
     }
-    keysToRemove.forEach(key => {
-      console.log('  - Suppression localStorage:', key)
-      localStorage.removeItem(key)
-    })
+    keysToRemove.forEach(key => localStorage.removeItem(key))
     
     // Nettoyer sessionStorage
     const sessionKeysToRemove = []
@@ -145,10 +173,7 @@ export const AuthProvider = ({ children }) => {
         sessionKeysToRemove.push(key)
       }
     }
-    sessionKeysToRemove.forEach(key => {
-      console.log('  - Suppression sessionStorage:', key)
-      sessionStorage.removeItem(key)
-    })
+    sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key))
     
     console.log('✅ Nettoyage terminé')
   }
@@ -176,6 +201,10 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     isAuthenticated: !!user
+  }
+
+  if (loading) {
+    console.log('⏳ AuthContext: loading =', loading)
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

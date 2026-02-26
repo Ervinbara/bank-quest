@@ -44,9 +44,13 @@ function App() {
             <Route index element={<Overview />} />
             <Route path="clients" element={<Clients />} />
             <Route path="settings" element={<Settings />} />
+            {/* Capture les sous-routes inconnues du dashboard DANS le layout protégé.
+                Sans ce fallback, /dashboard/analytics tomberait sur le * top-level,
+                démonterait ProtectedRoute, et causerait le bug "Chargement..." au retour. */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
-          
-          {/* 404 */}
+
+          {/* 404 — uniquement pour les routes hors /dashboard */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
