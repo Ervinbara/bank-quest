@@ -101,7 +101,7 @@ export default function Overview() {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <button className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-all text-left">
             <div className="text-2xl mb-2">➕</div>
             <h4 className="font-semibold text-gray-800">Inviter un client</h4>
@@ -115,6 +115,15 @@ export default function Overview() {
             <div className="text-2xl mb-2">📊</div>
             <h4 className="font-semibold text-gray-800">Voir les résultats</h4>
             <p className="text-sm text-gray-600">Consultez les performances</p>
+          </Link>
+
+          <Link
+            to="/dashboard/analytics"
+            className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-600 hover:bg-indigo-50 transition-all text-left block"
+          >
+            <div className="text-2xl mb-2">📈</div>
+            <h4 className="font-semibold text-gray-800">Analytics avancées</h4>
+            <p className="text-sm text-gray-600">Analysez les tendances clients</p>
           </Link>
           
           <Link
