@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Mail, Calendar, Award, AlertCircle } from 'lucide-react'
 
 export default function ClientCard({ client, onClick }) {

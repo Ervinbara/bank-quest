@@ -19,10 +19,12 @@ export const AuthProvider = ({ children }) => {
 
 useEffect(() => {
   let mounted = true
+  let subscription = null
 
   const initAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      
       if (!mounted) return
 
       if (session?.user) {
@@ -32,58 +34,53 @@ useEffect(() => {
           .select('*')
           .eq('email', session.user.email)
           .single()
+        
         if (mounted && data) {
-          console.log('✅ Advisor chargé:', data.name)
           setAdvisor(data)
         }
       }
     } catch (error) {
-      console.error('❌ Erreur init auth:', error)
+      console.error('❌ Init auth error:', error)
     } finally {
-      // La garde mounted ici est intentionnelle et critique.
-      //
-      // En React StrictMode, l'effet tourne deux fois : mount1 → cleanup → mount2.
-      // Le cleanup met mounted=false AVANT que mount2 ait pu appeler setUser().
-      //
-      // Sans cette garde, le finally du mount1 appellerait setLoading(false) alors
-      // que user est encore null → ProtectedRoute redirige vers /login avant que
-      // mount2 n'ait eu le temps de charger la session → déconnexion au refresh.
-      //
-      // Avec la garde : le finally du mount1 est ignoré (mounted=false), et c'est
-      // le finally du mount2 (mounted=true, user déjà set) qui fait passer loading à false.
-      if (mounted) setLoading(false)
+      // TOUJOURS passer loading à false, même si mounted=false
+      // Sinon en StrictMode, le 1er mount met mounted=false avant
+      // que le 2e mount ait fini, et loading reste à true forever
+      setLoading(false)
     }
   }
 
   initAuth()
 
-  // Écoute uniquement les changements après l'init (login/logout/refresh token).
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (!mounted) return
+  // Écouter les changements APRÈS l'init
+  const setupListener = async () => {
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
 
-    if (event === 'SIGNED_OUT') {
-      setUser(null)
-      setAdvisor(null)
-    } else if (event === 'SIGNED_IN' && session?.user) {
-      setUser(session.user)
-      try {
-        const { data } = await supabase
-          .from('advisors')
-          .select('*')
-          .eq('email', session.user.email)
-          .single()
-        if (mounted && data) setAdvisor(data)
-      } catch (e) {
-        console.error('❌ Erreur advisor (SIGNED_IN):', e)
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setAdvisor(null)
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        try {
+          const { data: advisorData } = await supabase
+            .from('advisors')
+            .select('*')
+            .eq('email', session.user.email)
+            .single()
+          if (mounted && advisorData) setAdvisor(advisorData)
+        } catch (e) {
+          console.error('❌ Advisor load error:', e)
+        }
       }
-    } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-      setUser(session.user)
-    }
-  })
+    })
+    subscription = data.subscription
+  }
+
+  setupListener()
 
   return () => {
     mounted = false
-    subscription.unsubscribe()
+    if (subscription) subscription.unsubscribe()
   }
 }, [])
 
