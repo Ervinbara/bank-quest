@@ -20,8 +20,6 @@ export const AuthProvider = ({ children }) => {
 useEffect(() => {
   let mounted = true
 
-  // Initialisation via getSession() — fiable même avec React StrictMode.
-  // Le finally sans garde mounted garantit que setLoading(false) est toujours appelé.
   const initAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -42,19 +40,22 @@ useEffect(() => {
     } catch (error) {
       console.error('❌ Erreur init auth:', error)
     } finally {
-      // Pas de garde mounted — finally s'exécute toujours, même après un return dans try.
-      // Cela garantit que loading passe à false dans tous les cas, y compris StrictMode.
-      setLoading(false)
+      // La garde mounted ici est intentionnelle et critique.
+      //
+      // En React StrictMode, l'effet tourne deux fois : mount1 → cleanup → mount2.
+      // Le cleanup met mounted=false AVANT que mount2 ait pu appeler setUser().
+      //
+      // Sans cette garde, le finally du mount1 appellerait setLoading(false) alors
+      // que user est encore null → ProtectedRoute redirige vers /login avant que
+      // mount2 n'ait eu le temps de charger la session → déconnexion au refresh.
+      //
+      // Avec la garde : le finally du mount1 est ignoré (mounted=false), et c'est
+      // le finally du mount2 (mounted=true, user déjà set) qui fait passer loading à false.
+      if (mounted) setLoading(false)
     }
   }
 
   initAuth()
-
-  // Timeout de sécurité : si l'init n'a pas terminé dans les 5 secondes (réseau lent,
-  // erreur silencieuse), on force loading à false pour ne jamais bloquer l'UI.
-  const safetyTimer = setTimeout(() => {
-    setLoading(false)
-  }, 5000)
 
   // Écoute uniquement les changements après l'init (login/logout/refresh token).
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -82,7 +83,6 @@ useEffect(() => {
 
   return () => {
     mounted = false
-    clearTimeout(safetyTimer)
     subscription.unsubscribe()
   }
 }, [])
