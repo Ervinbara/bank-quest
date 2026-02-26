@@ -17,100 +17,116 @@ export const AuthProvider = ({ children }) => {
   const [advisor, setAdvisor] = useState(null)
   const [loading, setLoading] = useState(true)
 
-useEffect(() => {
-  let mounted = true
-  let subscription = null
+  const fetchAdvisorByEmail = async (email) => {
+    if (!email) return null
 
-  const initAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!mounted) return
+    const { data, error } = await supabase
+      .from('advisors')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
 
-      if (session?.user) {
-        setUser(session.user)
-        const { data } = await supabase
-          .from('advisors')
-          .select('*')
-          .eq('email', session.user.email)
-          .single()
-        
-        if (mounted && data) {
-          setAdvisor(data)
-        }
-      }
-    } catch (error) {
-      console.error('❌ Init auth error:', error)
-    } finally {
-      // TOUJOURS passer loading à false, même si mounted=false
-      // Sinon en StrictMode, le 1er mount met mounted=false avant
-      // que le 2e mount ait fini, et loading reste à true forever
-      setLoading(false)
-    }
+    if (error) throw error
+    return data
   }
 
-  initAuth()
+  useEffect(() => {
+    let mounted = true
+    let subscription = null
+    let loadingGuardTimeout = null
 
-  // Écouter les changements APRÈS l'init
-  const setupListener = async () => {
-    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const stopLoadingSafely = () => {
+      if (!mounted) return
+      setLoading(false)
+
+      if (loadingGuardTimeout) {
+        clearTimeout(loadingGuardTimeout)
+        loadingGuardTimeout = null
+      }
+    }
+
+    const loadAdvisorForUser = async (email, contextLabel = 'advisor') => {
+      if (!email) {
+        if (mounted) setAdvisor(null)
+        return
+      }
+
+      try {
+        const advisorData = await fetchAdvisorByEmail(email)
+        if (mounted) setAdvisor(advisorData || null)
+      } catch (err) {
+        console.error(`Init ${contextLabel} load error:`, err)
+        if (mounted) setAdvisor(null)
+      }
+    }
+
+    const initAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error
+        } = await supabase.auth.getSession()
+
+        if (error) throw error
+        if (!mounted) return
+
+        if (session?.user) {
+          setUser(session.user)
+          stopLoadingSafely()
+          void loadAdvisorForUser(session.user.email, 'advisor')
+        } else {
+          setUser(null)
+          setAdvisor(null)
+          stopLoadingSafely()
+        }
+      } catch (error) {
+        console.error('Init auth error:', error)
+        if (mounted) {
+          setUser(null)
+          setAdvisor(null)
+        }
+        stopLoadingSafely()
+      }
+    }
+
+    initAuth()
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return
 
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || !session?.user) {
         setUser(null)
         setAdvisor(null)
-      } else if (event === 'SIGNED_IN' && session?.user) {
+        stopLoadingSafely()
+        return
+      }
+
+      if (['SIGNED_IN', 'INITIAL_SESSION', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
         setUser(session.user)
-        try {
-          const { data: advisorData } = await supabase
-            .from('advisors')
-            .select('*')
-            .eq('email', session.user.email)
-            .single()
-          if (mounted && advisorData) setAdvisor(advisorData)
-        } catch (e) {
-          console.error('❌ Advisor load error:', e)
-        }
+        stopLoadingSafely()
+
+        // Evite les deadlocks Supabase: ne pas await d'appel auth/db dans ce callback.
+        void loadAdvisorForUser(session.user.email, 'advisor')
       }
     })
+
     subscription = data.subscription
-  }
 
-  setupListener()
+    // Filet de securite: evite un spinner infini si un appel reseau se bloque.
+    loadingGuardTimeout = setTimeout(() => {
+      if (!mounted) return
+      console.warn('Auth loading timeout reached, forcing loading=false')
+      setLoading(false)
+    }, 10000)
 
-  return () => {
-    mounted = false
-    if (subscription) subscription.unsubscribe()
-  }
-}, [])
-
-  const loadAdvisor = async (email) => {
-    try {
-      console.log('📊 Chargement advisor pour:', email)
-      const { data, error } = await supabase
-        .from('advisors')
-        .select('*')
-        .eq('email', email)
-        .single()
-
-      if (error) {
-        console.error('❌ Erreur Supabase loadAdvisor:', error)
-        throw error
-      }
-
-      if (data) {
-        console.log('✅ Advisor chargé:', data.name)
-        setAdvisor(data)
-      } else {
-        console.warn('⚠️ Aucun advisor trouvé pour:', email)
-      }
-    } catch (error) {
-      console.error('❌ Exception loadAdvisor:', error)
-      throw error
+    return () => {
+      mounted = false
+      if (loadingGuardTimeout) clearTimeout(loadingGuardTimeout)
+      if (subscription) subscription.unsubscribe()
     }
-  }
+  }, [])
 
-  const login = async (email, password, remember = false) => {
+  const login = async (email, password) => {
     const { user: authUser, advisor: advisorData } = await authService.login(email, password)
     setUser(authUser)
     setAdvisor(advisorData)
@@ -124,58 +140,51 @@ useEffect(() => {
     return { success: true, user: authUser, advisor: advisorData }
   }
 
+  const clearAllData = () => {
+    setUser(null)
+    setAdvisor(null)
+
+    const localKeysToRemove = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (
+        key &&
+        (key.startsWith('sb-') ||
+          key.includes('supabase') ||
+          key.includes('auth-token') ||
+          key.includes('bankquest'))
+      ) {
+        localKeysToRemove.push(key)
+      }
+    }
+    localKeysToRemove.forEach((key) => localStorage.removeItem(key))
+
+    const sessionKeysToRemove = []
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i)
+      if (
+        key &&
+        (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token'))
+      ) {
+        sessionKeysToRemove.push(key)
+      }
+    }
+    sessionKeysToRemove.forEach((key) => sessionStorage.removeItem(key))
+  }
+
   const logout = async () => {
     try {
-      console.log('🚪 Déconnexion en cours...')
       await authService.logout()
       clearAllData()
-      console.log('✅ Déconnexion réussie')
     } catch (error) {
-      console.error('❌ Erreur lors de la déconnexion:', error)
       clearAllData()
       throw error
     }
   }
 
-  const clearAllData = () => {
-    console.log('🧹 Nettoyage de toutes les données...')
-    
-    setUser(null)
-    setAdvisor(null)
-    
-    // Nettoyer localStorage
-    const keysToRemove = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && (
-        key.startsWith('sb-') || 
-        key.includes('supabase') ||
-        key.includes('auth-token') ||
-        key.includes('bankquest')
-      )) {
-        keysToRemove.push(key)
-      }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key))
-    
-    // Nettoyer sessionStorage
-    const sessionKeysToRemove = []
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i)
-      if (key && (
-        key.startsWith('sb-') || 
-        key.includes('supabase') ||
-        key.includes('auth-token')
-      )) {
-        sessionKeysToRemove.push(key)
-      }
-    }
-    sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key))
-    
-    console.log('✅ Nettoyage terminé')
-  }
-
   const updateProfile = async (updates) => {
+    if (!advisor?.id) throw new Error('Advisor non charge')
+
     const { data, error } = await supabase
       .from('advisors')
       .update(updates)
@@ -198,10 +207,6 @@ useEffect(() => {
     logout,
     updateProfile,
     isAuthenticated: !!user
-  }
-
-  if (loading) {
-    console.log('⏳ AuthContext: loading =', loading)
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
