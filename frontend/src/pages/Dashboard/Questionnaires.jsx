@@ -54,9 +54,9 @@ export default function Questionnaires() {
   const [customName, setCustomName] = useState('')
   const [bankTheme, setBankTheme] = useState('budget')
   const [bankQuestionIndex, setBankQuestionIndex] = useState(0)
+  const [bankByTheme, setBankByTheme] = useState({})
 
   const templates = useMemo(() => getDefaultQuestionnaireTemplates(), [])
-  const bankByTheme = useMemo(() => getQuestionBankByTheme(), [])
   const bankThemes = useMemo(() => Object.keys(bankByTheme), [bankByTheme])
 
   const selectedQuestionnaire = useMemo(
@@ -71,6 +71,12 @@ export default function Questionnaires() {
       setLoading(true)
       setError(null)
       const rows = await getAdvisorQuestionnaires(advisor.id)
+      const bank = await getQuestionBankByTheme(advisor.id)
+      setBankByTheme(bank || {})
+      const firstTheme = Object.keys(bank || {})[0]
+      if (firstTheme) {
+        setBankTheme(firstTheme)
+      }
       setItems(rows || [])
       const defaultItem = (rows || []).find((item) => item.is_default) || rows?.[0]
       setSelectedId(defaultItem?.id || '')

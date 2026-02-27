@@ -9,7 +9,17 @@ const DEFAULT_OPTIONS = [
   { label: 'Toujours', points: 5 }
 ]
 
-const QUESTION_BANK = {
+const DEFAULT_BANK_THEMES = [
+  { code: 'budget', name: 'Budget', description: 'Gestion budget et depenses' },
+  { code: 'epargne', name: 'Epargne', description: 'Reserve, objectifs et discipline' },
+  { code: 'investissement', name: 'Investissement', description: 'Risque, allocation et diversification' },
+  { code: 'protection', name: 'Protection', description: 'Assurance et prevoyance' },
+  { code: 'fiscalite', name: 'Fiscalite', description: 'Leviers fiscaux et optimisation' },
+  { code: 'retraite', name: 'Retraite', description: 'Preparation et projection retraite' },
+  { code: 'general', name: 'General', description: 'Questions transverses' }
+]
+
+const DEFAULT_BANK_QUESTIONS = {
   budget: [
     { concept: 'Budget mensuel', prompt: 'Suivez-vous un budget mensuel detaille ?', options: DEFAULT_OPTIONS },
     { concept: 'Depenses', prompt: 'Analysez-vous vos depenses fixes et variables ?', options: DEFAULT_OPTIONS }
@@ -33,6 +43,9 @@ const QUESTION_BANK = {
   retraite: [
     { concept: 'Preparation retraite', prompt: 'Avez-vous un plan retraite chiffre ?', options: DEFAULT_OPTIONS },
     { concept: 'Projection', prompt: 'Avez-vous estime vos besoins de revenus a la retraite ?', options: DEFAULT_OPTIONS }
+  ],
+  general: [
+    { concept: 'Vision financiere', prompt: 'Avez-vous une vision claire de vos objectifs financiers ?', options: DEFAULT_OPTIONS }
   ]
 }
 
@@ -56,10 +69,10 @@ const DEFAULT_TEMPLATES = [
     description: 'Focus epargne, investissement, fiscalite et retraite',
     isDefault: false,
     questions: [
-      ...QUESTION_BANK.epargne,
-      ...QUESTION_BANK.investissement,
-      ...QUESTION_BANK.fiscalite,
-      ...QUESTION_BANK.retraite
+      ...DEFAULT_BANK_QUESTIONS.epargne,
+      ...DEFAULT_BANK_QUESTIONS.investissement,
+      ...DEFAULT_BANK_QUESTIONS.fiscalite,
+      ...DEFAULT_BANK_QUESTIONS.retraite
     ].map((question, index) => ({
       questionText: question.prompt,
       concept: question.concept,
@@ -74,10 +87,10 @@ const DEFAULT_TEMPLATES = [
     description: 'Questionnaire court pour bilan trimestriel',
     isDefault: false,
     questions: [
-      QUESTION_BANK.budget[0],
-      QUESTION_BANK.epargne[0],
-      QUESTION_BANK.protection[0],
-      QUESTION_BANK.investissement[1]
+      DEFAULT_BANK_QUESTIONS.budget[0],
+      DEFAULT_BANK_QUESTIONS.epargne[0],
+      DEFAULT_BANK_QUESTIONS.protection[0],
+      DEFAULT_BANK_QUESTIONS.investissement[1]
     ].map((question, index) => ({
       questionText: question.prompt,
       concept: question.concept,
@@ -93,6 +106,14 @@ const isMissingQuestionnaireTableError = (error) => {
   return (
     message.includes("could not find the table 'public.advisor_questionnaires'") ||
     message.includes('relation "public.advisor_questionnaires" does not exist')
+  )
+}
+
+const isMissingQuestionBankTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.advisor_question_bank_themes'") ||
+    message.includes('relation "public.advisor_question_bank_themes" does not exist')
   )
 }
 
@@ -151,7 +172,329 @@ const insertQuestionnaireWithQuestions = async (advisorId, template) => {
   return questionnaire
 }
 
-export const getQuestionBankByTheme = () => QUESTION_BANK
+const getLocalQuestionBankFallback = () => {
+  const result = {}
+  Object.keys(DEFAULT_BANK_QUESTIONS).forEach((themeCode) => {
+    result[themeCode] = DEFAULT_BANK_QUESTIONS[themeCode].map((question, index) => ({
+      id: `${themeCode}-${index}`,
+      concept: question.concept,
+      prompt: question.prompt,
+      options: question.options || DEFAULT_OPTIONS
+    }))
+  })
+  return result
+}
+
+const mapQuestionBankRows = (themes, questions) => {
+  const mapByTheme = new Map()
+  ;(themes || []).forEach((theme) => {
+    mapByTheme.set(theme.id, {
+      id: theme.id,
+      code: theme.code,
+      name: theme.name,
+      description: theme.description || '',
+      questions: []
+    })
+  })
+
+  ;(questions || []).forEach((question) => {
+    const theme = mapByTheme.get(question.theme_id)
+    if (!theme) return
+    theme.questions.push({
+      id: question.id,
+      concept: question.concept,
+      prompt: question.prompt,
+      options: Array.isArray(question.options) && question.options.length > 0 ? question.options : DEFAULT_OPTIONS
+    })
+  })
+
+  return [...mapByTheme.values()]
+}
+
+const ensureAdvisorQuestionBank = async (advisorId) => {
+  if (!advisorId) return
+
+  const { data: existing, error: existingError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id')
+    .eq('advisor_id', advisorId)
+    .limit(1)
+
+  if (existingError) {
+    if (isMissingQuestionBankTableError(existingError)) return
+    throw existingError
+  }
+
+  if (existing && existing.length > 0) return
+
+  const { data: insertedThemes, error: themeInsertError } = await supabase
+    .from('advisor_question_bank_themes')
+    .insert(
+      DEFAULT_BANK_THEMES.map((theme) => ({
+        advisor_id: advisorId,
+        code: theme.code,
+        name: theme.name,
+        description: theme.description
+      }))
+    )
+    .select('id, code')
+
+  if (themeInsertError) throw themeInsertError
+
+  const themeIdByCode = new Map((insertedThemes || []).map((theme) => [theme.code, theme.id]))
+  const rows = []
+  Object.entries(DEFAULT_BANK_QUESTIONS).forEach(([code, questions]) => {
+    const themeId = themeIdByCode.get(code)
+    if (!themeId) return
+    questions.forEach((question) => {
+      rows.push({
+        theme_id: themeId,
+        concept: question.concept,
+        prompt: question.prompt,
+        options: question.options || DEFAULT_OPTIONS
+      })
+    })
+  })
+
+  if (rows.length > 0) {
+    const { error: questionInsertError } = await supabase.from('advisor_question_bank_questions').insert(rows)
+    if (questionInsertError) throw questionInsertError
+  }
+}
+
+export const getAdvisorQuestionBankCatalog = async (advisorId) => {
+  if (!advisorId) return []
+
+  await ensureAdvisorQuestionBank(advisorId)
+
+  const { data: themes, error: themesError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id, code, name, description')
+    .eq('advisor_id', advisorId)
+    .order('name', { ascending: true })
+
+  if (themesError) {
+    if (isMissingQuestionBankTableError(themesError)) {
+      return Object.entries(getLocalQuestionBankFallback()).map(([code, rows]) => ({
+        id: code,
+        code,
+        name: code,
+        description: '',
+        questions: rows
+      }))
+    }
+    throw themesError
+  }
+
+  if (!themes || themes.length === 0) return []
+
+  const themeIds = themes.map((theme) => theme.id)
+  const { data: questions, error: questionsError } = await supabase
+    .from('advisor_question_bank_questions')
+    .select('id, theme_id, concept, prompt, options')
+    .in('theme_id', themeIds)
+    .order('created_at', { ascending: true })
+
+  if (questionsError) throw questionsError
+
+  return mapQuestionBankRows(themes, questions)
+}
+
+export const getQuestionBankByTheme = async (advisorId) => {
+  const catalog = await getAdvisorQuestionBankCatalog(advisorId)
+  const byTheme = {}
+  catalog.forEach((theme) => {
+    byTheme[theme.code] = theme.questions.map((question) => ({
+      id: question.id,
+      concept: question.concept,
+      prompt: question.prompt,
+      options: question.options
+    }))
+  })
+  return byTheme
+}
+
+export const createAdvisorQuestionBankTheme = async ({ advisorId, name, description }) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  const cleanName = String(name || '').trim()
+  if (!cleanName) throw new Error('Le nom du theme est requis')
+
+  const code = cleanName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
+  const { data, error } = await supabase
+    .from('advisor_question_bank_themes')
+    .insert([
+      {
+        advisor_id: advisorId,
+        code: code || `theme_${Date.now()}`,
+        name: cleanName,
+        description: String(description || '').trim()
+      }
+    ])
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const updateAdvisorQuestionBankTheme = async ({ advisorId, themeId, name, description }) => {
+  if (!advisorId || !themeId) throw new Error('Theme introuvable')
+
+  const cleanName = String(name || '').trim()
+  if (!cleanName) throw new Error('Le nom du theme est requis')
+
+  const { data, error } = await supabase
+    .from('advisor_question_bank_themes')
+    .update({
+      name: cleanName,
+      description: String(description || '').trim()
+    })
+    .eq('id', themeId)
+    .eq('advisor_id', advisorId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const deleteAdvisorQuestionBankTheme = async ({ advisorId, themeId }) => {
+  if (!advisorId || !themeId) throw new Error('Theme introuvable')
+
+  const { data: allThemes, error: listError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id')
+    .eq('advisor_id', advisorId)
+
+  if (listError) throw listError
+  if (!allThemes || allThemes.length <= 1) {
+    throw new Error('Au moins un theme doit rester disponible')
+  }
+
+  const { error } = await supabase
+    .from('advisor_question_bank_themes')
+    .delete()
+    .eq('id', themeId)
+    .eq('advisor_id', advisorId)
+
+  if (error) throw error
+  return { success: true }
+}
+
+export const createAdvisorQuestionBankQuestion = async ({ advisorId, themeId, concept, prompt, options }) => {
+  if (!advisorId || !themeId) throw new Error('Theme introuvable')
+  const cleanConcept = String(concept || '').trim()
+  const cleanPrompt = String(prompt || '').trim()
+
+  if (!cleanConcept) throw new Error('Le concept est requis')
+  if (!cleanPrompt) throw new Error('La question est requise')
+
+  const { data: theme, error: themeError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id')
+    .eq('id', themeId)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (themeError) throw themeError
+  if (!theme) throw new Error('Theme introuvable')
+
+  const { data, error } = await supabase
+    .from('advisor_question_bank_questions')
+    .insert([
+      {
+        theme_id: themeId,
+        concept: cleanConcept,
+        prompt: cleanPrompt,
+        options: Array.isArray(options) && options.length > 0 ? options : DEFAULT_OPTIONS
+      }
+    ])
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const updateAdvisorQuestionBankQuestion = async ({ advisorId, questionId, concept, prompt, options }) => {
+  if (!advisorId || !questionId) throw new Error('Question introuvable')
+
+  const cleanConcept = String(concept || '').trim()
+  const cleanPrompt = String(prompt || '').trim()
+
+  if (!cleanConcept) throw new Error('Le concept est requis')
+  if (!cleanPrompt) throw new Error('La question est requise')
+
+  const { data: existing, error: existingError } = await supabase
+    .from('advisor_question_bank_questions')
+    .select('id, theme_id')
+    .eq('id', questionId)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (!existing) throw new Error('Question introuvable')
+
+  const { data: theme, error: themeError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id')
+    .eq('id', existing.theme_id)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (themeError) throw themeError
+  if (!theme) throw new Error('Question introuvable')
+
+  const { data, error } = await supabase
+    .from('advisor_question_bank_questions')
+    .update({
+      concept: cleanConcept,
+      prompt: cleanPrompt,
+      options: Array.isArray(options) && options.length > 0 ? options : DEFAULT_OPTIONS
+    })
+    .eq('id', questionId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const deleteAdvisorQuestionBankQuestion = async ({ advisorId, questionId }) => {
+  if (!advisorId || !questionId) throw new Error('Question introuvable')
+
+  const { data: existing, error: existingError } = await supabase
+    .from('advisor_question_bank_questions')
+    .select('id, theme_id')
+    .eq('id', questionId)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (!existing) throw new Error('Question introuvable')
+
+  const { data: theme, error: themeError } = await supabase
+    .from('advisor_question_bank_themes')
+    .select('id')
+    .eq('id', existing.theme_id)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (themeError) throw themeError
+  if (!theme) throw new Error('Question introuvable')
+
+  const { error } = await supabase
+    .from('advisor_question_bank_questions')
+    .delete()
+    .eq('id', questionId)
+
+  if (error) throw error
+  return { success: true }
+}
 
 export const getDefaultQuestionnaireTemplates = () => DEFAULT_TEMPLATES
 
@@ -172,8 +515,6 @@ export const ensureAdvisorQuestionnaires = async (advisorId) => {
   if (Array.isArray(data) && data.length > 0) return
 
   for (const template of DEFAULT_TEMPLATES) {
-    // Sequential insert for deterministic first default questionnaire
-    // and easier troubleshooting if one template fails.
     await insertQuestionnaireWithQuestions(advisorId, template)
   }
 }
@@ -223,13 +564,11 @@ export const createAdvisorQuestionnaireFromTemplate = async ({ advisorId, templa
   const template = DEFAULT_TEMPLATES.find((item) => item.key === templateKey)
   if (!template) throw new Error('Template introuvable')
 
-  const created = await insertQuestionnaireWithQuestions(advisorId, {
+  return insertQuestionnaireWithQuestions(advisorId, {
     ...template,
     name: customName?.trim() || template.name,
     isDefault: false
   })
-
-  return created
 }
 
 export const createCustomAdvisorQuestionnaire = async ({ advisorId, name, description }) => {
