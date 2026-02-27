@@ -473,11 +473,63 @@ const emptyAnalytics = () => ({
     { label: '75-100', min: 75, max: 100, count: 0 }
   ],
   monthlyEvolution: [],
+  pipeline: {
+    invited: 0,
+    completed: 0,
+    rdvPlanifie: 0,
+    clos: 0
+  },
+  segmentation: {
+    chaud: 0,
+    tiede: 0,
+    froid: 0
+  },
+  priorities: [],
   conceptStats: {
     strengths: [],
     weaknesses: []
   }
 })
+
+const daysSince = (dateString) => {
+  if (!dateString) return 999
+  const diff = Date.now() - new Date(dateString).getTime()
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
+}
+
+const segmentClient = (client) => {
+  const score = typeof client.score === 'number' ? client.score : 0
+  const status = client.followup_status || 'a_contacter'
+  const contactDelay = daysSince(client.last_contacted_at)
+
+  if (status === 'clos' || status === 'rdv_planifie') return 'chaud'
+  if (score >= 75 && status !== 'a_contacter') return 'chaud'
+  if (score >= 50 || status === 'en_cours' || contactDelay <= 10) return 'tiede'
+  return 'froid'
+}
+
+const computePriority = (client) => {
+  const isCompleted = client.quiz_status === 'completed'
+  const score = typeof client.score === 'number' ? client.score : 0
+  const status = client.followup_status || 'a_contacter'
+  const contactDelay = daysSince(client.last_contacted_at || client.created_at)
+
+  if (status === 'clos') {
+    return { value: 0, label: 'Clos', reason: 'Dossier deja clos' }
+  }
+
+  let value = 0
+  if (status === 'a_contacter') value += 40
+  if (status === 'en_cours') value += 25
+  if (status === 'rdv_planifie') value += 10
+  value += isCompleted ? 25 : 10
+  value += Math.min(25, contactDelay)
+  value += Math.max(0, Math.floor((80 - score) / 4))
+
+  if (value >= 85) return { value, label: 'Urgent', reason: 'Relance immediate recommandee' }
+  if (value >= 60) return { value, label: 'Haute', reason: 'A traiter cette semaine' }
+  return { value, label: 'Normale', reason: 'Suivi standard' }
+}
 
 // Récupérer les données analytics d'un conseiller
 export const getAdvisorAnalytics = async (advisorId) => {
@@ -485,10 +537,15 @@ export const getAdvisorAnalytics = async (advisorId) => {
     .from('clients')
     .select(`
       id,
+      name,
+      email,
       quiz_status,
+      followup_status,
+      advisor_notes,
       score,
       created_at,
       completed_at,
+      last_contacted_at,
       client_insights (
         type,
         concept
@@ -602,10 +659,49 @@ export const getAdvisorAnalytics = async (advisorId) => {
     weaknesses: toTopList(weaknessCounts)
   }
 
+  const pipeline = {
+    invited: clients.length,
+    completed: clients.filter((client) => client.quiz_status === 'completed').length,
+    rdvPlanifie: clients.filter((client) => client.followup_status === 'rdv_planifie').length,
+    clos: clients.filter((client) => client.followup_status === 'clos').length
+  }
+
+  const segmentation = clients.reduce(
+    (acc, client) => {
+      const segment = segmentClient(client)
+      acc[segment] += 1
+      return acc
+    },
+    { chaud: 0, tiede: 0, froid: 0 }
+  )
+
+  const priorities = clients
+    .map((client) => ({
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      quizStatus: client.quiz_status,
+      followupStatus: client.followup_status || 'a_contacter',
+      score: typeof client.score === 'number' ? client.score : null,
+      lastContactedAt: client.last_contacted_at,
+      createdAt: client.created_at,
+      advisorNotes: client.advisor_notes || '',
+      priority: computePriority(client)
+    }))
+    .sort((a, b) => b.priority.value - a.priority.value)
+
+  const topPriorities = priorities
+    .filter((client) => client.followupStatus !== 'clos')
+    .slice(0, 10)
+
   return {
     summary,
     scoreDistribution,
     monthlyEvolution,
+    pipeline,
+    segmentation,
+    priorities: topPriorities,
+    crmRows: priorities,
     conceptStats
   }
 }

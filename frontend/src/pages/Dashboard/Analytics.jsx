@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAdvisorAnalytics } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
@@ -9,13 +10,60 @@ import {
   Clock3,
   Loader2,
   Download,
-  RefreshCw
+  RefreshCw,
+  Users,
+  Target
 } from 'lucide-react'
 
+const FOLLOWUP_LABELS = {
+  a_contacter: 'A contacter',
+  rdv_planifie: 'RDV planifie',
+  en_cours: 'En cours',
+  clos: 'Clos'
+}
+
 const getBarWidth = (value, maxValue) => {
-  if (value <= 0) return 0
-  if (maxValue <= 0) return 0
+  if (value <= 0 || maxValue <= 0) return 0
   return Math.round((value / maxValue) * 100)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+}
+
+const buildCsv = (rows) => {
+  const header = [
+    'Client',
+    'Email',
+    'QuizStatus',
+    'FollowupStatus',
+    'Score',
+    'Priorite',
+    'NiveauPriorite',
+    'DernierContact',
+    'DateCreation',
+    'Notes'
+  ]
+  const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
+  const body = rows.map((row) =>
+    [
+      row.name,
+      row.email,
+      row.quizStatus,
+      row.followupStatus,
+      row.score ?? '',
+      row.priority.value,
+      row.priority.label,
+      row.lastContactedAt || '',
+      row.createdAt || '',
+      row.advisorNotes || ''
+    ]
+      .map(escape)
+      .join(',')
+  )
+
+  return [header.join(','), ...body].join('\n')
 }
 
 export default function Analytics() {
@@ -35,7 +83,7 @@ export default function Analytics() {
       setAnalytics(data)
     } catch (err) {
       console.error('Erreur chargement analytics:', err)
-      setError('Impossible de charger les statistiques avancées')
+      setError('Impossible de charger les statistiques avancees')
     } finally {
       setLoading(false)
     }
@@ -55,88 +103,21 @@ export default function Analytics() {
     return Math.max(...analytics.monthlyEvolution.map((item) => item.averageScore), 0)
   }, [analytics])
 
-  const exportReport = () => {
-    if (!analytics) return
-
-    setExporting(true)
+  const exportCsv = () => {
+    if (!analytics?.crmRows?.length) return
 
     try {
-      const openedAt = new Date().toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-      })
-
-      const strengths = analytics.conceptStats.strengths
-        .map((item) => `<li>${item.concept} (${item.count})</li>`)
-        .join('')
-      const weaknesses = analytics.conceptStats.weaknesses
-        .map((item) => `<li>${item.concept} (${item.count})</li>`)
-        .join('')
-      const evolutionRows = analytics.monthlyEvolution
-        .map(
-          (item) =>
-            `<tr><td>${item.label}</td><td>${item.averageScore}/100</td><td>${item.completedCount}</td></tr>`
-        )
-        .join('')
-
-      const html = `
-        <!doctype html>
-        <html lang="fr">
-          <head>
-            <meta charset="utf-8" />
-            <title>Rapport analytics Bank Quest</title>
-            <style>
-              body { font-family: Arial, sans-serif; color: #1f2937; margin: 24px; }
-              h1 { margin-bottom: 4px; }
-              h2 { margin-top: 28px; font-size: 18px; }
-              .muted { color: #6b7280; margin-bottom: 16px; }
-              .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-              .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; }
-              .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
-              table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-              th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-              th { background: #f9fafb; }
-              ul { margin: 8px 0 0; }
-              @media print { body { margin: 12px; } }
-            </style>
-          </head>
-          <body>
-            <h1>Rapport Analytics - Bank Quest</h1>
-            <p class="muted">Conseiller: ${advisor?.name || 'N/A'} | Généré le ${openedAt}</p>
-
-            <div class="grid">
-              <div class="card"><div>Total clients</div><div class="value">${analytics.summary.totalClients}</div></div>
-              <div class="card"><div>Quiz complétés</div><div class="value">${analytics.summary.completed}</div></div>
-              <div class="card"><div>Score moyen</div><div class="value">${analytics.summary.avgScore}/100</div></div>
-              <div class="card"><div>Taux complétion</div><div class="value">${analytics.summary.completionRate}%</div></div>
-            </div>
-
-            <h2>Evolution des scores</h2>
-            <table>
-              <thead><tr><th>Mois</th><th>Score moyen</th><th>Quiz complétés</th></tr></thead>
-              <tbody>${evolutionRows}</tbody>
-            </table>
-
-            <h2>Compétences dominantes</h2>
-            <strong>Forces fréquentes</strong>
-            <ul>${strengths || '<li>Aucune donnée</li>'}</ul>
-            <strong style="display:block; margin-top:14px;">Faiblesses fréquentes</strong>
-            <ul>${weaknesses || '<li>Aucune donnée</li>'}</ul>
-          </body>
-        </html>
-      `
-
-      const printWindow = window.open('', '_blank', 'width=980,height=700')
-      if (!printWindow) {
-        setError("Le navigateur a bloqué la fenêtre d'export PDF")
-        return
-      }
-
-      printWindow.document.write(html)
-      printWindow.document.close()
-      printWindow.focus()
-      printWindow.print()
+      setExporting(true)
+      const csv = buildCsv(analytics.crmRows)
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bank-quest-crm-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
     } finally {
       setExporting(false)
     }
@@ -161,21 +142,22 @@ export default function Analytics() {
           onClick={loadAnalytics}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          Réessayer
+          Reessayer
         </button>
       </div>
     )
   }
+
+  const pipeline = analytics?.pipeline || { invited: 0, completed: 0, rdvPlanifie: 0, clos: 0 }
+  const segmentation = analytics?.segmentation || { chaud: 0, tiede: 0, froid: 0 }
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-8 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Analytics avancées</h2>
-            <p className="text-indigo-100">
-              Vue consolidée des performances clients et des compétences clés.
-            </p>
+            <h2 className="text-3xl font-bold mb-2">Analytics avancees</h2>
+            <p className="text-indigo-100">Pilotage commercial et priorisation des relances.</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -186,48 +168,70 @@ export default function Analytics() {
               Actualiser
             </button>
             <button
-              onClick={exportReport}
+              onClick={exportCsv}
               disabled={exporting}
               className="inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-2 rounded-lg font-semibold transition disabled:opacity-60"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Export PDF
+              Export CSV
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total clients"
-          value={analytics?.summary?.totalClients ?? 0}
-          icon={BarChart3}
-          color="blue"
-        />
-        <StatsCard
-          title="Quiz complétés"
-          value={analytics?.summary?.completed ?? 0}
-          icon={CheckCircle}
-          color="green"
-        />
-        <StatsCard
-          title="En attente"
-          value={analytics?.summary?.pending ?? 0}
-          icon={Clock3}
-          color="orange"
-        />
-        <StatsCard
-          title="Score moyen"
-          value={`${analytics?.summary?.avgScore ?? 0}/100`}
-          icon={TrendingUp}
-          color="purple"
-        />
+        <StatsCard title="Total clients" value={analytics?.summary?.totalClients ?? 0} icon={Users} color="blue" />
+        <StatsCard title="Quiz completes" value={analytics?.summary?.completed ?? 0} icon={CheckCircle} color="green" />
+        <StatsCard title="En attente" value={analytics?.summary?.pending ?? 0} icon={Clock3} color="orange" />
+        <StatsCard title="Score moyen" value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Répartition des scores</h3>
-          <p className="text-sm text-gray-500 mb-5">Nombre de clients par tranche de score</p>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Pipeline conseiller</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <span>Invites</span>
+              <strong>{pipeline.invited}</strong>
+            </div>
+            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <span>Quiz completes</span>
+              <strong>{pipeline.completed}</strong>
+            </div>
+            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <span>RDV planifies</span>
+              <strong>{pipeline.rdvPlanifie}</strong>
+            </div>
+            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <span>Dossiers clos</span>
+              <strong>{pipeline.clos}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Segmentation clients</h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
+              <p className="text-sm text-green-800 font-semibold">Chaud</p>
+              <p className="text-2xl font-bold text-green-700">{segmentation.chaud}</p>
+            </div>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
+              <p className="text-sm text-amber-800 font-semibold">Tiede</p>
+              <p className="text-2xl font-bold text-amber-700">{segmentation.tiede}</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-center">
+              <p className="text-sm text-slate-800 font-semibold">Froid</p>
+              <p className="text-2xl font-bold text-slate-700">{segmentation.froid}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-1">Repartition des scores</h3>
+          <p className="text-sm text-gray-500 mb-5">Nombre de clients par tranche</p>
           <div className="space-y-4">
             {analytics.scoreDistribution.map((bucket) => (
               <div key={bucket.label}>
@@ -269,46 +273,50 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Forces dominantes</h3>
-          <p className="text-sm text-gray-500 mb-5">Concepts maîtrisés les plus fréquents</p>
-          <div className="space-y-3">
-            {analytics.conceptStats.strengths.length > 0 ? (
-              analytics.conceptStats.strengths.map((item) => (
-                <div
-                  key={item.concept}
-                  className="flex items-center justify-between rounded-lg bg-green-50 px-4 py-3 border border-green-100"
-                >
-                  <span className="font-semibold text-green-900">{item.concept}</span>
-                  <span className="text-sm font-bold text-green-700">{item.count}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">Aucune donnée disponible.</p>
-            )}
-          </div>
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-800">Top 10 a relancer</h3>
+          <Target className="w-5 h-5 text-purple-600" />
         </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Compétences à renforcer</h3>
-          <p className="text-sm text-gray-500 mb-5">Points faibles les plus récurrents</p>
+        {analytics.priorities.length === 0 ? (
+          <p className="text-sm text-gray-500">Aucun client a prioriser pour le moment.</p>
+        ) : (
           <div className="space-y-3">
-            {analytics.conceptStats.weaknesses.length > 0 ? (
-              analytics.conceptStats.weaknesses.map((item) => (
-                <div
-                  key={item.concept}
-                  className="flex items-center justify-between rounded-lg bg-rose-50 px-4 py-3 border border-rose-100"
-                >
-                  <span className="font-semibold text-rose-900">{item.concept}</span>
-                  <span className="text-sm font-bold text-rose-700">{item.count}</span>
+            {analytics.priorities.map((row) => (
+              <div key={row.id} className="rounded-lg border border-gray-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-gray-800">{row.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {row.email} • {FOLLOWUP_LABELS[row.followupStatus] || row.followupStatus} • Score:{' '}
+                    {typeof row.score === 'number' ? `${row.score}/100` : 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Dernier contact: {formatDate(row.lastContactedAt || row.createdAt)} • {row.priority.reason}
+                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">Aucune donnée disponible.</p>
-            )}
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      row.priority.label === 'Urgent'
+                        ? 'bg-red-100 text-red-700'
+                        : row.priority.label === 'Haute'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {row.priority.label} ({row.priority.value})
+                  </span>
+                  <Link
+                    to={`/dashboard/clients/${row.id}`}
+                    className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition"
+                  >
+                    Ouvrir
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
