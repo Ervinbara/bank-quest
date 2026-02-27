@@ -125,6 +125,60 @@ export const getClientById = async (clientId) => {
   return data
 }
 
+// Mettre a jour les informations d'un client
+export const updateClient = async ({ clientId, advisorId, name, email, avatar }) => {
+  if (!clientId) throw new Error('Client introuvable')
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const cleanedName = (name || '').trim()
+  const cleanedEmail = normalizeEmail(email)
+  const cleanedAvatar = (avatar || '').trim() || '👤'
+
+  if (!cleanedName) throw new Error('Le nom est requis')
+  if (!cleanedEmail) throw new Error("L'email est requis")
+
+  const { data: duplicate, error: duplicateError } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('advisor_id', advisorId)
+    .eq('email', cleanedEmail)
+    .neq('id', clientId)
+    .maybeSingle()
+
+  if (duplicateError) throw duplicateError
+  if (duplicate) throw new Error('Un autre client utilise deja cet email')
+
+  const { data, error } = await supabase
+    .from('clients')
+    .update({
+      name: cleanedName,
+      email: cleanedEmail,
+      avatar: cleanedAvatar
+    })
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Supprimer un client
+export const deleteClient = async ({ clientId, advisorId }) => {
+  if (!clientId) throw new Error('Client introuvable')
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const { error } = await supabase
+    .from('clients')
+    .delete()
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+
+  if (error) throw error
+  return { success: true }
+}
+
 // Creer une invitation client (creation en base + token de partage)
 export const createClientInvitation = async ({ advisorId, name, email }) => {
   const cleanedName = (name || '').trim()
