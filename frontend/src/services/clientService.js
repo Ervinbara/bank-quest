@@ -64,7 +64,22 @@ const resolveQuestionnaireIdForInvitation = async (advisorId, questionnaireId) =
     throw error
   }
 
-  return data?.id || null
+  if (data?.id) return data.id
+
+  const { data: firstRow, error: firstError } = await supabase
+    .from('advisor_questionnaires')
+    .select('id')
+    .eq('advisor_id', advisorId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (firstError) {
+    if (isMissingQuestionnairesTableError(firstError)) return null
+    throw firstError
+  }
+
+  return firstRow?.id || null
 }
 
 const getQuestionnaireDetails = async (questionnaireId) => {

@@ -20,6 +20,26 @@ const DEFAULT_EDIT_OPTIONS = [
   { label: 'Toujours', points: 5 }
 ]
 
+const THEME_OPTIONS = [
+  { value: 'general', label: 'General' },
+  { value: 'budget', label: 'Budget' },
+  { value: 'epargne', label: 'Epargne' },
+  { value: 'investissement', label: 'Investissement' },
+  { value: 'protection', label: 'Protection' },
+  { value: 'fiscalite', label: 'Fiscalite' },
+  { value: 'retraite', label: 'Retraite' }
+]
+
+const THEME_LABELS = {
+  general: 'General',
+  budget: 'Budget',
+  epargne: 'Epargne',
+  investissement: 'Investissement',
+  protection: 'Protection',
+  fiscalite: 'Fiscalite',
+  retraite: 'Retraite'
+}
+
 export default function Questionnaires() {
   const { advisor } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -129,6 +149,7 @@ export default function Questionnaires() {
     const themeRows = bankByTheme[bankTheme] || []
     const question = themeRows[bankQuestionIndex]
     if (!question) return
+
     const nextQuestions = [
       ...draft.questions,
       {
@@ -139,6 +160,7 @@ export default function Questionnaires() {
         options: question.options || DEFAULT_EDIT_OPTIONS
       }
     ]
+
     setDraft((prev) => ({ ...prev, questions: nextQuestions }))
   }
 
@@ -177,6 +199,7 @@ export default function Questionnaires() {
 
   const saveCurrent = async () => {
     if (!selectedQuestionnaire || !draft) return
+
     try {
       setSaving(true)
       setError(null)
@@ -242,7 +265,12 @@ export default function Questionnaires() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Questionnaires</h2>
-        <p className="text-gray-600">Creez vos propres questionnaires, partez de templates et reutilisez la banque de questions.</p>
+        <p className="text-gray-600">Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.</p>
+      </div>
+
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        Le theme sert uniquement a classer les questions (General, Budget, Epargne, etc.).
+        Si aucun questionnaire n'est marque "Par defaut", l'application utilise automatiquement le premier questionnaire cree.
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
@@ -361,7 +389,7 @@ export default function Questionnaires() {
               </div>
 
               <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
-                <p className="text-sm font-semibold text-gray-800">Ajouter depuis la banque de questions</p>
+                <p className="text-sm font-semibold text-gray-800">Banque de questions par theme</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
                     value={bankTheme}
@@ -373,7 +401,7 @@ export default function Questionnaires() {
                   >
                     {bankThemes.map((theme) => (
                       <option key={theme} value={theme}>
-                        {theme}
+                        {THEME_LABELS[theme] || theme}
                       </option>
                     ))}
                   </select>
@@ -433,13 +461,20 @@ export default function Questionnaires() {
                           />
                         </div>
                         <div className="mt-2 flex items-center justify-between">
-                          <input
-                            type="text"
-                            value={question.theme || ''}
-                            onChange={(event) => updateQuestionField(index, 'theme', event.target.value)}
-                            placeholder="Theme"
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          />
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-600">Theme</label>
+                            <select
+                              value={question.theme || 'general'}
+                              onChange={(event) => updateQuestionField(index, 'theme', event.target.value)}
+                              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                            >
+                              {THEME_OPTIONS.map((theme) => (
+                                <option key={theme.value} value={theme.value}>
+                                  {theme.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <button
                             onClick={() => removeQuestion(index)}
                             className="text-sm text-red-600 hover:text-red-700 font-semibold"

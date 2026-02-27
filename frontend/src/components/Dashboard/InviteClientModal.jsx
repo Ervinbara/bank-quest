@@ -240,6 +240,10 @@ export default function InviteClientModal({
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-2">
+                  Conseil: choisissez un questionnaire "Par defaut" dans l'onglet Questionnaires.
+                  Sans defaut, l'application prend automatiquement le premier questionnaire cree.
+                </p>
               </div>
 
               {error ? (
