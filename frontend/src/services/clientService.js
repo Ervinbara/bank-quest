@@ -7,6 +7,37 @@ const generateInvitationToken = () => {
 }
 
 const normalizeEmail = (email) => (email || '').trim().toLowerCase()
+const buildInviteUrl = (clientId, token) => `${window.location.origin}/quiz/${clientId}?token=${token}`
+
+const upsertClientInvitation = async (clientId) => {
+  const token = generateInvitationToken()
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString() // 14 jours
+
+  const { data, error } = await supabase
+    .from('client_invitations')
+    .upsert(
+      [
+        {
+          client_id: clientId,
+          token,
+          expires_at: expiresAt,
+          revoked_at: null
+        }
+      ],
+      { onConflict: 'client_id' }
+    )
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  return {
+    token: data.token,
+    expiresAt: data.expires_at,
+    updatedAt: data.updated_at,
+    inviteUrl: buildInviteUrl(clientId, data.token)
+  }
+}
 
 // Récupérer tous les clients d'un conseiller
 export const getAdvisorClients = async (advisorId) => {
@@ -116,26 +147,96 @@ export const createClientInvitation = async ({ advisorId, name, email }) => {
 
   if (error) throw error
 
-  const token = generateInvitationToken()
-  const inviteUrl = `${window.location.origin}/quiz/${client.id}?token=${token}`
+  const invitation = await upsertClientInvitation(client.id)
 
   return {
     client,
-    token,
-    inviteUrl
+    token: invitation.token,
+    inviteUrl: invitation.inviteUrl,
+    expiresAt: invitation.expiresAt,
+    updatedAt: invitation.updatedAt
   }
 }
 
-// Recuperer les informations publiques d'un client pour le quiz
-export const getQuizClient = async (clientId) => {
-  const { data, error } = await supabase
+// Lister les liens d'invitation d'un conseiller
+export const getAdvisorInvitationLinks = async (advisorId) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const { data: clients, error: clientsError } = await supabase
+    .from('clients')
+    .select('id, name, email, quiz_status, created_at, completed_at')
+    .eq('advisor_id', advisorId)
+    .order('created_at', { ascending: false })
+
+  if (clientsError) throw clientsError
+  if (!clients || clients.length === 0) return []
+
+  const clientIds = clients.map((client) => client.id)
+
+  const { data: invitations, error: invitationsError } = await supabase
+    .from('client_invitations')
+    .select('client_id, token, expires_at, revoked_at, updated_at')
+    .in('client_id', clientIds)
+
+  if (invitationsError) throw invitationsError
+
+  const invitationByClientId = new Map((invitations || []).map((item) => [item.client_id, item]))
+
+  return clients.map((client) => {
+    const invitation = invitationByClientId.get(client.id)
+
+    return {
+      ...client,
+      invitation: invitation
+        ? {
+            token: invitation.token,
+            expiresAt: invitation.expires_at,
+            revokedAt: invitation.revoked_at,
+            updatedAt: invitation.updated_at,
+            inviteUrl: buildInviteUrl(client.id, invitation.token)
+          }
+        : null
+    }
+  })
+}
+
+// Regenerer le lien d'invitation d'un client
+export const regenerateInvitationLink = async (clientId) => {
+  if (!clientId) throw new Error('Client introuvable')
+  return upsertClientInvitation(clientId)
+}
+
+// Recuperer les informations publiques d'un client pour le quiz avec validation token
+export const getQuizClient = async (clientId, token) => {
+  if (!token) throw new Error("Lien d'invitation incomplet")
+
+  const { data: client, error: clientError } = await supabase
     .from('clients')
     .select('id, name, email, quiz_status, score, completed_at')
     .eq('id', clientId)
     .single()
 
-  if (error) throw error
-  return data
+  if (clientError) throw clientError
+
+  const { data: invitation, error: invitationError } = await supabase
+    .from('client_invitations')
+    .select('token, expires_at, revoked_at')
+    .eq('client_id', clientId)
+    .eq('token', token)
+    .maybeSingle()
+
+  if (invitationError) throw invitationError
+  if (!invitation) throw new Error("Lien d'invitation invalide")
+
+  if (invitation.revoked_at) {
+    throw new Error("Lien d'invitation revoque")
+  }
+
+  if (invitation.expires_at && new Date(invitation.expires_at).getTime() < Date.now()) {
+    throw new Error("Lien d'invitation expire")
+  }
+
+  return client
 }
 
 // Soumettre un quiz client (score + insights)
@@ -195,6 +296,11 @@ export const subscribeToAdvisorClients = (advisorId, onChange) => {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'client_insights' },
+      () => onChange()
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'client_invitations' },
       () => onChange()
     )
     .subscribe()

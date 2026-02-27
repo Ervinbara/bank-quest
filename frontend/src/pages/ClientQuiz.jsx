@@ -59,12 +59,16 @@ export default function ClientQuiz() {
   const progress = Math.round((answeredCount / totalQuestions) * 100)
 
   const loadClient = useCallback(async () => {
-    if (!clientId) return
+    if (!clientId || !token) {
+      setError("Lien d'invitation incomplet")
+      setLoadingClient(false)
+      return
+    }
 
     try {
       setLoadingClient(true)
       setError(null)
-      const data = await getQuizClient(clientId)
+      const data = await getQuizClient(clientId, token)
       setClient(data)
 
       if (data?.quiz_status === 'completed' && typeof data.score === 'number') {
@@ -80,7 +84,7 @@ export default function ClientQuiz() {
     } finally {
       setLoadingClient(false)
     }
-  }, [clientId])
+  }, [clientId, token])
 
   useEffect(() => {
     void loadClient()
@@ -235,11 +239,7 @@ export default function ClientQuiz() {
             </div>
           </div>
 
-          {token ? (
-            <p className="text-xs text-gray-500 mb-4">Invitation verifiee.</p>
-          ) : (
-            <p className="text-xs text-amber-700 mb-4">Lien sans token: acces autorise.</p>
-          )}
+          <p className="text-xs text-gray-500 mb-4">Invitation verifiee.</p>
 
           <button
             onClick={() => setStarted(true)}
