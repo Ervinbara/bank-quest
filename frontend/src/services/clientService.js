@@ -7,7 +7,10 @@ const generateInvitationToken = () => {
 }
 
 const normalizeEmail = (email) => (email || '').trim().toLowerCase()
-const buildInviteUrl = (clientId, token) => `${window.location.origin}/quiz/${clientId}?token=${token}`
+const buildInviteUrl = (clientId, token) => {
+  if (!clientId || !token) return `${window.location.origin}/quiz`
+  return `${window.location.origin}/quiz/${token}`
+}
 const buildLegacyToken = (clientId) => `legacy-${String(clientId).replaceAll('-', '')}`
 
 const isMissingInvitationsTableError = (error) => {
@@ -374,6 +377,48 @@ export const getQuizClient = async (clientId, token) => {
   }
 
   return client
+}
+
+// Recuperer les informations publiques d'un client pour le quiz avec token seul
+export const getQuizClientByToken = async (token) => {
+  if (!token) throw new Error("Lien d'invitation incomplet")
+
+  const { data: invitation, error: invitationError } = await supabase
+    .from('client_invitations')
+    .select('client_id, token, expires_at, revoked_at')
+    .eq('token', token)
+    .maybeSingle()
+
+  if (invitationError) {
+    if (isMissingInvitationsTableError(invitationError)) {
+      throw new Error("Lien d'invitation invalide")
+    }
+    throw invitationError
+  }
+
+  if (!invitation) throw new Error("Lien d'invitation invalide")
+  if (invitation.revoked_at) throw new Error("Lien d'invitation revoque")
+  if (invitation.expires_at && new Date(invitation.expires_at).getTime() < Date.now()) {
+    throw new Error("Lien d'invitation expire")
+  }
+
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, name, email, quiz_status, score, completed_at')
+    .eq('id', invitation.client_id)
+    .single()
+
+  if (clientError) throw clientError
+
+  return {
+    client,
+    invitation: {
+      clientId: invitation.client_id,
+      token: invitation.token,
+      expiresAt: invitation.expires_at,
+      revokedAt: invitation.revoked_at
+    }
+  }
 }
 
 // Soumettre un quiz client (score + insights)
