@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 const parseProviderOrder = () => {
-  const raw = Deno.env.get('EMAIL_PROVIDER_ORDER') || 'resend,sendgrid,mailgun,postmark'
+  const raw = Deno.env.get('EMAIL_PROVIDER_ORDER') || 'mailjet,brevo'
   return raw
     .split(',')
     .map((item) => item.trim().toLowerCase())
@@ -17,79 +17,44 @@ const parseProviderOrder = () => {
 const availableProviders = () => {
   const providers = new Map<string, (payload: any) => Promise<Response>>()
 
-  const resendKey = Deno.env.get('RESEND_API_KEY')
-  if (resendKey) {
-    providers.set('resend', async (payload) => {
-      return fetch('https://api.resend.com/emails', {
+  const mailjetApiKey = Deno.env.get('MAILJET_API_KEY')
+  const mailjetSecretKey = Deno.env.get('MAILJET_SECRET_KEY')
+  if (mailjetApiKey && mailjetSecretKey) {
+    providers.set('mailjet', async (payload) => {
+      return fetch('https://api.mailjet.com/v3.1/send', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${resendKey}`,
+          Authorization: `Basic ${btoa(`${mailjetApiKey}:${mailjetSecretKey}`)}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: payload.from,
-          to: [payload.to],
-          subject: payload.subject,
-          text: payload.body
+          Messages: [
+            {
+              From: { Email: payload.from },
+              To: [{ Email: payload.to }],
+              Subject: payload.subject,
+              TextPart: payload.body
+            }
+          ]
         })
       })
     })
   }
 
-  const sendgridKey = Deno.env.get('SENDGRID_API_KEY')
-  if (sendgridKey) {
-    providers.set('sendgrid', async (payload) => {
-      return fetch('https://api.sendgrid.com/v3/mail/send', {
+  const brevoKey = Deno.env.get('BREVO_API_KEY')
+  if (brevoKey) {
+    providers.set('brevo', async (payload) => {
+      return fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${sendgridKey}`,
+          'api-key': brevoKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          personalizations: [{ to: [{ email: payload.to }] }],
-          from: { email: payload.from },
+          sender: { email: payload.from },
+          to: [{ email: payload.to }],
           subject: payload.subject,
-          content: [{ type: 'text/plain', value: payload.body }]
-        })
-      })
-    })
-  }
-
-  const mailgunKey = Deno.env.get('MAILGUN_API_KEY')
-  const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
-  if (mailgunKey && mailgunDomain) {
-    providers.set('mailgun', async (payload) => {
-      const form = new URLSearchParams()
-      form.set('from', payload.from)
-      form.set('to', payload.to)
-      form.set('subject', payload.subject)
-      form.set('text', payload.body)
-
-      return fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${btoa(`api:${mailgunKey}`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: form.toString()
-      })
-    })
-  }
-
-  const postmarkKey = Deno.env.get('POSTMARK_SERVER_TOKEN')
-  if (postmarkKey) {
-    providers.set('postmark', async (payload) => {
-      return fetch('https://api.postmarkapp.com/email', {
-        method: 'POST',
-        headers: {
-          'X-Postmark-Server-Token': postmarkKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          From: payload.from,
-          To: payload.to,
-          Subject: payload.subject,
-          TextBody: payload.body
+          textContent: payload.body
         })
       })
     })
@@ -135,6 +100,15 @@ serve(async (req) => {
     }
 
     const finalOrder = order.filter((provider) => providers.has(provider))
+    if (finalOrder.length === 0) {
+      return json(
+        {
+          success: false,
+          error: "Aucun provider valide dans EMAIL_PROVIDER_ORDER. Utilisez 'mailjet,brevo'."
+        },
+        500
+      )
+    }
     const tried: Array<{ provider: string; status: number; response: string }> = []
 
     for (const provider of finalOrder) {
