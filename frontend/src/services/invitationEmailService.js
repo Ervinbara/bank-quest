@@ -116,6 +116,14 @@ export const sendInvitationEmail = async ({
     inviteLink
   })
 
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
+  }
+
   let data
   let error
 
@@ -145,6 +153,9 @@ export const sendInvitationEmail = async ({
 
   try {
     const response = await supabase.functions.invoke('send-invitation-email', {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      },
       body: {
         toEmail,
         clientName,
