@@ -8,6 +8,15 @@ const generateInvitationToken = () => {
 
 const normalizeEmail = (email) => (email || '').trim().toLowerCase()
 const buildInviteUrl = (clientId, token) => `${window.location.origin}/quiz/${clientId}?token=${token}`
+const buildLegacyToken = (clientId) => `legacy-${String(clientId).replaceAll('-', '')}`
+
+const isMissingInvitationsTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_invitations'") ||
+    message.includes('relation "public.client_invitations" does not exist')
+  )
+}
 
 const upsertClientInvitation = async (clientId) => {
   const token = generateInvitationToken()
@@ -29,13 +38,26 @@ const upsertClientInvitation = async (clientId) => {
     .select('*')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (isMissingInvitationsTableError(error)) {
+      const legacyToken = buildLegacyToken(clientId)
+      return {
+        token: legacyToken,
+        expiresAt: null,
+        updatedAt: new Date().toISOString(),
+        inviteUrl: buildInviteUrl(clientId, legacyToken),
+        legacyMode: true
+      }
+    }
+    throw error
+  }
 
   return {
     token: data.token,
     expiresAt: data.expires_at,
     updatedAt: data.updated_at,
-    inviteUrl: buildInviteUrl(clientId, data.token)
+    inviteUrl: buildInviteUrl(clientId, data.token),
+    legacyMode: false
   }
 }
 
@@ -154,7 +176,8 @@ export const createClientInvitation = async ({ advisorId, name, email }) => {
     token: invitation.token,
     inviteUrl: invitation.inviteUrl,
     expiresAt: invitation.expiresAt,
-    updatedAt: invitation.updatedAt
+    updatedAt: invitation.updatedAt,
+    legacyMode: invitation.legacyMode
   }
 }
 
@@ -178,11 +201,27 @@ export const getAdvisorInvitationLinks = async (advisorId) => {
     .select('client_id, token, expires_at, revoked_at, updated_at')
     .in('client_id', clientIds)
 
-  if (invitationsError) throw invitationsError
+  if (invitationsError && !isMissingInvitationsTableError(invitationsError)) throw invitationsError
 
   const invitationByClientId = new Map((invitations || []).map((item) => [item.client_id, item]))
+  const useLegacyMode = !!invitationsError && isMissingInvitationsTableError(invitationsError)
 
   return clients.map((client) => {
+    if (useLegacyMode) {
+      const legacyToken = buildLegacyToken(client.id)
+      return {
+        ...client,
+        invitation: {
+          token: legacyToken,
+          expiresAt: null,
+          revokedAt: null,
+          updatedAt: client.created_at,
+          inviteUrl: buildInviteUrl(client.id, legacyToken),
+          legacyMode: true
+        }
+      }
+    }
+
     const invitation = invitationByClientId.get(client.id)
 
     return {
@@ -193,7 +232,8 @@ export const getAdvisorInvitationLinks = async (advisorId) => {
             expiresAt: invitation.expires_at,
             revokedAt: invitation.revoked_at,
             updatedAt: invitation.updated_at,
-            inviteUrl: buildInviteUrl(client.id, invitation.token)
+            inviteUrl: buildInviteUrl(client.id, invitation.token),
+            legacyMode: false
           }
         : null
     }
@@ -225,7 +265,16 @@ export const getQuizClient = async (clientId, token) => {
     .eq('token', token)
     .maybeSingle()
 
-  if (invitationError) throw invitationError
+  if (invitationError) {
+    if (isMissingInvitationsTableError(invitationError)) {
+      const legacyToken = buildLegacyToken(clientId)
+      if (token !== legacyToken) {
+        throw new Error("Lien d'invitation invalide")
+      }
+      return client
+    }
+    throw invitationError
+  }
   if (!invitation) throw new Error("Lien d'invitation invalide")
 
   if (invitation.revoked_at) {
