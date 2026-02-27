@@ -126,6 +126,59 @@ export const createClientInvitation = async ({ advisorId, name, email }) => {
   }
 }
 
+// Recuperer les informations publiques d'un client pour le quiz
+export const getQuizClient = async (clientId) => {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, email, quiz_status, score, completed_at')
+    .eq('id', clientId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Soumettre un quiz client (score + insights)
+export const submitClientQuizResult = async ({ clientId, score, strengths, weaknesses }) => {
+  if (!clientId) throw new Error('Client introuvable')
+
+  const { data: updatedClient, error: updateError } = await supabase
+    .from('clients')
+    .update({
+      quiz_status: 'completed',
+      score,
+      completed_at: new Date().toISOString()
+    })
+    .eq('id', clientId)
+    .select('*')
+    .single()
+
+  if (updateError) throw updateError
+
+  const { error: deleteError } = await supabase.from('client_insights').delete().eq('client_id', clientId)
+  if (deleteError) throw deleteError
+
+  const insightsPayload = [
+    ...(strengths || []).map((concept) => ({
+      client_id: clientId,
+      type: 'strength',
+      concept
+    })),
+    ...(weaknesses || []).map((concept) => ({
+      client_id: clientId,
+      type: 'weakness',
+      concept
+    }))
+  ]
+
+  if (insightsPayload.length > 0) {
+    const { error: insertError } = await supabase.from('client_insights').insert(insightsPayload)
+    if (insertError) throw insertError
+  }
+
+  return updatedClient
+}
+
 // S'abonner aux changements clients/insights d'un conseiller
 export const subscribeToAdvisorClients = (advisorId, onChange) => {
   if (!advisorId || typeof onChange !== 'function') {

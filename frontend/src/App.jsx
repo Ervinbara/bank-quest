@@ -6,6 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import Home from './pages/Home'
 import Demo from './pages/Demo'
 import NotFound from './pages/NotFound'
+import ClientQuiz from './pages/ClientQuiz'
 
 // Pages d'authentification
 import Login from './pages/Auth/Login'
@@ -28,6 +29,7 @@ function App() {
           {/* Routes publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/demo" element={<Demo />} />
+          <Route path="/quiz/:clientId" element={<ClientQuiz />} />
           
           {/* Routes d'authentification */}
           <Route path="/auth/login" element={<Login />} />
