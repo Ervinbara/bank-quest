@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { deleteClient, getClientById, updateClient } from '@/services/clientService'
+import { deleteClient, getClientById, updateClient, updateClientFollowup } from '@/services/clientService'
 import { isValidEmail } from '@/services/authService'
 import {
   ArrowLeft,
@@ -13,8 +13,16 @@ import {
   Loader2,
   Save,
   Trash2,
-  Pencil
+  Pencil,
+  PhoneCall
 } from 'lucide-react'
+
+const FOLLOWUP_OPTIONS = [
+  { key: 'a_contacter', label: 'A contacter' },
+  { key: 'rdv_planifie', label: 'RDV planifie' },
+  { key: 'en_cours', label: 'En cours' },
+  { key: 'clos', label: 'Clos' }
+]
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -45,10 +53,15 @@ export default function ClientDetail() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [updatingFollowup, setUpdatingFollowup] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     avatar: ''
+  })
+  const [followupData, setFollowupData] = useState({
+    followupStatus: 'a_contacter',
+    advisorNotes: ''
   })
 
   const loadClient = useCallback(async () => {
@@ -63,6 +76,10 @@ export default function ClientDetail() {
         name: data?.name || '',
         email: data?.email || '',
         avatar: data?.avatar || '👤'
+      })
+      setFollowupData({
+        followupStatus: data?.followup_status || 'a_contacter',
+        advisorNotes: data?.advisor_notes || ''
       })
     } catch (err) {
       console.error('Erreur chargement client:', err)
@@ -112,6 +129,27 @@ export default function ClientDetail() {
       setError(err.message || 'Impossible de mettre a jour le client')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSaveFollowup = async (markContacted = false) => {
+    if (!client?.id || !advisor?.id) return
+
+    try {
+      setUpdatingFollowup(true)
+      setError(null)
+      await updateClientFollowup({
+        clientId: client.id,
+        advisorId: advisor.id,
+        followupStatus: followupData.followupStatus,
+        advisorNotes: followupData.advisorNotes,
+        markContacted
+      })
+      await loadClient()
+    } catch (err) {
+      setError(err.message || 'Impossible de mettre a jour le suivi')
+    } finally {
+      setUpdatingFollowup(false)
     }
   }
 
@@ -281,6 +319,62 @@ export default function ClientDetail() {
               </div>
             </div>
           ) : null}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+            <h3 className="font-bold text-blue-900">Suivi commercial</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-blue-900 mb-2">Statut</label>
+                <select
+                  value={followupData.followupStatus}
+                  onChange={(event) =>
+                    setFollowupData((prev) => ({ ...prev, followupStatus: event.target.value }))
+                  }
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-500"
+                >
+                  {FOLLOWUP_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-2">Dernier contact</p>
+                <p>{client.last_contacted_at ? formatDate(client.last_contacted_at) : 'Aucun contact enregistre'}</p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-blue-900 mb-2">Notes conseiller</label>
+              <textarea
+                rows={4}
+                value={followupData.advisorNotes}
+                onChange={(event) =>
+                  setFollowupData((prev) => ({ ...prev, advisorNotes: event.target.value }))
+                }
+                placeholder="Ajoutez un contexte, une relance, un compte-rendu de rendez-vous..."
+                className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                onClick={() => void handleSaveFollowup(false)}
+                disabled={updatingFollowup}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 text-blue-800 font-semibold hover:bg-blue-100 transition disabled:opacity-60"
+              >
+                {updatingFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Sauvegarder suivi
+              </button>
+              <button
+                onClick={() => void handleSaveFollowup(true)}
+                disabled={updatingFollowup}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              >
+                {updatingFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <PhoneCall className="w-4 h-4" />}
+                Marquer comme contacte
+              </button>
+            </div>
+          </div>
 
           {isCompleted ? (
             <div className="bg-gray-50 rounded-xl p-6 text-center">

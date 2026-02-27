@@ -84,7 +84,7 @@ export const getAdvisorClients = async (advisorId) => {
 export const getAdvisorStats = async (advisorId) => {
   const { data: clients, error } = await supabase
     .from('clients')
-    .select('id, quiz_status, score')
+    .select('id, quiz_status, score, followup_status')
     .eq('advisor_id', advisorId)
 
   if (error) throw error
@@ -93,6 +93,9 @@ export const getAdvisorStats = async (advisorId) => {
     totalClients: clients.length,
     completed: clients.filter(c => c.quiz_status === 'completed').length,
     pending: clients.filter(c => c.quiz_status === 'pending').length,
+    toContact: clients.filter(c => c.followup_status === 'a_contacter').length,
+    inProgress: clients.filter(c => ['rdv_planifie', 'en_cours'].includes(c.followup_status)).length,
+    closed: clients.filter(c => c.followup_status === 'clos').length,
     avgScore: clients.length > 0
       ? Math.round(
           clients
@@ -155,6 +158,37 @@ export const updateClient = async ({ clientId, advisorId, name, email, avatar })
       email: cleanedEmail,
       avatar: cleanedAvatar
     })
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Mettre a jour le suivi commercial du client
+export const updateClientFollowup = async ({ clientId, advisorId, followupStatus, advisorNotes, markContacted }) => {
+  if (!clientId) throw new Error('Client introuvable')
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const payload = {}
+
+  if (followupStatus) {
+    payload.followup_status = followupStatus
+  }
+
+  if (typeof advisorNotes === 'string') {
+    payload.advisor_notes = advisorNotes
+  }
+
+  if (markContacted) {
+    payload.last_contacted_at = new Date().toISOString()
+  }
+
+  const { data, error } = await supabase
+    .from('clients')
+    .update(payload)
     .eq('id', clientId)
     .eq('advisor_id', advisorId)
     .select('*')

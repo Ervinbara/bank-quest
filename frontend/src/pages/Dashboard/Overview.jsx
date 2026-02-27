@@ -87,6 +87,17 @@ export default function Overview() {
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">Clients a contacter</p>
+          <p className="text-3xl font-bold text-amber-700">{stats?.toContact || 0}</p>
+        </div>
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-900">Suivis en cours</p>
+          <p className="text-3xl font-bold text-blue-700">{stats?.inProgress || 0}</p>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
