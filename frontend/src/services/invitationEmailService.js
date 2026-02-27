@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import { FunctionsHttpError } from '@supabase/supabase-js'
 
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
@@ -120,6 +119,30 @@ export const sendInvitationEmail = async ({
   let data
   let error
 
+  const extractFunctionErrorMessage = async (fnError, fallbackMessage) => {
+    const context = fnError?.context
+    if (!context) return fnError?.message || fallbackMessage
+
+    try {
+      const clone = context.clone ? context.clone() : context
+      const asJson = await clone.json()
+      return asJson?.error || asJson?.message || fnError?.message || fallbackMessage
+    } catch {
+      try {
+        const asText = await context.text()
+        if (!asText) return fnError?.message || fallbackMessage
+        try {
+          const parsed = JSON.parse(asText)
+          return parsed?.error || parsed?.message || fnError?.message || fallbackMessage
+        } catch {
+          return asText
+        }
+      } catch {
+        return fnError?.message || fallbackMessage
+      }
+    }
+  }
+
   try {
     const response = await supabase.functions.invoke('send-invitation-email', {
       body: {
@@ -135,28 +158,16 @@ export const sendInvitationEmail = async ({
     data = response.data
     error = response.error
   } catch (invokeError) {
-    if (invokeError instanceof FunctionsHttpError) {
-      const context = invokeError.context
-      try {
-        const body = await context.json()
-        throw new Error(body?.error || "Echec de l'envoi email")
-      } catch {
-        throw new Error("Edge Function non disponible ou mal configuree")
-      }
-    }
-    throw invokeError
+    const details = await extractFunctionErrorMessage(
+      invokeError,
+      "Edge Function non disponible ou mal configuree"
+    )
+    throw new Error(details)
   }
 
   if (error) {
-    if (error instanceof FunctionsHttpError) {
-      try {
-        const body = await error.context.json()
-        throw new Error(body?.error || "Echec de l'envoi email")
-      } catch {
-        throw new Error(error.message || "Echec de l'envoi email")
-      }
-    }
-    throw new Error(error.message || "Echec de l'envoi email")
+    const details = await extractFunctionErrorMessage(error, "Echec de l'envoi email")
+    throw new Error(details)
   }
 
   if (!data?.success) {
