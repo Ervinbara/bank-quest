@@ -5,7 +5,14 @@ import {
   regenerateInvitationLink,
   subscribeToAdvisorClients
 } from '@/services/clientService'
-import { Loader2, Copy, RefreshCw, CheckCircle2, Link2 } from 'lucide-react'
+import {
+  DEFAULT_EMAIL_TEMPLATE,
+  INVITE_LINK_PLACEHOLDER,
+  getAdvisorEmailTemplate,
+  saveAdvisorEmailTemplate,
+  sendInvitationEmail
+} from '@/services/invitationEmailService'
+import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save } from 'lucide-react'
 
 const formatDate = (dateString) => {
   if (!dateString) return '-'
@@ -25,6 +32,10 @@ export default function Invitations() {
   const [error, setError] = useState(null)
   const [copyState, setCopyState] = useState('')
   const [regeneratingId, setRegeneratingId] = useState('')
+  const [sendingId, setSendingId] = useState('')
+  const [templateSaving, setTemplateSaving] = useState(false)
+  const [templateMessage, setTemplateMessage] = useState('')
+  const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
 
   const loadInvitations = useCallback(async () => {
     if (!advisor?.id) return
@@ -42,9 +53,22 @@ export default function Invitations() {
     }
   }, [advisor?.id])
 
+  const loadTemplate = useCallback(async () => {
+    if (!advisor?.id) return
+
+    try {
+      const data = await getAdvisorEmailTemplate(advisor.id)
+      setTemplate(data || DEFAULT_EMAIL_TEMPLATE)
+    } catch {
+      console.warn('Template indisponible, fallback par defaut')
+      setTemplate(DEFAULT_EMAIL_TEMPLATE)
+    }
+  }, [advisor?.id])
+
   useEffect(() => {
     void loadInvitations()
-  }, [loadInvitations])
+    void loadTemplate()
+  }, [loadInvitations, loadTemplate])
 
   useEffect(() => {
     if (!advisor?.id) return undefined
@@ -54,10 +78,7 @@ export default function Invitations() {
     return unsubscribe
   }, [advisor?.id, loadInvitations])
 
-  const pendingRows = useMemo(
-    () => rows.filter((row) => row.quiz_status !== 'completed'),
-    [rows]
-  )
+  const pendingRows = useMemo(() => rows.filter((row) => row.quiz_status !== 'completed'), [rows])
 
   const copyLink = async (row) => {
     if (!row?.invitation?.inviteUrl) return
@@ -84,6 +105,45 @@ export default function Invitations() {
     }
   }
 
+  const sendEmailForRow = async (row) => {
+    if (!row?.invitation?.inviteUrl) return
+
+    try {
+      setSendingId(row.id)
+      setError(null)
+      await sendInvitationEmail({
+        toEmail: row.email,
+        clientName: row.name,
+        advisorName: advisor?.name || 'Votre conseiller',
+        advisorEmail: advisor?.email || '',
+        inviteLink: row.invitation.inviteUrl,
+        template
+      })
+      setTemplateMessage(`Email envoye a ${row.email}`)
+      setTimeout(() => setTemplateMessage(''), 1800)
+    } catch (err) {
+      setError(err.message || "Impossible d'envoyer l'email d'invitation")
+    } finally {
+      setSendingId('')
+    }
+  }
+
+  const saveTemplate = async () => {
+    try {
+      setTemplateSaving(true)
+      setError(null)
+      setTemplateMessage('')
+      const saved = await saveAdvisorEmailTemplate(advisor.id, template)
+      setTemplate(saved)
+      setTemplateMessage('Template email enregistre')
+      setTimeout(() => setTemplateMessage(''), 2200)
+    } catch (err) {
+      setError(err.message || "Impossible d'enregistrer le template")
+    } finally {
+      setTemplateSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -104,6 +164,45 @@ export default function Invitations() {
             {pendingRows.length} invitation{pendingRows.length > 1 ? 's' : ''} active
             {pendingRows.length > 1 ? 's' : ''}
           </p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Template email d'invitation</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Objet</label>
+            <input
+              type="text"
+              value={template.subject}
+              onChange={(event) => setTemplate((prev) => ({ ...prev, subject: event.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+            <textarea
+              rows={8}
+              value={template.body}
+              onChange={(event) => setTemplate((prev) => ({ ...prev, body: event.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+            />
+            <p className="text-xs text-gray-600 mt-2">
+              Placeholders disponibles: {'{{client_name}}'}, {'{{advisor_name}}'}, {'{{advisor_email}}'} et{' '}
+              <strong>{INVITE_LINK_PLACEHOLDER}</strong> (obligatoire).
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={saveTemplate}
+              disabled={templateSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+            >
+              {templateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Enregistrer le template
+            </button>
+            {templateMessage ? <p className="text-sm text-green-700 font-semibold">{templateMessage}</p> : null}
+          </div>
         </div>
       </div>
 
@@ -162,6 +261,18 @@ export default function Invitations() {
                         >
                           {copyState === row.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           {copyState === row.id ? 'Copie' : 'Copier'}
+                        </button>
+                        <button
+                          onClick={() => sendEmailForRow(row)}
+                          disabled={sendingId === row.id || !row.invitation?.inviteUrl}
+                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-purple-300 text-purple-700 font-semibold hover:bg-purple-50 transition disabled:opacity-50"
+                        >
+                          {sendingId === row.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                          Envoyer mail
                         </button>
                         <button
                           onClick={() => regenerate(row)}

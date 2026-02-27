@@ -1,21 +1,53 @@
-import { useMemo, useState } from 'react'
-import { X, Loader2, Copy, CheckCircle2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { X, Loader2, Copy, CheckCircle2, Send } from 'lucide-react'
 import { isValidEmail } from '@/services/authService'
 import { createClientInvitation } from '@/services/clientService'
+import {
+  DEFAULT_EMAIL_TEMPLATE,
+  getAdvisorEmailTemplate,
+  sendInvitationEmail
+} from '@/services/invitationEmailService'
 
-export default function InviteClientModal({ isOpen, advisorId, onClose, onInvited }) {
+export default function InviteClientModal({
+  isOpen,
+  advisorId,
+  advisorName,
+  advisorEmail,
+  onClose,
+  onInvited
+}) {
   const [formData, setFormData] = useState({
     name: '',
     email: ''
   })
   const [loading, setLoading] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
   const [error, setError] = useState(null)
   const [createdInvitation, setCreatedInvitation] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+  const [autoSendEmail, setAutoSendEmail] = useState(true)
+  const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
 
   const isFormValid = useMemo(() => {
     return formData.name.trim().length > 1 && isValidEmail(formData.email)
   }, [formData.email, formData.name])
+
+  useEffect(() => {
+    if (!isOpen || !advisorId) return
+
+    const loadTemplate = async () => {
+      try {
+        const loaded = await getAdvisorEmailTemplate(advisorId)
+        setTemplate(loaded || DEFAULT_EMAIL_TEMPLATE)
+      } catch {
+        console.warn('Template email indisponible, fallback par defaut')
+        setTemplate(DEFAULT_EMAIL_TEMPLATE)
+      }
+    }
+
+    void loadTemplate()
+  }, [isOpen, advisorId])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -26,10 +58,40 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
   const closeAndReset = () => {
     setFormData({ name: '', email: '' })
     setLoading(false)
+    setSendingEmail(false)
     setError(null)
     setCreatedInvitation(null)
     setCopied(false)
+    setEmailSent(false)
+    setAutoSendEmail(true)
     onClose()
+  }
+
+  const sendEmailNow = async (invitation, useCurrentFormValues = false) => {
+    if (!invitation?.inviteUrl) return
+
+    const toEmail = useCurrentFormValues ? formData.email : invitation.client?.email || formData.email
+    const clientName = useCurrentFormValues ? formData.name : invitation.client?.name || formData.name
+
+    try {
+      setSendingEmail(true)
+      setError(null)
+
+      await sendInvitationEmail({
+        toEmail,
+        clientName,
+        advisorName: advisorName || 'Votre conseiller',
+        advisorEmail: advisorEmail || '',
+        inviteLink: invitation.inviteUrl,
+        template
+      })
+
+      setEmailSent(true)
+    } catch (err) {
+      setError(err.message || "Impossible d'envoyer l'email d'invitation")
+    } finally {
+      setSendingEmail(false)
+    }
   }
 
   const handleSubmit = async (event) => {
@@ -39,13 +101,20 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
     try {
       setLoading(true)
       setError(null)
+      setEmailSent(false)
+
       const invitation = await createClientInvitation({
         advisorId,
         name: formData.name,
         email: formData.email
       })
+
       setCreatedInvitation(invitation)
       if (typeof onInvited === 'function') onInvited(invitation)
+
+      if (autoSendEmail) {
+        await sendEmailNow(invitation, true)
+      }
     } catch (err) {
       setError(err.message || "Impossible de creer l'invitation")
     } finally {
@@ -83,7 +152,7 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
                 <div>
                   <h3 className="text-xl font-bold">Inviter un client</h3>
                   <p className="text-purple-100 text-sm mt-1">
-                    Creez un client et generez son lien d'acces au quiz.
+                    Creez un client, obtenez son lien et envoyez un email automatiquement.
                   </p>
                 </div>
                 <button
@@ -127,6 +196,16 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
                 />
               </div>
 
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={autoSendEmail}
+                  onChange={(event) => setAutoSendEmail(event.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600"
+                />
+                Envoyer automatiquement un email au client
+              </label>
+
               {error ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
                   {error}
@@ -162,7 +241,7 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Invitation creee</h3>
                   <p className="text-sm text-gray-600">
-                    Client cree avec succes. Partagez maintenant le lien.
+                    Lien genere. Vous pouvez copier le lien et/ou envoyer un email.
                   </p>
                 </div>
               </div>
@@ -185,6 +264,12 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
               ) : null}
             </div>
 
+            {emailSent ? (
+              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 mb-4">
+                Email d'invitation envoye avec succes.
+              </div>
+            ) : null}
+
             {error ? (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 mb-4">
                 {error}
@@ -202,10 +287,19 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
               <button
                 type="button"
                 onClick={copyInviteLink}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
               >
                 <Copy className="w-4 h-4" />
                 {copied ? 'Lien copie' : 'Copier le lien'}
+              </button>
+              <button
+                type="button"
+                onClick={() => sendEmailNow(createdInvitation)}
+                disabled={sendingEmail}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition disabled:opacity-60"
+              >
+                {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Envoyer le mail
               </button>
             </div>
           </div>

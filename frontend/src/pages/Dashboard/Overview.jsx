@@ -168,6 +168,8 @@ export default function Overview() {
       <InviteClientModal
         isOpen={inviteModalOpen}
         advisorId={advisor?.id}
+        advisorName={advisor?.name}
+        advisorEmail={advisor?.email}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
           void loadStats()

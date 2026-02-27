@@ -183,6 +183,8 @@ export default function Clients() {
       <InviteClientModal
         isOpen={inviteModalOpen}
         advisorId={advisor?.id}
+        advisorName={advisor?.name}
+        advisorEmail={advisor?.email}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
           void loadClients()
