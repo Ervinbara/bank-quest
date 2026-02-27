@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getAdvisorStats } from '@/services/clientService'
+import { getAdvisorStats, subscribeToAdvisorClients } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import { Users, CheckCircle, Clock, TrendingUp, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -11,13 +11,9 @@ export default function Overview() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    if (advisor?.id) {
-      loadStats()
-    }
-  }, [advisor])
+  const loadStats = useCallback(async () => {
+    if (!advisor?.id) return
 
-  const loadStats = async () => {
     try {
       setLoading(true)
       setError(null)
@@ -29,7 +25,21 @@ export default function Overview() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [advisor?.id])
+
+  useEffect(() => {
+    void loadStats()
+  }, [loadStats])
+
+  useEffect(() => {
+    if (!advisor?.id) return undefined
+
+    const unsubscribe = subscribeToAdvisorClients(advisor.id, () => {
+      void loadStats()
+    })
+
+    return unsubscribe
+  }, [advisor?.id, loadStats])
 
   // Loading state
   if (loading) {

@@ -64,6 +64,31 @@ export const getClientById = async (clientId) => {
   return data
 }
 
+// S'abonner aux changements clients/insights d'un conseiller
+export const subscribeToAdvisorClients = (advisorId, onChange) => {
+  if (!advisorId || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel(`advisor-clients-${advisorId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'clients', filter: `advisor_id=eq.${advisorId}` },
+      () => onChange()
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'client_insights' },
+      () => onChange()
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
 const formatMonthKey = (date) => {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
