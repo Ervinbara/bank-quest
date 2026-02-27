@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientService'
 import ClientCard from '@/components/Dashboard/ClientCard'
+import InviteClientModal from '@/components/Dashboard/InviteClientModal'
 import { Loader2, Users, UserPlus, ListFilter } from 'lucide-react'
 
 const FILTERS = [
@@ -17,6 +18,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
@@ -106,7 +108,11 @@ export default function Clients() {
             {filteredClients.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition">
+
+        <button
+          onClick={() => setInviteModalOpen(true)}
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+        >
           <UserPlus className="w-4 h-4" />
           Inviter un client
         </button>
@@ -147,7 +153,10 @@ export default function Clients() {
               : 'Essayez un autre filtre pour afficher des clients.'}
           </p>
           {clients.length === 0 ? (
-            <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
+            >
               Inviter mon premier client
             </button>
           ) : null}
@@ -170,6 +179,15 @@ export default function Clients() {
           ))}
         </div>
       )}
+
+      <InviteClientModal
+        isOpen={inviteModalOpen}
+        advisorId={advisor?.id}
+        onClose={() => setInviteModalOpen(false)}
+        onInvited={() => {
+          void loadClients()
+        }}
+      />
     </div>
   )
 }

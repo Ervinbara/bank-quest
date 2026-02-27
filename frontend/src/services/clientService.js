@@ -1,5 +1,13 @@
 import { supabase } from '@/lib/supabase'
 
+const generateInvitationToken = () => {
+  const array = new Uint8Array(16)
+  window.crypto.getRandomValues(array)
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+const normalizeEmail = (email) => (email || '').trim().toLowerCase()
+
 // Récupérer tous les clients d'un conseiller
 export const getAdvisorClients = async (advisorId) => {
   const { data, error } = await supabase
@@ -62,6 +70,60 @@ export const getClientById = async (clientId) => {
 
   if (error) throw error
   return data
+}
+
+// Creer une invitation client (creation en base + token de partage)
+export const createClientInvitation = async ({ advisorId, name, email }) => {
+  const cleanedName = (name || '').trim()
+  const cleanedEmail = normalizeEmail(email)
+
+  if (!advisorId) {
+    throw new Error('Conseiller introuvable')
+  }
+
+  if (!cleanedName) {
+    throw new Error('Le nom du client est requis')
+  }
+
+  if (!cleanedEmail) {
+    throw new Error("L'email du client est requis")
+  }
+
+  const { data: existingClient, error: existingError } = await supabase
+    .from('clients')
+    .select('id, name, email, quiz_status')
+    .eq('advisor_id', advisorId)
+    .eq('email', cleanedEmail)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (existingClient) {
+    throw new Error('Un client avec cet email existe deja')
+  }
+
+  const { data: client, error } = await supabase
+    .from('clients')
+    .insert([
+      {
+        advisor_id: advisorId,
+        name: cleanedName,
+        email: cleanedEmail,
+        quiz_status: 'pending'
+      }
+    ])
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const token = generateInvitationToken()
+  const inviteUrl = `${window.location.origin}/quiz/${client.id}?token=${token}`
+
+  return {
+    client,
+    token,
+    inviteUrl
+  }
 }
 
 // S'abonner aux changements clients/insights d'un conseiller
