@@ -100,7 +100,7 @@ export default function Overview() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Actions rapides</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
           <button
             onClick={() => setInviteModalOpen(true)}
             className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-all text-left"
@@ -126,6 +126,15 @@ export default function Overview() {
             <div className="text-2xl mb-2">Analytics</div>
             <h4 className="font-semibold text-gray-800">Analytics avancees</h4>
             <p className="text-sm text-gray-600">Analysez les tendances clients</p>
+          </Link>
+
+          <Link
+            to="/dashboard/questionnaires"
+            className="p-4 border-2 border-emerald-200 rounded-lg hover:border-emerald-600 hover:bg-emerald-50 transition-all text-left block"
+          >
+            <div className="text-2xl mb-2">Quiz</div>
+            <h4 className="font-semibold text-gray-800">Questionnaires</h4>
+            <p className="text-sm text-gray-600">Templates et banque de questions</p>
           </Link>
 
           <Link

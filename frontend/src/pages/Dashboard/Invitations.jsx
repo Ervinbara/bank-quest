@@ -226,6 +226,7 @@ export default function Invitations() {
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Client</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Lien</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Questionnaire</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Expire le</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-700">Maj</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
@@ -245,6 +246,9 @@ export default function Invitations() {
                           Mode compatibilite actif: migration Supabase requise pour une regeneration unique.
                         </p>
                       ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {row.invitation?.questionnaireName || 'Questionnaire standard'}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}

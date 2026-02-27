@@ -81,6 +81,8 @@ export default function ClientQuiz() {
   const queryToken = searchParams.get('token')
 
   const [client, setClient] = useState(null)
+  const [quizQuestions, setQuizQuestions] = useState(clientQuizQuestions)
+  const [questionnaireName, setQuestionnaireName] = useState('Questionnaire standard')
   const [resolvedClientId, setResolvedClientId] = useState('')
   const [resolvedToken, setResolvedToken] = useState('')
   const [loadingClient, setLoadingClient] = useState(true)
@@ -92,8 +94,8 @@ export default function ClientQuiz() {
   const [saving, setSaving] = useState(false)
   const [completedResult, setCompletedResult] = useState(null)
 
-  const currentQuestion = clientQuizQuestions[currentIndex]
-  const totalQuestions = clientQuizQuestions.length
+  const currentQuestion = quizQuestions[currentIndex]
+  const totalQuestions = quizQuestions.length
   const answeredCount = Object.keys(answers).length
   const progress = Math.round((answeredCount / totalQuestions) * 100)
 
@@ -115,14 +117,44 @@ export default function ClientQuiz() {
       // Compatibilite: ancien format /quiz/:clientId?token=... + nouveau /quiz/:token
       if (queryToken) {
         const data = await getQuizClient(routeValue, queryToken)
-        resolvedClient = data
+        resolvedClient = data.client || data
         clientId = routeValue
         token = queryToken
+        const invitationQuestionnaire = data.invitation?.questionnaire
+        if (invitationQuestionnaire?.questions?.length > 0) {
+          setQuizQuestions(
+            invitationQuestionnaire.questions.map((question, index) => ({
+              id: question.id || `q-${index}`,
+              concept: question.concept || 'General',
+              prompt: question.prompt || question.questionText || '',
+              options: question.options || []
+            }))
+          )
+          setQuestionnaireName(invitationQuestionnaire.name || 'Questionnaire personnalise')
+        } else {
+          setQuizQuestions(clientQuizQuestions)
+          setQuestionnaireName('Questionnaire standard')
+        }
       } else {
         const data = await getQuizClientByToken(routeValue)
         resolvedClient = data.client
         clientId = data.invitation.clientId
         token = data.invitation.token
+        const invitationQuestionnaire = data.invitation?.questionnaire
+        if (invitationQuestionnaire?.questions?.length > 0) {
+          setQuizQuestions(
+            invitationQuestionnaire.questions.map((question, index) => ({
+              id: question.id || `q-${index}`,
+              concept: question.concept || 'General',
+              prompt: question.prompt || question.questionText || '',
+              options: question.options || []
+            }))
+          )
+          setQuestionnaireName(invitationQuestionnaire.name || 'Questionnaire personnalise')
+        } else {
+          setQuizQuestions(clientQuizQuestions)
+          setQuestionnaireName('Questionnaire standard')
+        }
       }
 
       setClient(resolvedClient)
@@ -222,7 +254,7 @@ export default function ClientQuiz() {
       setError(null)
       const totalPoints = Object.values(answers).reduce((sum, value) => sum + value, 0)
       const score = Math.round((totalPoints / (totalQuestions * 5)) * 100)
-      const insights = buildInsights(clientQuizQuestions, answers)
+      const insights = buildInsights(quizQuestions, answers)
 
       await submitClientQuizResult({
         clientId: resolvedClientId,
@@ -347,6 +379,9 @@ export default function ClientQuiz() {
             </div>
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
               <p className="font-semibold text-gray-800">{totalQuestions} questions</p>
+            </div>
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+              <p className="font-semibold text-gray-800">{questionnaireName}</p>
             </div>
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
               <p className="font-semibold text-gray-800">Aucune bonne ou mauvaise reponse absolue</p>

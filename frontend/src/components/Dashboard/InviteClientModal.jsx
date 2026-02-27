@@ -7,6 +7,7 @@ import {
   getAdvisorEmailTemplate,
   sendInvitationEmail
 } from '@/services/invitationEmailService'
+import { getAdvisorQuestionnaires } from '@/services/questionnaireService'
 
 export default function InviteClientModal({
   isOpen,
@@ -28,6 +29,8 @@ export default function InviteClientModal({
   const [emailSent, setEmailSent] = useState(false)
   const [autoSendEmail, setAutoSendEmail] = useState(true)
   const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
+  const [questionnaires, setQuestionnaires] = useState([])
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState('')
 
   const isFormValid = useMemo(() => {
     return formData.name.trim().length > 1 && isValidEmail(formData.email)
@@ -46,7 +49,21 @@ export default function InviteClientModal({
       }
     }
 
+    const loadQuestionnaires = async () => {
+      try {
+        const data = await getAdvisorQuestionnaires(advisorId)
+        setQuestionnaires(data || [])
+        const defaultQuestionnaire = (data || []).find((item) => item.is_default) || data?.[0]
+        setSelectedQuestionnaireId(defaultQuestionnaire?.id || '')
+      } catch (err) {
+        console.error('Erreur chargement questionnaires:', err)
+        setQuestionnaires([])
+        setSelectedQuestionnaireId('')
+      }
+    }
+
     void loadTemplate()
+    void loadQuestionnaires()
   }, [isOpen, advisorId])
 
   const handleChange = (event) => {
@@ -64,6 +81,7 @@ export default function InviteClientModal({
     setCopied(false)
     setEmailSent(false)
     setAutoSendEmail(true)
+    setSelectedQuestionnaireId('')
     onClose()
   }
 
@@ -106,7 +124,8 @@ export default function InviteClientModal({
       const invitation = await createClientInvitation({
         advisorId,
         name: formData.name,
-        email: formData.email
+        email: formData.email,
+        questionnaireId: selectedQuestionnaireId || null
       })
 
       setCreatedInvitation(invitation)
@@ -206,6 +225,23 @@ export default function InviteClientModal({
                 Envoyer automatiquement un email au client
               </label>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Questionnaire a envoyer</label>
+                <select
+                  value={selectedQuestionnaireId}
+                  onChange={(event) => setSelectedQuestionnaireId(event.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 bg-white"
+                >
+                  {questionnaires.length === 0 ? <option value="">Questionnaire standard</option> : null}
+                  {questionnaires.map((questionnaire) => (
+                    <option key={questionnaire.id} value={questionnaire.id}>
+                      {questionnaire.name}
+                      {questionnaire.is_default ? ' (Par defaut)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {error ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
                   {error}
@@ -257,6 +293,9 @@ export default function InviteClientModal({
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
               <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Lien invitation</p>
               <p className="text-sm text-gray-800 break-all">{createdInvitation.inviteUrl}</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Questionnaire: {createdInvitation.questionnaireName || 'Questionnaire standard'}
+              </p>
               {createdInvitation.legacyMode ? (
                 <p className="text-xs text-amber-700 mt-2">
                   Mode compatibilite actif: appliquez la migration Supabase pour activer la regeneration unique des liens.

@@ -20,6 +20,7 @@ import Clients from './pages/Dashboard/Clients'
 import ClientDetail from './pages/Dashboard/ClientDetail'
 import Invitations from './pages/Dashboard/Invitations'
 import Analytics from './pages/Dashboard/Analytics'
+import Questionnaires from './pages/Dashboard/Questionnaires'
 import Settings from './pages/Dashboard/Settings'
 
 function App() {
@@ -50,6 +51,7 @@ function App() {
             <Route path="clients" element={<Clients />} />
             <Route path="clients/:clientId" element={<ClientDetail />} />
             <Route path="invitations" element={<Invitations />} />
+            <Route path="questionnaires" element={<Questionnaires />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
             {/* Capture les sous-routes inconnues du dashboard DANS le layout protégé.

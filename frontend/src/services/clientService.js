@@ -21,17 +21,102 @@ const isMissingInvitationsTableError = (error) => {
   )
 }
 
-const upsertClientInvitation = async (clientId) => {
+const isMissingInvitationQuestionnaireColumnError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return message.includes("column 'questionnaire_id' does not exist") || message.includes('questionnaire_id')
+}
+
+const isMissingQuestionnairesTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.advisor_questionnaires'") ||
+    message.includes('relation "public.advisor_questionnaires" does not exist')
+  )
+}
+
+const resolveQuestionnaireIdForInvitation = async (advisorId, questionnaireId) => {
+  if (!advisorId) return null
+
+  if (questionnaireId) {
+    const { data, error } = await supabase
+      .from('advisor_questionnaires')
+      .select('id')
+      .eq('id', questionnaireId)
+      .eq('advisor_id', advisorId)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingQuestionnairesTableError(error)) return null
+      throw error
+    }
+    return data?.id || null
+  }
+
+  const { data, error } = await supabase
+    .from('advisor_questionnaires')
+    .select('id')
+    .eq('advisor_id', advisorId)
+    .eq('is_default', true)
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingQuestionnairesTableError(error)) return null
+    throw error
+  }
+
+  return data?.id || null
+}
+
+const getQuestionnaireDetails = async (questionnaireId) => {
+  if (!questionnaireId) return null
+
+  const { data: questionnaire, error: questionnaireError } = await supabase
+    .from('advisor_questionnaires')
+    .select('id, name, description')
+    .eq('id', questionnaireId)
+    .maybeSingle()
+
+  if (questionnaireError) {
+    if (isMissingQuestionnairesTableError(questionnaireError)) return null
+    throw questionnaireError
+  }
+  if (!questionnaire) return null
+
+  const { data: questions, error: questionsError } = await supabase
+    .from('advisor_questionnaire_questions')
+    .select('id, question_text, concept, theme, order_index, options')
+    .eq('questionnaire_id', questionnaireId)
+    .order('order_index', { ascending: true })
+
+  if (questionsError) throw questionsError
+
+  return {
+    id: questionnaire.id,
+    name: questionnaire.name,
+    description: questionnaire.description || '',
+    questions: (questions || []).map((question) => ({
+      id: question.id,
+      prompt: question.question_text,
+      concept: question.concept,
+      theme: question.theme,
+      orderIndex: question.order_index,
+      options: question.options
+    }))
+  }
+}
+
+const upsertClientInvitation = async (clientId, questionnaireId = null) => {
   const token = generateInvitationToken()
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString() // 14 jours
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('client_invitations')
     .upsert(
       [
         {
           client_id: clientId,
           token,
+          questionnaire_id: questionnaireId,
           expires_at: expiresAt,
           revoked_at: null
         }
@@ -40,6 +125,27 @@ const upsertClientInvitation = async (clientId) => {
     )
     .select('*')
     .single()
+
+  if (error && isMissingInvitationQuestionnaireColumnError(error)) {
+    const fallback = await supabase
+      .from('client_invitations')
+      .upsert(
+        [
+          {
+            client_id: clientId,
+            token,
+            expires_at: expiresAt,
+            revoked_at: null
+          }
+        ],
+        { onConflict: 'client_id' }
+      )
+      .select('*')
+      .single()
+
+    data = fallback.data
+    error = fallback.error
+  }
 
   if (error) {
     if (isMissingInvitationsTableError(error)) {
@@ -57,6 +163,7 @@ const upsertClientInvitation = async (clientId) => {
 
   return {
     token: data.token,
+    questionnaireId: data.questionnaire_id || null,
     expiresAt: data.expires_at,
     updatedAt: data.updated_at,
     inviteUrl: buildInviteUrl(clientId, data.token),
@@ -217,7 +324,7 @@ export const deleteClient = async ({ clientId, advisorId }) => {
 }
 
 // Creer une invitation client (creation en base + token de partage)
-export const createClientInvitation = async ({ advisorId, name, email }) => {
+export const createClientInvitation = async ({ advisorId, name, email, questionnaireId }) => {
   const cleanedName = (name || '').trim()
   const cleanedEmail = normalizeEmail(email)
 
@@ -260,11 +367,15 @@ export const createClientInvitation = async ({ advisorId, name, email }) => {
 
   if (error) throw error
 
-  const invitation = await upsertClientInvitation(client.id)
+  const resolvedQuestionnaireId = await resolveQuestionnaireIdForInvitation(advisorId, questionnaireId)
+  const invitation = await upsertClientInvitation(client.id, resolvedQuestionnaireId)
+  const questionnaire = await getQuestionnaireDetails(resolvedQuestionnaireId)
 
   return {
     client,
     token: invitation.token,
+    questionnaireId: invitation.questionnaireId,
+    questionnaireName: questionnaire?.name || 'Questionnaire standard',
     inviteUrl: invitation.inviteUrl,
     expiresAt: invitation.expiresAt,
     updatedAt: invitation.updatedAt,
@@ -287,26 +398,52 @@ export const getAdvisorInvitationLinks = async (advisorId) => {
 
   const clientIds = clients.map((client) => client.id)
 
-  const { data: invitations, error: invitationsError } = await supabase
+  let { data: invitations, error: invitationsError } = await supabase
     .from('client_invitations')
-    .select('client_id, token, expires_at, revoked_at, updated_at')
+    .select('client_id, token, questionnaire_id, expires_at, revoked_at, updated_at')
     .in('client_id', clientIds)
+
+  if (invitationsError && isMissingInvitationQuestionnaireColumnError(invitationsError)) {
+    const fallback = await supabase
+      .from('client_invitations')
+      .select('client_id, token, expires_at, revoked_at, updated_at')
+      .in('client_id', clientIds)
+    invitations = fallback.data
+    invitationsError = fallback.error
+  }
 
   if (invitationsError && !isMissingInvitationsTableError(invitationsError)) throw invitationsError
 
   const invitationByClientId = new Map((invitations || []).map((item) => [item.client_id, item]))
   const useLegacyMode = !!invitationsError && isMissingInvitationsTableError(invitationsError)
+  const questionnaireIds = [...new Set((invitations || []).map((item) => item.questionnaire_id).filter(Boolean))]
+  const questionnaireNameById = new Map()
+
+  if (questionnaireIds.length > 0) {
+    const { data: questionnaires, error: questionnairesError } = await supabase
+      .from('advisor_questionnaires')
+      .select('id, name')
+      .in('id', questionnaireIds)
+
+    if (!questionnairesError) {
+      ;(questionnaires || []).forEach((item) => {
+        questionnaireNameById.set(item.id, item.name)
+      })
+    }
+  }
 
   return clients.map((client) => {
     if (useLegacyMode) {
       const legacyToken = buildLegacyToken(client.id)
-      return {
-        ...client,
-        invitation: {
-          token: legacyToken,
-          expiresAt: null,
-          revokedAt: null,
-          updatedAt: client.created_at,
+        return {
+          ...client,
+          invitation: {
+            token: legacyToken,
+            questionnaireId: null,
+            questionnaireName: 'Questionnaire standard',
+            expiresAt: null,
+            revokedAt: null,
+            updatedAt: client.created_at,
           inviteUrl: buildInviteUrl(client.id, legacyToken),
           legacyMode: true
         }
@@ -320,6 +457,10 @@ export const getAdvisorInvitationLinks = async (advisorId) => {
       invitation: invitation
         ? {
             token: invitation.token,
+            questionnaireId: invitation.questionnaire_id || null,
+            questionnaireName: invitation.questionnaire_id
+              ? questionnaireNameById.get(invitation.questionnaire_id) || 'Questionnaire personnalise'
+              : 'Questionnaire standard',
             expiresAt: invitation.expires_at,
             revokedAt: invitation.revoked_at,
             updatedAt: invitation.updated_at,
@@ -334,7 +475,25 @@ export const getAdvisorInvitationLinks = async (advisorId) => {
 // Regenerer le lien d'invitation d'un client
 export const regenerateInvitationLink = async (clientId) => {
   if (!clientId) throw new Error('Client introuvable')
-  return upsertClientInvitation(clientId)
+
+  let { data: existing, error } = await supabase
+    .from('client_invitations')
+    .select('questionnaire_id')
+    .eq('client_id', clientId)
+    .maybeSingle()
+
+  if (error && isMissingInvitationQuestionnaireColumnError(error)) {
+    const fallback = await supabase
+      .from('client_invitations')
+      .select('client_id')
+      .eq('client_id', clientId)
+      .maybeSingle()
+    existing = fallback.data
+    error = fallback.error
+  }
+
+  if (error && !isMissingInvitationsTableError(error)) throw error
+  return upsertClientInvitation(clientId, existing?.questionnaire_id || null)
 }
 
 // Recuperer les informations publiques d'un client pour le quiz avec validation token
@@ -349,12 +508,23 @@ export const getQuizClient = async (clientId, token) => {
 
   if (clientError) throw clientError
 
-  const { data: invitation, error: invitationError } = await supabase
+  let { data: invitation, error: invitationError } = await supabase
     .from('client_invitations')
-    .select('token, expires_at, revoked_at')
+    .select('token, questionnaire_id, expires_at, revoked_at')
     .eq('client_id', clientId)
     .eq('token', token)
     .maybeSingle()
+
+  if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
+    const fallback = await supabase
+      .from('client_invitations')
+      .select('token, expires_at, revoked_at')
+      .eq('client_id', clientId)
+      .eq('token', token)
+      .maybeSingle()
+    invitation = fallback.data
+    invitationError = fallback.error
+  }
 
   if (invitationError) {
     if (isMissingInvitationsTableError(invitationError)) {
@@ -362,7 +532,15 @@ export const getQuizClient = async (clientId, token) => {
       if (token !== legacyToken) {
         throw new Error("Lien d'invitation invalide")
       }
-      return client
+      return {
+        client,
+        invitation: {
+          clientId,
+          token,
+          questionnaireId: null,
+          questionnaire: null
+        }
+      }
     }
     throw invitationError
   }
@@ -376,18 +554,38 @@ export const getQuizClient = async (clientId, token) => {
     throw new Error("Lien d'invitation expire")
   }
 
-  return client
+  const questionnaire = await getQuestionnaireDetails(invitation.questionnaire_id)
+
+  return {
+    client,
+    invitation: {
+      clientId,
+      token: invitation.token,
+      questionnaireId: invitation.questionnaire_id || null,
+      questionnaire
+    }
+  }
 }
 
 // Recuperer les informations publiques d'un client pour le quiz avec token seul
 export const getQuizClientByToken = async (token) => {
   if (!token) throw new Error("Lien d'invitation incomplet")
 
-  const { data: invitation, error: invitationError } = await supabase
+  let { data: invitation, error: invitationError } = await supabase
     .from('client_invitations')
-    .select('client_id, token, expires_at, revoked_at')
+    .select('client_id, token, questionnaire_id, expires_at, revoked_at')
     .eq('token', token)
     .maybeSingle()
+
+  if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
+    const fallback = await supabase
+      .from('client_invitations')
+      .select('client_id, token, expires_at, revoked_at')
+      .eq('token', token)
+      .maybeSingle()
+    invitation = fallback.data
+    invitationError = fallback.error
+  }
 
   if (invitationError) {
     if (isMissingInvitationsTableError(invitationError)) {
@@ -410,11 +608,15 @@ export const getQuizClientByToken = async (token) => {
 
   if (clientError) throw clientError
 
+  const questionnaire = await getQuestionnaireDetails(invitation.questionnaire_id)
+
   return {
     client,
     invitation: {
       clientId: invitation.client_id,
       token: invitation.token,
+      questionnaireId: invitation.questionnaire_id || null,
+      questionnaire,
       expiresAt: invitation.expires_at,
       revokedAt: invitation.revoked_at
     }
