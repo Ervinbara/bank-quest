@@ -4,6 +4,7 @@ import * as authService from '@/services/authService'
 
 const AuthContext = createContext(null)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -198,6 +199,13 @@ export const AuthProvider = ({ children }) => {
     return { success: true, advisor: data }
   }
 
+  const refreshAdvisor = async () => {
+    if (!user?.email) return null
+    const advisorData = await fetchAdvisorByEmail(user.email)
+    setAdvisor(advisorData || null)
+    return advisorData || null
+  }
+
   const value = {
     user,
     advisor,
@@ -206,6 +214,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    refreshAdvisor,
     isAuthenticated: !!user
   }
 
