@@ -178,6 +178,11 @@ export default function InviteClientModal({ isOpen, advisorId, onClose, onInvite
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
               <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Lien invitation</p>
               <p className="text-sm text-gray-800 break-all">{createdInvitation.inviteUrl}</p>
+              {createdInvitation.legacyMode ? (
+                <p className="text-xs text-amber-700 mt-2">
+                  Mode compatibilite actif: appliquez la migration Supabase pour activer la regeneration unique des liens.
+                </p>
+              ) : null}
             </div>
 
             {error ? (

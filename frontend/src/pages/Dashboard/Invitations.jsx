@@ -141,6 +141,11 @@ export default function Invitations() {
                     </td>
                     <td className="px-4 py-3 max-w-md">
                       <p className="truncate text-gray-700">{row.invitation?.inviteUrl || 'Lien non genere'}</p>
+                      {row.invitation?.legacyMode ? (
+                        <p className="text-xs text-amber-700 mt-1">
+                          Mode compatibilite actif: migration Supabase requise pour une regeneration unique.
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}
@@ -160,7 +165,7 @@ export default function Invitations() {
                         </button>
                         <button
                           onClick={() => regenerate(row)}
-                          disabled={regeneratingId === row.id}
+                          disabled={regeneratingId === row.id || row.invitation?.legacyMode}
                           className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
                         >
                           {regeneratingId === row.id ? (
@@ -168,7 +173,7 @@ export default function Invitations() {
                           ) : (
                             <RefreshCw className="w-4 h-4" />
                           )}
-                          Regenerer
+                          {row.invitation?.legacyMode ? 'Migration requise' : 'Regenerer'}
                         </button>
                       </div>
                     </td>
