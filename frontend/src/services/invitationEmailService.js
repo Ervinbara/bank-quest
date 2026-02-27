@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
@@ -116,17 +117,35 @@ export const sendInvitationEmail = async ({
     inviteLink
   })
 
-  const { data, error } = await supabase.functions.invoke('send-invitation-email', {
-    body: {
-      toEmail,
-      clientName,
-      advisorName,
-      advisorEmail,
-      inviteLink,
-      subject: rendered.subject,
-      body: rendered.body
+  let data
+  let error
+
+  try {
+    const response = await supabase.functions.invoke('send-invitation-email', {
+      body: {
+        toEmail,
+        clientName,
+        advisorName,
+        advisorEmail,
+        inviteLink,
+        subject: rendered.subject,
+        body: rendered.body
+      }
+    })
+    data = response.data
+    error = response.error
+  } catch (invokeError) {
+    if (invokeError instanceof FunctionsHttpError) {
+      const context = invokeError.context
+      try {
+        const body = await context.json()
+        throw new Error(body?.error || "Echec de l'envoi email")
+      } catch {
+        throw new Error("Edge Function non disponible ou mal configuree")
+      }
     }
-  })
+    throw invokeError
+  }
 
   if (error) {
     throw new Error(error.message || "Echec de l'envoi email")
