@@ -148,6 +148,14 @@ export const sendInvitationEmail = async ({
   }
 
   if (error) {
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = await error.context.json()
+        throw new Error(body?.error || "Echec de l'envoi email")
+      } catch {
+        throw new Error(error.message || "Echec de l'envoi email")
+      }
+    }
     throw new Error(error.message || "Echec de l'envoi email")
   }
 
