@@ -1,54 +1,101 @@
-# FinMate - Traduction automatique (mode gratuit uniquement)
+# FinMate - Traduction auto avec roulement providers (DeepL / LibreTranslate / Google)
 
-## Objectif
-Activer la traduction auto FR/EN sans risque de facturation involontaire.
+## 1) Philosophie anti-facturation (important)
 
-## Modes disponibles
-- `disabled` : traduction auto OFF (mode par defaut, zero risque)
-- `libretranslate` : traduction via instance LibreTranslate (gratuit si instance gratuite/self-hosted)
-- `deepl_free` : traduction DeepL API Free uniquement (cles Pro refusees)
-
-## Protections anti-facturation integrees
-1. La fonction refuse toute cle DeepL Pro.
-2. Seules les langues `fr/en` sont autorisees.
-3. Limite dure par requete: `TRANSLATION_MAX_CHARS_PER_REQUEST` (defaut 1200).
-4. Limite dure mensuelle (DeepL): `TRANSLATION_HARD_MONTHLY_LIMIT` (defaut 400000).
-5. Mode explicite obligatoire: pas de fallback implicite.
-
-## Secrets Supabase a configurer
-
-### Cas 1: zero risque (recommande au debut)
+Par defaut, vous devez garder:
 ```
 TRANSLATION_MODE=disabled
 ```
 
-### Cas 2: LibreTranslate (gratuit)
+Quand vous activez la traduction:
+- vous activez explicitement le mode (`TRANSLATION_MODE=enabled`)
+- vous gardez des limites strictes
+- Google API payante reste desactivee tant que `GOOGLE_TRANSLATE_ALLOW_BILLING` n'est pas `true`
+
+## 2) Providers supportes
+
+`TRANSLATION_PROVIDER_ORDER` accepte:
+- `deepl_free`
+- `libretranslate`
+- `google`
+
+Exemple:
 ```
-TRANSLATION_MODE=libretranslate
-LIBRETRANSLATE_URL=https://<votre-instance>/translate
-LIBRETRANSLATE_API_KEY=<optionnel>
-TRANSLATION_MAX_CHARS_PER_REQUEST=1200
+TRANSLATION_PROVIDER_ORDER=deepl_free,libretranslate,google
 ```
 
-### Cas 3: DeepL Free (pas Pro)
+Le systeme essaye chaque provider dans l'ordre jusqu'au premier succes.
+
+## 3) Secrets Supabase recommandes (safe)
+
+### Mode recommande (gratuit / prudent)
 ```
-TRANSLATION_MODE=deepl_free
-DEEPL_API_KEY=<cle_deepl_free_qui_se_termine_par_:fx>
+TRANSLATION_MODE=enabled
+TRANSLATION_PROVIDER_ORDER=deepl_free,libretranslate,google
 TRANSLATION_MAX_CHARS_PER_REQUEST=1200
 TRANSLATION_HARD_MONTHLY_LIMIT=400000
+GOOGLE_TRANSLATE_ALLOW_BILLING=false
 ```
 
-Important:
-- Une cle DeepL Free termine normalement par `:fx`.
-- Si la cle ne termine pas par `:fx`, la fonction refuse l'appel.
+Ajoutez ensuite uniquement les providers que vous utilisez.
 
-## Deploy fonction
+## 4) DeepL Free - recuperer la cle API
+
+1. Creer un compte sur DeepL API Free.
+2. Dashboard DeepL > API Keys > copier la cle.
+3. La cle Free se termine en general par `:fx`.
+4. Ajouter dans Supabase:
+```
+DEEPL_API_KEY=<votre_cle_free>
+```
+
+Protection integree:
+- Les cles DeepL Pro sont refusees (si pas suffixe `:fx`).
+
+## 5) LibreTranslate - recuperer la config
+
+Option A: instance publique (si disponible).
+Option B (recommande): votre instance self-hosted.
+
+Secrets:
+```
+LIBRETRANSLATE_URL=https://<votre-instance>/translate
+LIBRETRANSLATE_API_KEY=<optionnel>
+```
+
+## 6) Google Traduction - deux modes
+
+### Mode sans facturation explicite (par defaut)
+```
+GOOGLE_TRANSLATE_ALLOW_BILLING=false
+```
+Dans ce cas, le provider `google` utilise l'endpoint gratuit public de traduction web.
+
+### Mode API Google Cloud (potentiellement payant)
+N'activer que si vous acceptez la facturation:
+```
+GOOGLE_TRANSLATE_ALLOW_BILLING=true
+GOOGLE_TRANSLATE_API_KEY=<votre_cle_google_cloud>
+```
+
+### Recuperer la cle Google Cloud
+1. Console Google Cloud > creer un projet.
+2. Activer `Cloud Translation API`.
+3. Credentials > Create Credentials > API key.
+4. Restreindre la cle (obligatoire):
+  - Restriction API: Cloud Translation API uniquement
+  - Restriction HTTP referrer / IP selon votre infra
+5. Ajouter dans Supabase: `GOOGLE_TRANSLATE_API_KEY`.
+
+## 7) Deploy de la fonction
+
 ```bash
 npx supabase functions deploy translate-text --no-verify-jwt
 ```
 
-## Test rapide
-Appeler la fonction avec:
+## 8) Test rapide
+
+Payload:
 ```json
 {
   "text": "profil de risque",
@@ -57,8 +104,26 @@ Appeler la fonction avec:
 }
 ```
 
-## Recommandation operationnelle
-1. Commencer avec `TRANSLATION_MODE=disabled`.
-2. Tester en `libretranslate`.
-3. N'utiliser `deepl_free` que si la qualite est insuffisante.
-4. Garder `TRANSLATION_HARD_MONTHLY_LIMIT` en dessous du quota max pour marge de securite.
+Reponse attendue:
+```json
+{
+  "success": true,
+  "provider": "deepl_free",
+  "translatedText": "risk profile"
+}
+```
+
+## 9) Configuration conseillee pour ne pas payer
+
+1. Commencer avec:
+```
+TRANSLATION_MODE=disabled
+```
+2. Puis:
+```
+TRANSLATION_MODE=enabled
+TRANSLATION_PROVIDER_ORDER=libretranslate,google
+GOOGLE_TRANSLATE_ALLOW_BILLING=false
+```
+3. Ajouter DeepL Free ensuite si besoin de qualite.
+4. Ne mettre `GOOGLE_TRANSLATE_ALLOW_BILLING=true` qu'en toute connaissance de cause.
