@@ -277,11 +277,11 @@ export default function Analytics() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">Top 10 a relancer</h3>
+          <h3 className="text-xl font-bold text-gray-800">{tr('Top 10 a relancer', 'Top 10 to follow up')}</h3>
           <Target className="w-5 h-5 text-purple-600" />
         </div>
         {analytics.priorities.length === 0 ? (
-          <p className="text-sm text-gray-500">Aucun client a prioriser pour le moment.</p>
+          <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
         ) : (
           <div className="space-y-3">
             {analytics.priorities.map((row) => (

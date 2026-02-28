@@ -1,6 +1,8 @@
 import { Mail, Calendar, Award, AlertCircle } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ClientCard({ client, onClick, footerAction }) {
+  const { tr } = useLanguage()
   const isCompleted = client.quiz_status === 'completed'
   const strengths = client.client_insights?.filter((i) => i.type === 'strength') || []
   const weaknesses = client.client_insights?.filter((i) => i.type === 'weakness') || []
@@ -49,7 +51,7 @@ export default function ClientCard({ client, onClick, footerAction }) {
         ) : (
           <div className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-semibold text-sm flex items-center gap-1">
             <AlertCircle className="w-4 h-4" />
-            En attente
+            {tr('En attente', 'Pending')}
           </div>
         )}
       </div>
@@ -59,8 +61,8 @@ export default function ClientCard({ client, onClick, footerAction }) {
           <Calendar className="w-4 h-4" />
           <span>
             {isCompleted
-              ? `Complete le ${formatDate(client.completed_at)}`
-              : `Invite le ${formatDate(client.created_at)}`}
+              ? `${tr('Complete le', 'Completed on')} ${formatDate(client.completed_at)}`
+              : `${tr('Invite le', 'Invited on')} ${formatDate(client.created_at)}`}
           </span>
         </div>
 
@@ -68,11 +70,11 @@ export default function ClientCard({ client, onClick, footerAction }) {
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1 text-green-600">
               <Award className="w-4 h-4" />
-              <span className="font-semibold">{strengths.length} forces</span>
+               <span className="font-semibold">{strengths.length} {tr('forces', 'strengths')}</span>
             </div>
             <div className="flex items-center gap-1 text-red-600">
               <AlertCircle className="w-4 h-4" />
-              <span className="font-semibold">{weaknesses.length} faiblesses</span>
+               <span className="font-semibold">{weaknesses.length} {tr('faiblesses', 'weaknesses')}</span>
             </div>
           </div>
         )}
@@ -80,7 +82,7 @@ export default function ClientCard({ client, onClick, footerAction }) {
 
       {footerAction || (
         <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm">
-          {isCompleted ? 'Voir les resultats' : "Relancer l'invitation"}
+          {isCompleted ? tr('Voir les resultats', 'View results') : tr("Relancer l'invitation", 'Resend invitation')}
         </button>
       )}
     </div>

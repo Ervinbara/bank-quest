@@ -309,7 +309,7 @@ export default function Settings() {
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              {loading ? tr('Enregistrement...', 'Saving...') : tr('Enregistrer les modifications', 'Save changes')}
             </button>
           </form>
         )}
@@ -317,7 +317,7 @@ export default function Settings() {
         {activeTab === 'security' && (
           <form onSubmit={handleChangePassword} className="space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Changer le mot de passe</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Changer le mot de passe', 'Change password')}</h3>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="currentPassword" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -384,7 +384,7 @@ export default function Settings() {
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
-              {loading ? 'Modification...' : 'Changer le mot de passe'}
+              {loading ? tr('Modification...', 'Updating...') : tr('Changer le mot de passe', 'Change password')}
             </button>
           </form>
         )}
@@ -392,7 +392,7 @@ export default function Settings() {
         {activeTab === 'billing' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Abonnement actuel</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Abonnement actuel', 'Current subscription')}</h3>
 
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -402,19 +402,19 @@ export default function Settings() {
                       {PLAN_DETAILS[currentPlan]?.price || PLAN_DETAILS.solo.price} -{' '}
                       {PLAN_DETAILS[currentPlan]?.limit || PLAN_DETAILS.solo.limit}
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">Statut: {subscriptionStatus}</p>
+                    <p className="text-xs text-gray-500 mt-2">{tr('Statut', 'Status')}: {subscriptionStatus}</p>
                   </div>
                   <div className="text-4xl">{PLAN_DETAILS[currentPlan]?.icon || 'S'}</div>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span>{currentPeriodEnd ? `Prochaine echeance le ${currentPeriodEnd}` : 'Aucune echeance active'}</span>
+                  <span>{currentPeriodEnd ? `${tr('Prochaine echeance le', 'Next billing date')} ${currentPeriodEnd}` : tr('Aucune echeance active', 'No active billing date')}</span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-bold text-gray-800">Changer de plan</h4>
+                <h4 className="font-bold text-gray-800">{tr('Changer de plan', 'Change plan')}</h4>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   {['solo', 'pro', 'cabinet'].map((plan) => (
@@ -436,11 +436,11 @@ export default function Settings() {
                           onClick={() => goToCheckout(plan)}
                           className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-60"
                         >
-                          {checkoutLoadingPlan === plan ? 'Ouverture...' : 'Choisir ce plan'}
+                          {checkoutLoadingPlan === plan ? tr('Ouverture...', 'Opening...') : tr('Choisir ce plan', 'Choose this plan')}
                         </button>
                       ) : (
                         <div className="w-full py-2 text-center text-sm font-semibold text-purple-700 bg-purple-100 rounded-lg">
-                          Plan actuel
+                          {tr('Plan actuel', 'Current plan')}
                         </div>
                       )}
                     </div>
@@ -454,7 +454,7 @@ export default function Settings() {
                   onClick={openCustomerPortal}
                   className="text-red-600 hover:text-red-700 font-semibold text-sm disabled:opacity-60"
                 >
-                  {portalLoading ? 'Ouverture du portail...' : 'Gerer mon abonnement (Stripe)'}
+                  {portalLoading ? tr('Ouverture du portail...', 'Opening portal...') : tr('Gerer mon abonnement (Stripe)', 'Manage my subscription (Stripe)')}
                 </button>
               </div>
             </div>
