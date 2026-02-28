@@ -39,6 +39,18 @@ const PLAN_TO_PRICE_ENV_BASE: Record<string, string> = {
 }
 
 const TEST_PLAN_ALLOWED_EMAILS = new Set(['bankquest.pro@gmail.com'])
+const normalizePlan = (rawPlan: unknown) => {
+  const key = String(rawPlan || '').trim().toLowerCase()
+  const aliases: Record<string, string> = {
+    solo: 'solo',
+    pro: 'pro',
+    cabinet: 'cabinet',
+    test: 'test',
+    plan_test: 'test',
+    test_plan: 'test'
+  }
+  return aliases[key] || ''
+}
 
 const getPriceIdForPlan = (plan: string, mode: 'test' | 'live') => {
   const envBase = PLAN_TO_PRICE_ENV_BASE[plan]
@@ -84,8 +96,8 @@ serve(async (req) => {
     if (advisorError || !advisor) return json({ error: 'Conseiller introuvable' }, 404)
 
     const payload = await req.json()
-    const plan = String(payload?.plan || '').trim().toLowerCase()
-    if (!['solo', 'pro', 'cabinet', 'test'].includes(plan)) return json({ error: 'Plan invalide' }, 400)
+    const plan = normalizePlan(payload?.plan)
+    if (!plan) return json({ error: `Plan invalide: ${String(payload?.plan || '')}` }, 400)
     if (plan === 'test' && !TEST_PLAN_ALLOWED_EMAILS.has(email.toLowerCase())) {
       return json({ error: 'Plan test non autorise pour ce compte' }, 403)
     }
