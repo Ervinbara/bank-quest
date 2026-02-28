@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "twa:assetlinks": "node ./scripts/update-assetlinks.mjs",
     "twa:doctor": "npx @bubblewrap/cli doctor",
     "twa:init": "npx @bubblewrap/cli init --manifest https://bank-quest.vercel.app/manifest.webmanifest --directory ./android-twa",
     "twa:build": "npx @bubblewrap/cli build --directory ./android-twa"

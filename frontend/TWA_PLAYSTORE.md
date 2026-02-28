@@ -23,14 +23,23 @@
 6. Uploader l'AAB dans Play Console.
 
 ## 3) Config assetlinks (obligatoire)
-Le fichier `assetlinks.json` contient un placeholder:
-- `REPLACE_WITH_YOUR_UPLOAD_KEY_SHA256_FINGERPRINT`
-
-Remplacez-le par le SHA-256 de votre cle de signature Android (upload key).
+Recuperez le SHA-256 de votre cle de signature Android (upload key).
 
 Commande utile:
 ```bash
 keytool -list -v -keystore <votre-keystore.jks> -alias <votre-alias>
+```
+
+Puis generez automatiquement `public/.well-known/assetlinks.json`:
+```bash
+ANDROID_PACKAGE_NAME=com.bankquest.app ANDROID_SHA256_FINGERPRINT=AA:BB:...:FF npm run twa:assetlinks
+```
+
+Note Windows PowerShell:
+```powershell
+$env:ANDROID_PACKAGE_NAME="com.bankquest.app"
+$env:ANDROID_SHA256_FINGERPRINT="AA:BB:...:FF"
+npm run twa:assetlinks
 ```
 
 ## 4) Mises a jour
