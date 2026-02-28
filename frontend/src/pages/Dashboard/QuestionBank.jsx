@@ -15,7 +15,7 @@ import { Languages, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 
 export default function QuestionBank() {
   const { advisor } = useAuth()
-  const { tr } = useLanguage()
+  const { tr, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -29,13 +29,33 @@ export default function QuestionBank() {
   const [editingThemeName, setEditingThemeName] = useState('')
   const [editingThemeDescription, setEditingThemeDescription] = useState('')
   const [editingQuestionId, setEditingQuestionId] = useState('')
-  const [editingQuestionValues, setEditingQuestionValues] = useState({ concept: '', prompt: '' })
+  const [editingQuestionLanguage, setEditingQuestionLanguage] = useState('fr')
+  const [editingQuestionValues, setEditingQuestionValues] = useState({
+    concept: '',
+    prompt: '',
+    conceptTranslations: {},
+    promptTranslations: {}
+  })
   const [questionBusy, setQuestionBusy] = useState({})
 
   const selectedTheme = useMemo(
     () => themes.find((theme) => theme.id === selectedThemeId) || null,
     [themes, selectedThemeId]
   )
+
+  const getTranslationValue = useCallback((translations, fallbackValue, lang) => {
+    const map = translations && typeof translations === 'object' ? translations : {}
+    return map[lang] || map.fr || map.en || fallbackValue || ''
+  }, [])
+
+  const getPrimaryValue = (translations, fallbackValue) => {
+    const map = translations && typeof translations === 'object' ? translations : {}
+    return map.fr || map.en || Object.values(map).find((value) => String(value || '').trim().length > 0) || fallbackValue || ''
+  }
+
+  useEffect(() => {
+    setEditingQuestionLanguage(language === 'en' ? 'en' : 'fr')
+  }, [language])
 
   const loadCatalog = useCallback(async () => {
     if (!advisor?.id) return
@@ -161,16 +181,42 @@ export default function QuestionBank() {
   }
 
   const startEditQuestion = (question) => {
+    const conceptTranslations = question.conceptTranslations || { fr: question.concept || '' }
+    const promptTranslations = question.promptTranslations || { fr: question.prompt || '' }
     setEditingQuestionId(question.id)
     setEditingQuestionValues({
-      concept: question.concept || '',
-      prompt: question.prompt || ''
+      concept: getPrimaryValue(conceptTranslations, question.concept || ''),
+      prompt: getPrimaryValue(promptTranslations, question.prompt || ''),
+      conceptTranslations,
+      promptTranslations
     })
   }
 
   const cancelEditQuestion = () => {
     setEditingQuestionId('')
-    setEditingQuestionValues({ concept: '', prompt: '' })
+    setEditingQuestionValues({ concept: '', prompt: '', conceptTranslations: {}, promptTranslations: {} })
+  }
+
+  const updateEditingQuestionValue = (field, value) => {
+    setEditingQuestionValues((prev) => {
+      if (field === 'concept') {
+        const conceptTranslations = { ...(prev.conceptTranslations || {}) }
+        conceptTranslations[editingQuestionLanguage] = value
+        return {
+          ...prev,
+          concept: getPrimaryValue(conceptTranslations, value),
+          conceptTranslations
+        }
+      }
+
+      const promptTranslations = { ...(prev.promptTranslations || {}) }
+      promptTranslations[editingQuestionLanguage] = value
+      return {
+        ...prev,
+        prompt: getPrimaryValue(promptTranslations, value),
+        promptTranslations
+      }
+    })
   }
 
   const saveQuestion = async (question) => {
@@ -181,8 +227,10 @@ export default function QuestionBank() {
       await updateAdvisorQuestionBankQuestion({
         advisorId: advisor.id,
         questionId: question.id,
-        concept: editingQuestionValues.concept,
-        prompt: editingQuestionValues.prompt,
+        concept: getPrimaryValue(editingQuestionValues.conceptTranslations, editingQuestionValues.concept),
+        prompt: getPrimaryValue(editingQuestionValues.promptTranslations, editingQuestionValues.prompt),
+        conceptTranslations: editingQuestionValues.conceptTranslations,
+        promptTranslations: editingQuestionValues.promptTranslations,
         options: question.options
       })
       await loadCatalog()
@@ -209,9 +257,30 @@ export default function QuestionBank() {
 
       setEditingQuestionId(question.id)
       setEditingQuestionValues({
-        concept: conceptResult.translatedText || conceptToTranslate,
-        prompt: promptResult.translatedText || promptToTranslate
+        concept: getPrimaryValue(
+          {
+            ...(editingQuestionId === question.id ? editingQuestionValues.conceptTranslations : question.conceptTranslations || {}),
+            [targetLang]: conceptResult.translatedText || conceptToTranslate
+          },
+          conceptResult.translatedText || conceptToTranslate
+        ),
+        prompt: getPrimaryValue(
+          {
+            ...(editingQuestionId === question.id ? editingQuestionValues.promptTranslations : question.promptTranslations || {}),
+            [targetLang]: promptResult.translatedText || promptToTranslate
+          },
+          promptResult.translatedText || promptToTranslate
+        ),
+        conceptTranslations: {
+          ...(editingQuestionId === question.id ? editingQuestionValues.conceptTranslations : question.conceptTranslations || {}),
+          [targetLang]: conceptResult.translatedText || conceptToTranslate
+        },
+        promptTranslations: {
+          ...(editingQuestionId === question.id ? editingQuestionValues.promptTranslations : question.promptTranslations || {}),
+          [targetLang]: promptResult.translatedText || promptToTranslate
+        }
       })
+      setEditingQuestionLanguage(targetLang)
       setSuccess(tr('Traduction pre-remplie, enregistrez la question', 'Translation prefilled, save the question'))
     } catch (err) {
       setError(err.message || tr('Impossible de traduire la question', 'Unable to translate question'))
@@ -349,6 +418,9 @@ export default function QuestionBank() {
                   <Plus className="w-4 h-4" />
                    {tr('Ajouter la question', 'Add question')}
                 </button>
+                <p className="text-xs text-gray-500">
+                  {tr('Astuce: creez en FR puis utilisez FR -> EN pour ajouter la version anglaise.', 'Tip: create in FR then use FR -> EN to add the English version.')}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -365,27 +437,42 @@ export default function QuestionBank() {
                               <>
                                 <input
                                   type="text"
-                                  value={editingQuestionValues.concept}
-                                  onChange={(event) =>
-                                    setEditingQuestionValues((prev) => ({ ...prev, concept: event.target.value }))
-                                  }
+                                  value={getTranslationValue(
+                                    editingQuestionValues.conceptTranslations,
+                                    editingQuestionValues.concept,
+                                    editingQuestionLanguage
+                                  )}
+                                  onChange={(event) => updateEditingQuestionValue('concept', event.target.value)}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                   placeholder={tr('Concept', 'Concept')}
                                 />
                                 <textarea
                                   rows={3}
-                                  value={editingQuestionValues.prompt}
-                                  onChange={(event) =>
-                                    setEditingQuestionValues((prev) => ({ ...prev, prompt: event.target.value }))
-                                  }
+                                  value={getTranslationValue(
+                                    editingQuestionValues.promptTranslations,
+                                    editingQuestionValues.prompt,
+                                    editingQuestionLanguage
+                                  )}
+                                  onChange={(event) => updateEditingQuestionValue('prompt', event.target.value)}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                   placeholder={tr('Texte de la question', 'Question text')}
                                 />
+                                <div className="flex items-center gap-2">
+                                  <label className="text-xs text-gray-600">{tr('Langue editee', 'Editing language')}</label>
+                                  <select
+                                    value={editingQuestionLanguage}
+                                    onChange={(event) => setEditingQuestionLanguage(event.target.value)}
+                                    className="px-2 py-1 border border-gray-300 rounded-md text-xs bg-white"
+                                  >
+                                    <option value="fr">FR</option>
+                                    <option value="en">EN</option>
+                                  </select>
+                                </div>
                               </>
                             ) : (
                               <>
-                                <p className="font-semibold text-gray-800">{question.concept}</p>
-                                <p className="text-sm text-gray-700">{question.prompt}</p>
+                                <p className="font-semibold text-gray-800">{getTranslationValue(question.conceptTranslations, question.concept, language)}</p>
+                                <p className="text-sm text-gray-700">{getTranslationValue(question.promptTranslations, question.prompt, language)}</p>
                               </>
                             )}
                             <div className="flex flex-wrap items-center gap-2">
@@ -414,8 +501,8 @@ export default function QuestionBank() {
                                   onClick={() => saveQuestion(question)}
                                   disabled={
                                     Boolean(questionBusy[question.id]) ||
-                                    editingQuestionValues.concept.trim().length < 2 ||
-                                    editingQuestionValues.prompt.trim().length < 6
+                                    getPrimaryValue(editingQuestionValues.conceptTranslations, editingQuestionValues.concept).trim().length < 2 ||
+                                    getPrimaryValue(editingQuestionValues.promptTranslations, editingQuestionValues.prompt).trim().length < 6
                                   }
                                   className="text-sm text-purple-700 hover:text-purple-800 font-semibold disabled:opacity-60"
                                 >

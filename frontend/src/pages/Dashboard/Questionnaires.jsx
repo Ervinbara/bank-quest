@@ -44,7 +44,7 @@ const THEME_LABELS = {
 
 export default function Questionnaires() {
   const { advisor } = useAuth()
-  const { tr } = useLanguage()
+  const { tr, language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -57,6 +57,7 @@ export default function Questionnaires() {
   const [customName, setCustomName] = useState('')
   const [bankTheme, setBankTheme] = useState('budget')
   const [bankQuestionIndex, setBankQuestionIndex] = useState(0)
+  const [bankQuestionLanguage, setBankQuestionLanguage] = useState('fr')
   const [bankByTheme, setBankByTheme] = useState({})
   const [questionBusy, setQuestionBusy] = useState({})
 
@@ -67,6 +68,15 @@ export default function Questionnaires() {
     () => items.find((item) => item.id === selectedId) || null,
     [items, selectedId]
   )
+
+  const resolveTranslated = useCallback((translations, fallbackText, lang) => {
+    const map = translations && typeof translations === 'object' ? translations : {}
+    return map[lang] || map.fr || map.en || fallbackText || ''
+  }, [])
+
+  useEffect(() => {
+    setBankQuestionLanguage(language === 'en' ? 'en' : 'fr')
+  }, [language])
 
   const loadAll = useCallback(async () => {
     if (!advisor?.id) return
@@ -163,8 +173,10 @@ export default function Questionnaires() {
     const nextQuestions = [
       ...draft.questions,
       {
-        questionText: question.prompt,
-        concept: question.concept,
+        questionText: resolveTranslated(question.promptTranslations, question.prompt, bankQuestionLanguage),
+        concept: resolveTranslated(question.conceptTranslations, question.concept, bankQuestionLanguage),
+        promptTranslations: question.promptTranslations || { fr: question.prompt || '' },
+        conceptTranslations: question.conceptTranslations || { fr: question.concept || '' },
         theme: bankTheme,
         orderIndex: draft.questions.length,
         options: question.options || DEFAULT_EDIT_OPTIONS
@@ -183,6 +195,8 @@ export default function Questionnaires() {
         {
           questionText: '',
           concept: 'General',
+          promptTranslations: { fr: '' },
+          conceptTranslations: { fr: 'General' },
           theme: 'general',
           orderIndex: prev.questions.length,
           options: DEFAULT_EDIT_OPTIONS
@@ -195,6 +209,18 @@ export default function Questionnaires() {
     if (!draft) return
     const next = [...draft.questions]
     next[index] = { ...next[index], [field]: value }
+    if (field === 'questionText') {
+      next[index].promptTranslations = {
+        ...(next[index].promptTranslations || {}),
+        [language === 'en' ? 'en' : 'fr']: value
+      }
+    }
+    if (field === 'concept') {
+      next[index].conceptTranslations = {
+        ...(next[index].conceptTranslations || {}),
+        [language === 'en' ? 'en' : 'fr']: value
+      }
+    }
     setDraft((prev) => ({ ...prev, questions: next }))
   }
 
@@ -228,10 +254,20 @@ export default function Questionnaires() {
       ])
 
       const next = [...draft.questions]
+      const nextPromptTranslations = {
+        ...(question.promptTranslations || {}),
+        [targetLang]: questionResult.translatedText || question.questionText
+      }
+      const nextConceptTranslations = {
+        ...(question.conceptTranslations || {}),
+        [targetLang]: conceptResult.translatedText || question.concept
+      }
       next[index] = {
         ...next[index],
-        questionText: questionResult.translatedText || question.questionText,
-        concept: conceptResult.translatedText || question.concept
+        questionText: resolveTranslated(nextPromptTranslations, questionResult.translatedText || question.questionText, targetLang),
+        concept: resolveTranslated(nextConceptTranslations, conceptResult.translatedText || question.concept, targetLang),
+        promptTranslations: nextPromptTranslations,
+        conceptTranslations: nextConceptTranslations
       }
       setDraft((prev) => ({ ...prev, questions: next }))
       setSuccess(tr('Question traduite dans le brouillon', 'Question translated in draft'))
@@ -437,6 +473,14 @@ export default function Questionnaires() {
                  <p className="text-sm font-semibold text-gray-800">{tr('Banque de questions par theme', 'Question bank by topic')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
+                    value={bankQuestionLanguage}
+                    onChange={(event) => setBankQuestionLanguage(event.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                  >
+                    <option value="fr">FR</option>
+                    <option value="en">EN</option>
+                  </select>
+                  <select
                     value={bankTheme}
                     onChange={(event) => {
                       setBankTheme(event.target.value)
@@ -453,11 +497,11 @@ export default function Questionnaires() {
                   <select
                     value={bankQuestionIndex}
                     onChange={(event) => setBankQuestionIndex(Number(event.target.value))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white md:col-span-2"
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
                   >
                     {(bankByTheme[bankTheme] || []).map((question, index) => (
                       <option key={`${bankTheme}-${index}`} value={index}>
-                        {question.prompt}
+                        {resolveTranslated(question.promptTranslations, question.prompt, bankQuestionLanguage)}
                       </option>
                     ))}
                   </select>

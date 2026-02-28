@@ -9,6 +9,38 @@ const DEFAULT_OPTIONS = [
   { label: 'Toujours', points: 5 }
 ]
 
+const DEFAULT_QUESTION_LANGUAGE = 'fr'
+
+const sanitizeTranslations = (translations, fallbackText) => {
+  const result = {}
+  if (translations && typeof translations === 'object' && !Array.isArray(translations)) {
+    Object.entries(translations).forEach(([lang, value]) => {
+      const cleanLang = String(lang || '').trim().toLowerCase()
+      const cleanValue = String(value || '').trim()
+      if (!cleanLang || !cleanValue) return
+      result[cleanLang] = cleanValue
+    })
+  }
+  const cleanFallback = String(fallbackText || '').trim()
+  if (cleanFallback && !result[DEFAULT_QUESTION_LANGUAGE]) {
+    result[DEFAULT_QUESTION_LANGUAGE] = cleanFallback
+  }
+  return result
+}
+
+const getTranslatedValue = (translations, lang, fallbackValue) => {
+  const cleanLang = String(lang || DEFAULT_QUESTION_LANGUAGE).trim().toLowerCase()
+  const map = translations && typeof translations === 'object' ? translations : {}
+  return (
+    map[cleanLang] ||
+    map[DEFAULT_QUESTION_LANGUAGE] ||
+    map.en ||
+    Object.values(map).find((value) => typeof value === 'string' && value.trim().length > 0) ||
+    fallbackValue ||
+    ''
+  )
+}
+
 const DEFAULT_BANK_THEMES = [
   { code: 'budget', name: 'Budget', description: 'Gestion budget et depenses' },
   { code: 'epargne', name: 'Epargne', description: 'Reserve, objectifs et discipline' },
@@ -119,8 +151,10 @@ const isMissingQuestionBankTableError = (error) => {
 
 const mapQuestionRow = (row) => ({
   id: row.id,
-  questionText: row.question_text,
-  concept: row.concept,
+  questionText: getTranslatedValue(row.prompt_translations, DEFAULT_QUESTION_LANGUAGE, row.question_text),
+  concept: getTranslatedValue(row.concept_translations, DEFAULT_QUESTION_LANGUAGE, row.concept),
+  promptTranslations: sanitizeTranslations(row.prompt_translations, row.question_text),
+  conceptTranslations: sanitizeTranslations(row.concept_translations, row.concept),
   theme: row.theme,
   orderIndex: row.order_index,
   options: Array.isArray(row.options) && row.options.length > 0 ? row.options : DEFAULT_OPTIONS
@@ -129,11 +163,19 @@ const mapQuestionRow = (row) => ({
 const normalizeQuestions = (questions) =>
   (questions || [])
     .map((question, index) => ({
-      questionText: String(question.questionText || question.prompt || '').trim(),
-      concept: String(question.concept || 'General').trim(),
+      promptTranslations: sanitizeTranslations(
+        question.promptTranslations || question.questionTranslations,
+        question.questionText || question.prompt
+      ),
+      conceptTranslations: sanitizeTranslations(question.conceptTranslations, question.concept || 'General'),
       theme: String(question.theme || 'general').trim().toLowerCase(),
       orderIndex: typeof question.orderIndex === 'number' ? question.orderIndex : index,
       options: Array.isArray(question.options) && question.options.length > 0 ? question.options : DEFAULT_OPTIONS
+    }))
+    .map((question) => ({
+      ...question,
+      questionText: String(getTranslatedValue(question.promptTranslations, DEFAULT_QUESTION_LANGUAGE, '')).trim(),
+      concept: String(getTranslatedValue(question.conceptTranslations, DEFAULT_QUESTION_LANGUAGE, 'General')).trim()
     }))
     .filter((question) => question.questionText.length > 0)
     .sort((a, b) => a.orderIndex - b.orderIndex)
@@ -159,6 +201,8 @@ const insertQuestionnaireWithQuestions = async (advisorId, template) => {
     questionnaire_id: questionnaire.id,
     question_text: question.questionText,
     concept: question.concept,
+    prompt_translations: question.promptTranslations,
+    concept_translations: question.conceptTranslations,
     theme: question.theme,
     order_index: question.orderIndex,
     options: question.options
@@ -179,6 +223,8 @@ const getLocalQuestionBankFallback = () => {
       id: `${themeCode}-${index}`,
       concept: question.concept,
       prompt: question.prompt,
+      conceptTranslations: { fr: question.concept },
+      promptTranslations: { fr: question.prompt },
       options: question.options || DEFAULT_OPTIONS
     }))
   })
@@ -202,8 +248,10 @@ const mapQuestionBankRows = (themes, questions) => {
     if (!theme) return
     theme.questions.push({
       id: question.id,
-      concept: question.concept,
-      prompt: question.prompt,
+      concept: getTranslatedValue(question.concept_translations, DEFAULT_QUESTION_LANGUAGE, question.concept),
+      prompt: getTranslatedValue(question.prompt_translations, DEFAULT_QUESTION_LANGUAGE, question.prompt),
+      conceptTranslations: sanitizeTranslations(question.concept_translations, question.concept),
+      promptTranslations: sanitizeTranslations(question.prompt_translations, question.prompt),
       options: Array.isArray(question.options) && question.options.length > 0 ? question.options : DEFAULT_OPTIONS
     })
   })
@@ -251,6 +299,8 @@ const ensureAdvisorQuestionBank = async (advisorId) => {
         theme_id: themeId,
         concept: question.concept,
         prompt: question.prompt,
+        concept_translations: { fr: question.concept },
+        prompt_translations: { fr: question.prompt },
         options: question.options || DEFAULT_OPTIONS
       })
     })
@@ -291,7 +341,7 @@ export const getAdvisorQuestionBankCatalog = async (advisorId) => {
   const themeIds = themes.map((theme) => theme.id)
   const { data: questions, error: questionsError } = await supabase
     .from('advisor_question_bank_questions')
-    .select('id, theme_id, concept, prompt, options')
+    .select('id, theme_id, concept, prompt, concept_translations, prompt_translations, options')
     .in('theme_id', themeIds)
     .order('created_at', { ascending: true })
 
@@ -308,6 +358,8 @@ export const getQuestionBankByTheme = async (advisorId) => {
       id: question.id,
       concept: question.concept,
       prompt: question.prompt,
+      conceptTranslations: question.conceptTranslations,
+      promptTranslations: question.promptTranslations,
       options: question.options
     }))
   })
@@ -387,7 +439,15 @@ export const deleteAdvisorQuestionBankTheme = async ({ advisorId, themeId }) => 
   return { success: true }
 }
 
-export const createAdvisorQuestionBankQuestion = async ({ advisorId, themeId, concept, prompt, options }) => {
+export const createAdvisorQuestionBankQuestion = async ({
+  advisorId,
+  themeId,
+  concept,
+  prompt,
+  conceptTranslations,
+  promptTranslations,
+  options
+}) => {
   if (!advisorId || !themeId) throw new Error('Theme introuvable')
   const cleanConcept = String(concept || '').trim()
   const cleanPrompt = String(prompt || '').trim()
@@ -412,6 +472,8 @@ export const createAdvisorQuestionBankQuestion = async ({ advisorId, themeId, co
         theme_id: themeId,
         concept: cleanConcept,
         prompt: cleanPrompt,
+        concept_translations: sanitizeTranslations(conceptTranslations, cleanConcept),
+        prompt_translations: sanitizeTranslations(promptTranslations, cleanPrompt),
         options: Array.isArray(options) && options.length > 0 ? options : DEFAULT_OPTIONS
       }
     ])
@@ -422,11 +484,47 @@ export const createAdvisorQuestionBankQuestion = async ({ advisorId, themeId, co
   return data
 }
 
-export const updateAdvisorQuestionBankQuestion = async ({ advisorId, questionId, concept, prompt, options }) => {
+export const updateAdvisorQuestionBankQuestion = ({
+  advisorId,
+  questionId,
+  concept,
+  prompt,
+  conceptTranslations,
+  promptTranslations,
+  options
+}) => {
+  return updateAdvisorQuestionBankQuestionInternal({
+    advisorId,
+    questionId,
+    concept,
+    prompt,
+    conceptTranslations,
+    promptTranslations,
+    options
+  })
+}
+
+const updateAdvisorQuestionBankQuestionInternal = async ({
+  advisorId,
+  questionId,
+  concept,
+  prompt,
+  conceptTranslations,
+  promptTranslations,
+  options
+}) => {
   if (!advisorId || !questionId) throw new Error('Question introuvable')
 
-  const cleanConcept = String(concept || '').trim()
-  const cleanPrompt = String(prompt || '').trim()
+  const translatedConcepts = sanitizeTranslations(conceptTranslations, concept)
+  const translatedPrompts = sanitizeTranslations(promptTranslations, prompt)
+  const cleanConcept = String(
+    concept ||
+      getTranslatedValue(translatedConcepts, DEFAULT_QUESTION_LANGUAGE, '') ||
+      getTranslatedValue(translatedConcepts, 'en', '')
+  ).trim()
+  const cleanPrompt = String(
+    prompt || getTranslatedValue(translatedPrompts, DEFAULT_QUESTION_LANGUAGE, '') || getTranslatedValue(translatedPrompts, 'en', '')
+  ).trim()
 
   if (!cleanConcept) throw new Error('Le concept est requis')
   if (!cleanPrompt) throw new Error('La question est requise')
@@ -455,6 +553,8 @@ export const updateAdvisorQuestionBankQuestion = async ({ advisorId, questionId,
     .update({
       concept: cleanConcept,
       prompt: cleanPrompt,
+      concept_translations: translatedConcepts,
+      prompt_translations: translatedPrompts,
       options: Array.isArray(options) && options.length > 0 ? options : DEFAULT_OPTIONS
     })
     .eq('id', questionId)
@@ -540,7 +640,7 @@ export const getAdvisorQuestionnaires = async (advisorId) => {
   const ids = questionnaires.map((item) => item.id)
   const { data: questions, error: questionsError } = await supabase
     .from('advisor_questionnaire_questions')
-    .select('id, questionnaire_id, question_text, concept, theme, order_index, options')
+    .select('id, questionnaire_id, question_text, concept, prompt_translations, concept_translations, theme, order_index, options')
     .in('questionnaire_id', ids)
     .order('order_index', { ascending: true })
 
@@ -623,6 +723,8 @@ export const updateAdvisorQuestionnaire = async ({ advisorId, questionnaireId, n
     questionnaire_id: questionnaireId,
     question_text: question.questionText,
     concept: question.concept,
+    prompt_translations: question.promptTranslations,
+    concept_translations: question.conceptTranslations,
     theme: question.theme,
     order_index: question.orderIndex,
     options: question.options
