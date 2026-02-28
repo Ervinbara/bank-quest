@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   getAdvisorInvitationLinks,
   regenerateInvitationLink,
@@ -27,6 +28,7 @@ const formatDate = (dateString) => {
 
 export default function Invitations() {
   const { advisor } = useAuth()
+  const { tr, language } = useLanguage()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -47,11 +49,11 @@ export default function Invitations() {
       setRows(data || [])
     } catch (err) {
       console.error('Erreur chargement invitations:', err)
-      setError('Impossible de charger les liens invitations')
+      setError(tr('Impossible de charger les liens invitations', 'Unable to load invitation links'))
     } finally {
       setLoading(false)
     }
-  }, [advisor?.id])
+  }, [advisor?.id, tr])
 
   const loadTemplate = useCallback(async () => {
     if (!advisor?.id) return
@@ -87,7 +89,7 @@ export default function Invitations() {
       setCopyState(row.id)
       setTimeout(() => setCopyState(''), 1500)
     } catch {
-      setError("Impossible de copier le lien dans le presse-papiers")
+      setError(tr("Impossible de copier le lien dans le presse-papiers", 'Unable to copy link to clipboard'))
     }
   }
 
@@ -99,7 +101,7 @@ export default function Invitations() {
       await loadInvitations()
     } catch (err) {
       console.error('Erreur regeneration invitation:', err)
-      setError("Impossible de regenerer le lien d'invitation")
+      setError(tr("Impossible de regenerer le lien d'invitation", 'Unable to regenerate invitation link'))
     } finally {
       setRegeneratingId('')
     }
@@ -114,15 +116,17 @@ export default function Invitations() {
       await sendInvitationEmail({
         toEmail: row.email,
         clientName: row.name,
-        advisorName: advisor?.name || 'Votre conseiller',
+        advisorName: advisor?.name || tr('Votre conseiller', 'Your advisor'),
         advisorEmail: advisor?.email || '',
         inviteLink: row.invitation.inviteUrl,
         template
       })
-      setTemplateMessage(`Email envoye a ${row.email}`)
+      setTemplateMessage(
+        language === 'fr' ? `Email envoye a ${row.email}` : `Email sent to ${row.email}`
+      )
       setTimeout(() => setTemplateMessage(''), 1800)
     } catch (err) {
-      setError(err.message || "Impossible d'envoyer l'email d'invitation")
+      setError(err.message || tr("Impossible d'envoyer l'email d'invitation", 'Unable to send invitation email'))
     } finally {
       setSendingId('')
     }
@@ -135,10 +139,10 @@ export default function Invitations() {
       setTemplateMessage('')
       const saved = await saveAdvisorEmailTemplate(advisor.id, template)
       setTemplate(saved)
-      setTemplateMessage('Template email enregistre')
+      setTemplateMessage(tr('Template email enregistre', 'Email template saved'))
       setTimeout(() => setTemplateMessage(''), 2200)
     } catch (err) {
-      setError(err.message || "Impossible d'enregistrer le template")
+      setError(err.message || tr("Impossible d'enregistrer le template", 'Unable to save template'))
     } finally {
       setTemplateSaving(false)
     }
@@ -149,7 +153,7 @@ export default function Invitations() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des invitations...</p>
+          <p className="text-gray-600">{tr('Chargement des invitations...', 'Loading invitations...')}</p>
         </div>
       </div>
     )
@@ -159,19 +163,20 @@ export default function Invitations() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Liens invitations</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{tr('Liens invitations', 'Invitation links')}</h2>
           <p className="text-gray-600">
-            {pendingRows.length} invitation{pendingRows.length > 1 ? 's' : ''} active
-            {pendingRows.length > 1 ? 's' : ''}
+            {language === 'fr'
+              ? `${pendingRows.length} invitation${pendingRows.length > 1 ? 's' : ''} active${pendingRows.length > 1 ? 's' : ''}`
+              : `${pendingRows.length} active invitation${pendingRows.length > 1 ? 's' : ''}`}
           </p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Template email d'invitation</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">{tr("Template email d'invitation", 'Invitation email template')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Objet</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{tr('Objet', 'Subject')}</label>
             <input
               type="text"
               value={template.subject}
@@ -180,7 +185,7 @@ export default function Invitations() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{tr('Message', 'Message')}</label>
             <textarea
               rows={8}
               value={template.body}
@@ -188,8 +193,8 @@ export default function Invitations() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
             />
             <p className="text-xs text-gray-600 mt-2">
-              Placeholders disponibles: {'{{client_name}}'}, {'{{advisor_name}}'}, {'{{advisor_email}}'} et{' '}
-              <strong>{INVITE_LINK_PLACEHOLDER}</strong> (obligatoire).
+              {tr('Placeholders disponibles', 'Available placeholders')}: {'{{client_name}}'}, {'{{advisor_name}}'}, {'{{advisor_email}}'} {tr('et', 'and')}{' '}
+              <strong>{INVITE_LINK_PLACEHOLDER}</strong> ({tr('obligatoire', 'required')}).
             </p>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -199,7 +204,7 @@ export default function Invitations() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
             >
               {templateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Enregistrer le template
+              {tr('Enregistrer le template', 'Save template')}
             </button>
             {templateMessage ? <p className="text-sm text-green-700 font-semibold">{templateMessage}</p> : null}
           </div>
@@ -215,8 +220,8 @@ export default function Invitations() {
       {pendingRows.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-10 text-center">
           <Link2 className="w-14 h-14 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Aucune invitation active</h3>
-          <p className="text-gray-600">Invitez un client depuis les pages Apercu ou Mes clients.</p>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">{tr('Aucune invitation active', 'No active invitations')}</h3>
+          <p className="text-gray-600">{tr('Invitez un client depuis les pages Apercu ou Mes clients.', 'Invite a client from Overview or Clients pages.')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -224,12 +229,12 @@ export default function Invitations() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Client</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Lien</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Questionnaire</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Expire le</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Maj</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Client', 'Client')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Lien', 'Link')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Questionnaire', 'Questionnaire')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Expire le', 'Expires')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Maj', 'Updated')}</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-700">{tr('Actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,15 +245,15 @@ export default function Invitations() {
                       <p className="text-gray-500">{row.email}</p>
                     </td>
                     <td className="px-4 py-3 max-w-md">
-                      <p className="truncate text-gray-700">{row.invitation?.inviteUrl || 'Lien non genere'}</p>
+                      <p className="truncate text-gray-700">{row.invitation?.inviteUrl || tr('Lien non genere', 'Link not generated')}</p>
                       {row.invitation?.legacyMode ? (
                         <p className="text-xs text-amber-700 mt-1">
-                          Mode compatibilite actif: migration Supabase requise pour une regeneration unique.
+                          {tr('Mode compatibilite actif: migration Supabase requise pour une regeneration unique.', 'Compatibility mode enabled: Supabase migration required for unique regeneration.')}
                         </p>
                       ) : null}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {row.invitation?.questionnaireName || 'Questionnaire standard'}
+                      {row.invitation?.questionnaireName || tr('Questionnaire standard', 'Standard questionnaire')}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}
@@ -264,7 +269,7 @@ export default function Invitations() {
                           className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
                         >
                           {copyState === row.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          {copyState === row.id ? 'Copie' : 'Copier'}
+                          {copyState === row.id ? tr('Copie', 'Copied') : tr('Copier', 'Copy')}
                         </button>
                         <button
                           onClick={() => sendEmailForRow(row)}
@@ -276,7 +281,7 @@ export default function Invitations() {
                           ) : (
                             <Send className="w-4 h-4" />
                           )}
-                          Envoyer mail
+                          {tr('Envoyer mail', 'Send email')}
                         </button>
                         <button
                           onClick={() => regenerate(row)}
@@ -288,7 +293,7 @@ export default function Invitations() {
                           ) : (
                             <RefreshCw className="w-4 h-4" />
                           )}
-                          {row.invitation?.legacyMode ? 'Migration requise' : 'Regenerer'}
+                          {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer', 'Regenerate')}
                         </button>
                       </div>
                     </td>

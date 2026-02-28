@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import SettingsTabs from '@/components/Dashboard/SettingsTabs'
 import { validatePassword } from '@/services/authService'
@@ -18,6 +19,7 @@ const PLAN_DETAILS = {
 
 export default function Settings() {
   const { advisor, updateProfile, refreshAdvisor } = useAuth()
+  const { tr } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
@@ -60,12 +62,12 @@ export default function Settings() {
     if (!checkoutStatus && !portalStatus) return
 
     if (checkoutStatus === 'success') {
-      setMessage({ type: 'success', text: 'Paiement confirme. Abonnement mis a jour.' })
+      setMessage({ type: 'success', text: tr('Paiement confirme. Abonnement mis a jour.', 'Payment confirmed. Subscription updated.') })
       void refreshAdvisor()
     } else if (checkoutStatus === 'cancel') {
-      setMessage({ type: 'error', text: 'Paiement annule.' })
+      setMessage({ type: 'error', text: tr('Paiement annule.', 'Payment canceled.') })
     } else if (portalStatus === 'return') {
-      setMessage({ type: 'success', text: 'Retour du portail de facturation.' })
+      setMessage({ type: 'success', text: tr('Retour du portail de facturation.', 'Returned from billing portal.') })
       void refreshAdvisor()
     }
 
@@ -74,7 +76,7 @@ export default function Settings() {
     next.delete('portal')
     setSearchParams(next, { replace: true })
     setTimeout(() => setMessage(null), 3000)
-  }, [searchParams, setSearchParams, refreshAdvisor])
+  }, [searchParams, setSearchParams, refreshAdvisor, tr])
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target
@@ -133,11 +135,11 @@ export default function Settings() {
         company: profileData.company,
         phone: profileData.phone
       })
-      setMessage({ type: 'success', text: 'Profil mis a jour avec succes.' })
+      setMessage({ type: 'success', text: tr('Profil mis a jour avec succes.', 'Profile updated successfully.') })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Erreur mise a jour profil:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de la mise a jour' })
+      setMessage({ type: 'error', text: tr('Erreur lors de la mise a jour', 'Update failed') })
     } finally {
       setLoading(false)
     }
@@ -170,7 +172,7 @@ export default function Settings() {
       const { error } = await supabase.auth.updateUser({ password: securityData.newPassword })
       if (error) throw error
 
-      setMessage({ type: 'success', text: 'Mot de passe modifie avec succes.' })
+      setMessage({ type: 'success', text: tr('Mot de passe modifie avec succes.', 'Password updated successfully.') })
       setSecurityData({
         currentPassword: '',
         newPassword: '',
@@ -179,7 +181,7 @@ export default function Settings() {
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Erreur changement mot de passe:', error)
-      setMessage({ type: 'error', text: 'Erreur lors du changement de mot de passe' })
+      setMessage({ type: 'error', text: tr('Erreur lors du changement de mot de passe', 'Password change failed') })
     } finally {
       setLoading(false)
     }
@@ -192,7 +194,7 @@ export default function Settings() {
       const url = await createStripeCheckoutSession(plan)
       window.location.href = url
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Erreur Stripe checkout' })
+      setMessage({ type: 'error', text: error.message || tr('Erreur Stripe checkout', 'Stripe checkout error') })
     } finally {
       setCheckoutLoadingPlan(null)
     }
@@ -205,7 +207,7 @@ export default function Settings() {
       const url = await createStripeCustomerPortalSession()
       window.location.href = url
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Erreur portail Stripe' })
+      setMessage({ type: 'error', text: error.message || tr('Erreur portail Stripe', 'Stripe portal error') })
     } finally {
       setPortalLoading(false)
     }
@@ -214,8 +216,8 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Parametres</h2>
-        <p className="text-gray-600">Gerez votre compte et vos preferences</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr('Parametres', 'Settings')}</h2>
+        <p className="text-gray-600">{tr('Gerez votre compte et vos preferences', 'Manage your account and preferences')}</p>
       </div>
 
       <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />

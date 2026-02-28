@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorAnalytics } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import {
@@ -68,6 +69,7 @@ const buildCsv = (rows) => {
 
 export default function Analytics() {
   const { advisor } = useAuth()
+  const { tr } = useLanguage()
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -83,11 +85,11 @@ export default function Analytics() {
       setAnalytics(data)
     } catch (err) {
       console.error('Erreur chargement analytics:', err)
-      setError('Impossible de charger les statistiques avancees')
+      setError(tr('Impossible de charger les statistiques avancees', 'Unable to load advanced analytics'))
     } finally {
       setLoading(false)
     }
-  }, [advisor?.id])
+  }, [advisor?.id, tr])
 
   useEffect(() => {
     void loadAnalytics()
@@ -113,7 +115,7 @@ export default function Analytics() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `bank-quest-crm-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `finmate-crm-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -128,7 +130,7 @@ export default function Analytics() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des analytics...</p>
+          <p className="text-gray-600">{tr('Chargement des analytics...', 'Loading analytics...')}</p>
         </div>
       </div>
     )
@@ -142,7 +144,7 @@ export default function Analytics() {
           onClick={loadAnalytics}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          Reessayer
+          {tr('Reessayer', 'Retry')}
         </button>
       </div>
     )
@@ -156,8 +158,8 @@ export default function Analytics() {
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-8 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Analytics avancees</h2>
-            <p className="text-indigo-100">Pilotage commercial et priorisation des relances.</p>
+            <h2 className="text-3xl font-bold mb-2">{tr('Analytics avancees', 'Advanced analytics')}</h2>
+            <p className="text-indigo-100">{tr('Pilotage commercial et priorisation des relances.', 'Sales tracking and follow-up prioritization.')}</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -165,7 +167,7 @@ export default function Analytics() {
               className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition"
             >
               <RefreshCw className="w-4 h-4" />
-              Actualiser
+              {tr('Actualiser', 'Refresh')}
             </button>
             <button
               onClick={exportCsv}
@@ -173,17 +175,17 @@ export default function Analytics() {
               className="inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-2 rounded-lg font-semibold transition disabled:opacity-60"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Export CSV
+              {tr('Export CSV', 'Export CSV')}
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatsCard title="Total clients" value={analytics?.summary?.totalClients ?? 0} icon={Users} color="blue" />
-        <StatsCard title="Quiz completes" value={analytics?.summary?.completed ?? 0} icon={CheckCircle} color="green" />
-        <StatsCard title="En attente" value={analytics?.summary?.pending ?? 0} icon={Clock3} color="orange" />
-        <StatsCard title="Score moyen" value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
+        <StatsCard title={tr('Total clients', 'Total clients')} value={analytics?.summary?.totalClients ?? 0} icon={Users} color="blue" />
+        <StatsCard title={tr('Quiz completes', 'Completed quizzes')} value={analytics?.summary?.completed ?? 0} icon={CheckCircle} color="green" />
+        <StatsCard title={tr('En attente', 'Pending')} value={analytics?.summary?.pending ?? 0} icon={Clock3} color="orange" />
+        <StatsCard title={tr('Score moyen', 'Average score')} value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

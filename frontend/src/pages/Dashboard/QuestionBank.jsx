@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   createAdvisorQuestionBankQuestion,
   createAdvisorQuestionBankTheme,
@@ -12,6 +13,7 @@ import { Loader2, Plus, Save, Trash2 } from 'lucide-react'
 
 export default function QuestionBank() {
   const { advisor } = useAuth()
+  const { tr } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -41,11 +43,11 @@ export default function QuestionBank() {
       setSelectedThemeId((current) => (current && rows.some((theme) => theme.id === current) ? current : first?.id || ''))
     } catch (err) {
       console.error('Erreur chargement banque de questions:', err)
-      setError('Impossible de charger la banque de questions')
+      setError(tr('Impossible de charger la banque de questions', 'Unable to load question bank'))
     } finally {
       setLoading(false)
     }
-  }, [advisor?.id])
+  }, [advisor?.id, tr])
 
   useEffect(() => {
     void loadCatalog()
@@ -70,9 +72,9 @@ export default function QuestionBank() {
       setNewThemeName('')
       setNewThemeDescription('')
       await loadCatalog()
-      setSuccess('Theme cree')
+      setSuccess(tr('Theme cree', 'Theme created'))
     } catch (err) {
-      setError(err.message || 'Impossible de creer le theme')
+      setError(err.message || tr('Impossible de creer le theme', 'Unable to create theme'))
     } finally {
       setSaving(false)
     }
@@ -91,9 +93,9 @@ export default function QuestionBank() {
         description: editingThemeDescription
       })
       await loadCatalog()
-      setSuccess('Theme mis a jour')
+      setSuccess(tr('Theme mis a jour', 'Theme updated'))
     } catch (err) {
-      setError(err.message || 'Impossible de modifier le theme')
+      setError(err.message || tr('Impossible de modifier le theme', 'Unable to update theme'))
     } finally {
       setSaving(false)
     }
@@ -107,9 +109,9 @@ export default function QuestionBank() {
       setSuccess('')
       await deleteAdvisorQuestionBankTheme({ advisorId: advisor.id, themeId: selectedTheme.id })
       await loadCatalog()
-      setSuccess('Theme supprime')
+      setSuccess(tr('Theme supprime', 'Theme deleted'))
     } catch (err) {
-      setError(err.message || 'Impossible de supprimer le theme')
+      setError(err.message || tr('Impossible de supprimer le theme', 'Unable to delete theme'))
     } finally {
       setSaving(false)
     }
@@ -130,9 +132,9 @@ export default function QuestionBank() {
       setNewConcept('')
       setNewPrompt('')
       await loadCatalog()
-      setSuccess('Question ajoutee')
+      setSuccess(tr('Question ajoutee', 'Question added'))
     } catch (err) {
-      setError(err.message || 'Impossible de creer la question')
+      setError(err.message || tr('Impossible de creer la question', 'Unable to create question'))
     } finally {
       setSaving(false)
     }
@@ -145,9 +147,9 @@ export default function QuestionBank() {
       setSuccess('')
       await deleteAdvisorQuestionBankQuestion({ advisorId: advisor.id, questionId })
       await loadCatalog()
-      setSuccess('Question supprimee')
+      setSuccess(tr('Question supprimee', 'Question deleted'))
     } catch (err) {
-      setError(err.message || 'Impossible de supprimer la question')
+      setError(err.message || tr('Impossible de supprimer la question', 'Unable to delete question'))
     } finally {
       setSaving(false)
     }
@@ -158,7 +160,7 @@ export default function QuestionBank() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement de la banque de questions...</p>
+          <p className="text-gray-600">{tr('Chargement de la banque de questions...', 'Loading question bank...')}</p>
         </div>
       </div>
     )
@@ -167,8 +169,8 @@ export default function QuestionBank() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Banque de questions</h2>
-        <p className="text-gray-600">Gerez ici vos themes et questions reutilisables dans tous vos questionnaires.</p>
+        <h2 className="text-2xl font-bold text-gray-800">{tr('Banque de questions', 'Question bank')}</h2>
+        <p className="text-gray-600">{tr('Gerez ici vos themes et questions reutilisables dans tous vos questionnaires.', 'Manage reusable themes and questions for all your questionnaires.')}</p>
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
@@ -176,7 +178,7 @@ export default function QuestionBank() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
-          <h3 className="font-bold text-gray-900">Themes</h3>
+          <h3 className="font-bold text-gray-900">{tr('Themes', 'Themes')}</h3>
           <div className="space-y-2">
             {themes.map((theme) => (
               <button
@@ -193,19 +195,19 @@ export default function QuestionBank() {
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">Nouveau theme</p>
+            <p className="text-sm font-semibold text-gray-800">{tr('Nouveau theme', 'New theme')}</p>
             <input
               type="text"
               value={newThemeName}
               onChange={(event) => setNewThemeName(event.target.value)}
-              placeholder="Ex: Credit immobilier"
+               placeholder={tr('Ex: Credit immobilier', 'Ex: Mortgage')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <input
               type="text"
               value={newThemeDescription}
               onChange={(event) => setNewThemeDescription(event.target.value)}
-              placeholder="Description (optionnel)"
+               placeholder={tr('Description (optionnel)', 'Description (optional)')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <button
@@ -214,14 +216,14 @@ export default function QuestionBank() {
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
             >
               <Plus className="w-4 h-4" />
-              Creer le theme
+               {tr('Creer le theme', 'Create theme')}
             </button>
           </div>
         </div>
 
         <div className="xl:col-span-2 bg-white rounded-xl shadow-md p-6 space-y-4">
           {!selectedTheme ? (
-            <p className="text-gray-600">Selectionnez un theme pour voir ses questions.</p>
+             <p className="text-gray-600">{tr('Selectionnez un theme pour voir ses questions.', 'Select a theme to view its questions.')}</p>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -235,7 +237,7 @@ export default function QuestionBank() {
                   type="text"
                   value={editingThemeDescription}
                   onChange={(event) => setEditingThemeDescription(event.target.value)}
-                  placeholder="Description"
+                   placeholder={tr('Description', 'Description')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -246,7 +248,7 @@ export default function QuestionBank() {
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-60"
                 >
                   <Save className="w-4 h-4" />
-                  Enregistrer le theme
+                   {tr('Enregistrer le theme', 'Save theme')}
                 </button>
                 <button
                   onClick={removeTheme}
@@ -254,24 +256,24 @@ export default function QuestionBank() {
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-300 text-red-700 font-semibold hover:bg-red-50 transition disabled:opacity-60"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Supprimer le theme
+                   {tr('Supprimer le theme', 'Delete theme')}
                 </button>
               </div>
 
               <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                <p className="text-sm font-semibold text-gray-800">Ajouter une question a ce theme</p>
+                 <p className="text-sm font-semibold text-gray-800">{tr('Ajouter une question a ce theme', 'Add a question to this theme')}</p>
                 <input
                   type="text"
                   value={newConcept}
                   onChange={(event) => setNewConcept(event.target.value)}
-                  placeholder="Concept"
+                   placeholder={tr('Concept', 'Concept')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                 />
                 <textarea
                   rows={3}
                   value={newPrompt}
                   onChange={(event) => setNewPrompt(event.target.value)}
-                  placeholder="Texte de la question"
+                   placeholder={tr('Texte de la question', 'Question text')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                 />
                 <button
@@ -280,14 +282,14 @@ export default function QuestionBank() {
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
                 >
                   <Plus className="w-4 h-4" />
-                  Ajouter la question
+                   {tr('Ajouter la question', 'Add question')}
                 </button>
               </div>
 
               <div className="space-y-2">
-                <p className="font-semibold text-gray-900">Questions du theme ({selectedTheme.questions?.length || 0})</p>
+                 <p className="font-semibold text-gray-900">{tr('Questions du theme', 'Theme questions')} ({selectedTheme.questions?.length || 0})</p>
                 {(selectedTheme.questions || []).length === 0 ? (
-                  <p className="text-sm text-gray-600">Aucune question dans ce theme.</p>
+                   <p className="text-sm text-gray-600">{tr('Aucune question dans ce theme.', 'No questions in this theme.')}</p>
                 ) : (
                   <div className="space-y-2">
                     {(selectedTheme.questions || []).map((question) => (
@@ -301,7 +303,7 @@ export default function QuestionBank() {
                             onClick={() => removeQuestion(question.id)}
                             className="text-sm text-red-600 hover:text-red-700 font-semibold"
                           >
-                            Supprimer
+                             {tr('Supprimer', 'Delete')}
                           </button>
                         </div>
                       </div>

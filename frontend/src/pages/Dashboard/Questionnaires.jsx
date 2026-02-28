@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
   createAdvisorQuestionnaireFromTemplate,
   createCustomAdvisorQuestionnaire,
@@ -42,6 +43,7 @@ const THEME_LABELS = {
 
 export default function Questionnaires() {
   const { advisor } = useAuth()
+  const { tr } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -91,11 +93,11 @@ export default function Questionnaires() {
       }
     } catch (err) {
       console.error('Erreur chargement questionnaires:', err)
-      setError('Impossible de charger les questionnaires')
+      setError(tr('Impossible de charger les questionnaires', 'Unable to load questionnaires'))
     } finally {
       setLoading(false)
     }
-  }, [advisor?.id])
+  }, [advisor?.id, tr])
 
   useEffect(() => {
     void loadAll()
@@ -122,9 +124,9 @@ export default function Questionnaires() {
       })
       setTemplateName('')
       await loadAll()
-      setSuccess('Questionnaire cree depuis template')
+      setSuccess(tr('Questionnaire cree depuis template', 'Questionnaire created from template'))
     } catch (err) {
-      setError(err.message || 'Impossible de creer le questionnaire')
+      setError(err.message || tr('Impossible de creer le questionnaire', 'Unable to create questionnaire'))
     } finally {
       setSaving(false)
     }
@@ -142,9 +144,9 @@ export default function Questionnaires() {
       })
       setCustomName('')
       await loadAll()
-      setSuccess('Questionnaire vide cree')
+      setSuccess(tr('Questionnaire vide cree', 'Empty questionnaire created'))
     } catch (err) {
-      setError(err.message || 'Impossible de creer le questionnaire')
+      setError(err.message || tr('Impossible de creer le questionnaire', 'Unable to create questionnaire'))
     } finally {
       setSaving(false)
     }
@@ -218,9 +220,9 @@ export default function Questionnaires() {
         questions: draft.questions
       })
       await loadAll()
-      setSuccess('Questionnaire enregistre')
+      setSuccess(tr('Questionnaire enregistre', 'Questionnaire saved'))
     } catch (err) {
-      setError(err.message || "Impossible d'enregistrer le questionnaire")
+      setError(err.message || tr("Impossible d'enregistrer le questionnaire", 'Unable to save questionnaire'))
     } finally {
       setSaving(false)
     }
@@ -233,9 +235,9 @@ export default function Questionnaires() {
       setSuccess('')
       await setAdvisorDefaultQuestionnaire({ advisorId: advisor.id, questionnaireId })
       await loadAll()
-      setSuccess('Questionnaire par defaut mis a jour')
+      setSuccess(tr('Questionnaire par defaut mis a jour', 'Default questionnaire updated'))
     } catch (err) {
-      setError(err.message || 'Impossible de definir le questionnaire par defaut')
+      setError(err.message || tr('Impossible de definir le questionnaire par defaut', 'Unable to set default questionnaire'))
     } finally {
       setSaving(false)
     }
@@ -248,9 +250,9 @@ export default function Questionnaires() {
       setSuccess('')
       await deleteAdvisorQuestionnaire({ advisorId: advisor.id, questionnaireId })
       await loadAll()
-      setSuccess('Questionnaire supprime')
+      setSuccess(tr('Questionnaire supprime', 'Questionnaire deleted'))
     } catch (err) {
-      setError(err.message || 'Impossible de supprimer le questionnaire')
+      setError(err.message || tr('Impossible de supprimer le questionnaire', 'Unable to delete questionnaire'))
     } finally {
       setSaving(false)
     }
@@ -261,7 +263,7 @@ export default function Questionnaires() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des questionnaires...</p>
+          <p className="text-gray-600">{tr('Chargement des questionnaires...', 'Loading questionnaires...')}</p>
         </div>
       </div>
     )
@@ -270,8 +272,8 @@ export default function Questionnaires() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Questionnaires</h2>
-        <p className="text-gray-600">Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.</p>
+        <h2 className="text-2xl font-bold text-gray-800">{tr('Questionnaires', 'Questionnaires')}</h2>
+        <p className="text-gray-600">{tr('Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.', 'Create questionnaires, use templates, and add topic-based questions.')}</p>
       </div>
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
@@ -284,7 +286,7 @@ export default function Questionnaires() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
-          <h3 className="font-bold text-gray-900">Vos questionnaires</h3>
+          <h3 className="font-bold text-gray-900">{tr('Vos questionnaires', 'Your questionnaires')}</h3>
           <div className="space-y-2">
             {items.map((item) => (
               <button
@@ -304,7 +306,7 @@ export default function Questionnaires() {
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">Creer depuis un template</p>
+            <p className="text-sm font-semibold text-gray-800">{tr('Creer depuis un template', 'Create from template')}</p>
             <select
               value={templateKey}
               onChange={(event) => setTemplateKey(event.target.value)}
@@ -320,7 +322,7 @@ export default function Questionnaires() {
               type="text"
               value={templateName}
               onChange={(event) => setTemplateName(event.target.value)}
-              placeholder="Nom personnalise (optionnel)"
+              placeholder={tr('Nom personnalise (optionnel)', 'Custom name (optional)')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <button
@@ -329,17 +331,17 @@ export default function Questionnaires() {
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Ajouter depuis template
+              {tr('Ajouter depuis template', 'Add from template')}
             </button>
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">Creer un questionnaire vide</p>
+            <p className="text-sm font-semibold text-gray-800">{tr('Creer un questionnaire vide', 'Create an empty questionnaire')}</p>
             <input
               type="text"
               value={customName}
               onChange={(event) => setCustomName(event.target.value)}
-              placeholder="Ex: Questionnaire premium"
+              placeholder={tr('Ex: Questionnaire premium', 'Ex: Premium questionnaire')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <button
@@ -348,14 +350,14 @@ export default function Questionnaires() {
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-60"
             >
               <Plus className="w-4 h-4" />
-              Creer vide
+              {tr('Creer vide', 'Create empty')}
             </button>
           </div>
         </div>
 
         <div className="xl:col-span-2 bg-white rounded-xl shadow-md p-6 space-y-4">
           {!draft || !selectedQuestionnaire ? (
-            <p className="text-gray-600">Selectionnez un questionnaire pour le modifier.</p>
+              <p className="text-gray-600">{tr('Selectionnez un questionnaire pour le modifier.', 'Select a questionnaire to edit.')}</p>
           ) : (
             <>
               <div className="flex items-start justify-between gap-3">
@@ -381,7 +383,7 @@ export default function Questionnaires() {
                     className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition disabled:opacity-60"
                   >
                     <Star className="w-4 h-4" />
-                    Par defaut
+                     {tr('Par defaut', 'Set default')}
                   </button>
                   <button
                     onClick={() => removeQuestionnaire(selectedQuestionnaire.id)}
@@ -389,13 +391,13 @@ export default function Questionnaires() {
                     className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-red-300 text-red-700 font-semibold hover:bg-red-50 transition disabled:opacity-60"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Supprimer
+                     {tr('Supprimer', 'Delete')}
                   </button>
                 </div>
               </div>
 
               <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
-                <p className="text-sm font-semibold text-gray-800">Banque de questions par theme</p>
+                 <p className="text-sm font-semibold text-gray-800">{tr('Banque de questions par theme', 'Question bank by topic')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
                     value={bankTheme}
@@ -428,24 +430,24 @@ export default function Questionnaires() {
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-white transition"
                 >
                   <Plus className="w-4 h-4" />
-                  Ajouter la question
+                   {tr('Ajouter la question', 'Add question')}
                 </button>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-gray-900">Questions ({draft.questions.length})</p>
+                   <p className="font-semibold text-gray-900">{tr('Questions', 'Questions')} ({draft.questions.length})</p>
                   <button
                     onClick={addCustomQuestion}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
                   >
                     <Plus className="w-4 h-4" />
-                    Ajouter une question
+                     {tr('Ajouter une question', 'Add a question')}
                   </button>
                 </div>
 
                 {draft.questions.length === 0 ? (
-                  <p className="text-sm text-gray-600">Ajoutez des questions pour activer ce questionnaire.</p>
+                   <p className="text-sm text-gray-600">{tr('Ajoutez des questions pour activer ce questionnaire.', 'Add questions to activate this questionnaire.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[460px] overflow-auto pr-1">
                     {draft.questions.map((question, index) => (
@@ -462,13 +464,13 @@ export default function Questionnaires() {
                             type="text"
                             value={question.concept || ''}
                             onChange={(event) => updateQuestionField(index, 'concept', event.target.value)}
-                            placeholder="Concept"
+                             placeholder={tr('Concept', 'Concept')}
                             className="px-3 py-2 border border-gray-300 rounded-lg"
                           />
                         </div>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-600">Theme</label>
+                             <label className="text-sm text-gray-600">{tr('Theme', 'Topic')}</label>
                             <select
                               value={question.theme || 'general'}
                               onChange={(event) => updateQuestionField(index, 'theme', event.target.value)}
@@ -485,7 +487,7 @@ export default function Questionnaires() {
                             onClick={() => removeQuestion(index)}
                             className="text-sm text-red-600 hover:text-red-700 font-semibold"
                           >
-                            Supprimer
+                             {tr('Supprimer', 'Delete')}
                           </button>
                         </div>
                       </div>
@@ -501,7 +503,7 @@ export default function Questionnaires() {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Enregistrer les modifications
+                   {tr('Enregistrer les modifications', 'Save changes')}
                 </button>
               </div>
             </>

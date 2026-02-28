@@ -1,11 +1,12 @@
-import { useState } from 'react'
 import { User, Lock, CreditCard } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function SettingsTabs({ activeTab, onTabChange }) {
+  const { tr } = useLanguage()
   const tabs = [
-    { id: 'profile', label: 'Profil', icon: User },
-    { id: 'security', label: 'Sécurité', icon: Lock },
-    { id: 'billing', label: 'Abonnement', icon: CreditCard }
+    { id: 'profile', label: tr('Profil', 'Profile'), icon: User },
+    { id: 'security', label: tr('Securite', 'Security'), icon: Lock },
+    { id: 'billing', label: tr('Abonnement', 'Billing'), icon: CreditCard }
   ]
 
   return (

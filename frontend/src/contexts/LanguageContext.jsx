@@ -270,7 +270,8 @@ export function LanguageProvider({ children }) {
     () => ({
       language,
       setLanguage,
-      t: (key, fallback = key) => getByPath(translations[language], key) ?? fallback
+      t: (key, fallback = key) => getByPath(translations[language], key) ?? fallback,
+      tr: (fr, en) => (language === 'fr' ? fr : en)
     }),
     [language]
   )
