@@ -34,7 +34,8 @@ const planFromPriceId = (priceId: string | null, mode: 'test' | 'live') => {
   const map = new Map([
     [resolveStripeEnv('STRIPE_PRICE_SOLO_MONTHLY', mode) || '', 'solo'],
     [resolveStripeEnv('STRIPE_PRICE_PRO_MONTHLY', mode) || '', 'pro'],
-    [resolveStripeEnv('STRIPE_PRICE_CABINET_MONTHLY', mode) || '', 'cabinet']
+    [resolveStripeEnv('STRIPE_PRICE_CABINET_MONTHLY', mode) || '', 'cabinet'],
+    [resolveStripeEnv('STRIPE_PRICE_TEST_MONTHLY', mode) || '', 'test']
   ])
   return (priceId && map.get(priceId)) || 'none'
 }

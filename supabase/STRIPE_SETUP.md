@@ -20,9 +20,11 @@ Dans `Supabase > Edge Functions > Secrets`, ajoute:
 - `STRIPE_PRICE_SOLO_MONTHLY_TEST=price_...`
 - `STRIPE_PRICE_PRO_MONTHLY_TEST=price_...`
 - `STRIPE_PRICE_CABINET_MONTHLY_TEST=price_...`
+- `STRIPE_PRICE_TEST_MONTHLY_TEST=price_...` (optionnel: plan interne)
 - `STRIPE_PRICE_SOLO_MONTHLY_LIVE=price_...`
 - `STRIPE_PRICE_PRO_MONTHLY_LIVE=price_...`
 - `STRIPE_PRICE_CABINET_MONTHLY_LIVE=price_...`
+- `STRIPE_PRICE_TEST_MONTHLY_LIVE=price_...` (optionnel: plan interne)
 - `STRIPE_WEBHOOK_SECRET_TEST=whsec_...`
 - `STRIPE_WEBHOOK_SECRET_LIVE=whsec_...`
 - `APP_URL=https://finmate-advisor.vercel.app`

@@ -17,8 +17,11 @@ import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
 const PLAN_DETAILS = {
   solo: { price: '19 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
   pro: { price: '49 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
-  cabinet: { price: '99 EUR/mois', limit: 'Clients illimites', icon: 'C' }
+  cabinet: { price: '99 EUR/mois', limit: 'Clients illimites', icon: 'C' },
+  test: { price: '1 EUR/mois', limit: 'Plan interne de validation', icon: 'T' }
 }
+
+const TEST_PLAN_ALLOWED_EMAILS = new Set(['bankquest.pro@gmail.com'])
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 const SUBSCRIPTION_STATUS_COLORS = {
@@ -88,6 +91,10 @@ export default function Settings() {
     inactive: tr('Inactif', 'Inactive')
   }[subscriptionStatus] || subscriptionStatus
   const planTitle = currentPlan === 'none' ? tr('Aucun plan payant', 'No paid plan') : `Plan ${currentPlan}`
+  const canUseTestPlan = TEST_PLAN_ALLOWED_EMAILS.has(String(advisor?.email || '').toLowerCase())
+  const availablePlans = canUseTestPlan
+    ? ['solo', 'pro', 'cabinet', 'test']
+    : ['solo', 'pro', 'cabinet']
 
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout')
@@ -510,7 +517,7 @@ export default function Settings() {
                 <h4 className="font-bold text-gray-800">{tr('Changer de plan', 'Change plan')}</h4>
 
                 <div className="grid md:grid-cols-3 gap-4">
-                  {['solo', 'pro', 'cabinet'].map((plan) => (
+                  {availablePlans.map((plan) => (
                     <div
                       key={plan}
                       className={`border-2 rounded-xl p-4 transition-all ${

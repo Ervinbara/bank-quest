@@ -34,8 +34,11 @@ const resolveStripeEnv = (baseName: string, mode: 'test' | 'live') => {
 const PLAN_TO_PRICE_ENV_BASE: Record<string, string> = {
   solo: 'STRIPE_PRICE_SOLO_MONTHLY',
   pro: 'STRIPE_PRICE_PRO_MONTHLY',
-  cabinet: 'STRIPE_PRICE_CABINET_MONTHLY'
+  cabinet: 'STRIPE_PRICE_CABINET_MONTHLY',
+  test: 'STRIPE_PRICE_TEST_MONTHLY'
 }
+
+const TEST_PLAN_ALLOWED_EMAILS = new Set(['bankquest.pro@gmail.com'])
 
 const getPriceIdForPlan = (plan: string, mode: 'test' | 'live') => {
   const envBase = PLAN_TO_PRICE_ENV_BASE[plan]
@@ -82,7 +85,10 @@ serve(async (req) => {
 
     const payload = await req.json()
     const plan = String(payload?.plan || '').trim().toLowerCase()
-    if (!['solo', 'pro', 'cabinet'].includes(plan)) return json({ error: 'Plan invalide' }, 400)
+    if (!['solo', 'pro', 'cabinet', 'test'].includes(plan)) return json({ error: 'Plan invalide' }, 400)
+    if (plan === 'test' && !TEST_PLAN_ALLOWED_EMAILS.has(email.toLowerCase())) {
+      return json({ error: 'Plan test non autorise pour ce compte' }, 403)
+    }
 
     const priceId = getPriceIdForPlan(plan, stripeMode)
 
