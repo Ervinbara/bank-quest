@@ -20,7 +20,7 @@ const planFromPriceId = (priceId: string | null) => {
     [Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') || '', 'pro'],
     [Deno.env.get('STRIPE_PRICE_CABINET_MONTHLY') || '', 'cabinet']
   ])
-  return (priceId && map.get(priceId)) || 'solo'
+  return (priceId && map.get(priceId)) || 'none'
 }
 
 const extractPriceId = (subscription: any) =>
@@ -28,6 +28,44 @@ const extractPriceId = (subscription: any) =>
 
 const toIso = (unixSeconds?: number | null) =>
   unixSeconds ? new Date(unixSeconds * 1000).toISOString() : null
+
+const deriveSubscriptionUpdates = (subscription: Stripe.Subscription) => {
+  const rawStatus = subscription.status || 'inactive'
+  const finalStatus = rawStatus === 'canceled' ? 'inactive' : rawStatus
+  const priceId = extractPriceId(subscription)
+  const plan = planFromPriceId(priceId)
+  const currentPeriodStart = toIso(subscription.current_period_start)
+  const currentPeriodEnd = toIso(subscription.current_period_end)
+  const subscriptionStartedAt = toIso(subscription.start_date)
+  const cancelAtPeriodEnd = Boolean(subscription.cancel_at_period_end)
+  const cancelAt = toIso(subscription.cancel_at)
+  const canceledAt = toIso(subscription.canceled_at)
+  const endedAt = finalStatus === 'inactive'
+    ? (canceledAt || currentPeriodEnd || new Date().toISOString())
+    : null
+
+  const updates: Record<string, unknown> = {
+    stripe_subscription_id: String(subscription.id || '') || null,
+    stripe_price_id: priceId,
+    subscription_status: finalStatus,
+    current_period_start: currentPeriodStart,
+    current_period_end: currentPeriodEnd,
+    subscription_started_at: subscriptionStartedAt,
+    cancel_at_period_end: cancelAtPeriodEnd,
+    cancel_at: cancelAt,
+    canceled_at: canceledAt,
+    subscription_ended_at: endedAt,
+    subscription_updated_at: new Date().toISOString()
+  }
+
+  if (finalStatus === 'inactive') {
+    updates.plan = 'none'
+  } else if (plan !== 'none') {
+    updates.plan = plan
+  }
+
+  return updates
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -59,9 +97,7 @@ serve(async (req) => {
     ) {
       let customerId: string | null = null
       let subscriptionId: string | null = null
-      let status = 'inactive'
-      let priceId: string | null = null
-      let currentPeriodEnd: string | null = null
+      let updates: Record<string, unknown> = {}
 
       if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session
@@ -69,39 +105,34 @@ serve(async (req) => {
         subscriptionId = String(session.subscription || '')
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          status = subscription.status || 'active'
-          priceId = extractPriceId(subscription)
-          currentPeriodEnd = toIso(subscription.current_period_end)
+          updates = deriveSubscriptionUpdates(subscription)
         } else {
-          status = 'active'
+          updates = {
+            stripe_subscription_id: null,
+            stripe_price_id: null,
+            subscription_status: 'inactive',
+            current_period_start: null,
+            current_period_end: null,
+            subscription_started_at: null,
+            cancel_at_period_end: false,
+            cancel_at: null,
+            canceled_at: null,
+            subscription_ended_at: null,
+            subscription_updated_at: new Date().toISOString(),
+            plan: 'none'
+          }
         }
       } else {
         const subscription = event.data.object as Stripe.Subscription
         customerId = String(subscription.customer || '')
         subscriptionId = String(subscription.id || '')
-        status = subscription.status || 'inactive'
-        priceId = extractPriceId(subscription)
-        currentPeriodEnd = toIso(subscription.current_period_end)
+        updates = deriveSubscriptionUpdates(subscription)
       }
 
       if (customerId) {
-        const plan = planFromPriceId(priceId)
-        const finalStatus = status === 'canceled' ? 'inactive' : status
-
-        const updates: Record<string, unknown> = {
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId || null,
-          stripe_price_id: priceId,
-          subscription_status: finalStatus,
-          current_period_end: currentPeriodEnd
-        }
-
-        if (['active', 'trialing', 'past_due', 'unpaid'].includes(finalStatus)) {
-          updates.plan = plan
-        }
-
-        if (finalStatus === 'inactive') {
-          updates.plan = 'solo'
+        updates.stripe_customer_id = customerId
+        if (!updates.stripe_subscription_id && subscriptionId) {
+          updates.stripe_subscription_id = subscriptionId
         }
 
         const { data: byCustomerRows, error } = await supabase

@@ -427,14 +427,14 @@ export const dashboardGuides = {
         },
         bullets: {
           fr: [
-            'Voir le plan actif et son statut.',
-            'Changer de formule selon ton volume de clients.',
-            'Ouvrir le portail client Stripe pour gerer l abonnement.'
+            'Demarrer sans abonnement puis souscrire au plan adapte.',
+            'Suivre statut, date de souscription, prochaine echeance et fin d abonnement.',
+            'Programmer une resiliation fin de periode ou changer de plan via Stripe.'
           ],
           en: [
-            'View active plan and status.',
-            'Switch plan based on client volume.',
-            'Open Stripe customer portal to manage subscription.'
+            'Start with no subscription, then subscribe to the right plan.',
+            'Track status, subscription date, next billing date, and end date.',
+            'Schedule end-of-period cancellation or switch plans through Stripe.'
           ]
         }
       }

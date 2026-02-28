@@ -19,9 +19,19 @@ const PLAN_DETAILS = {
   cabinet: { price: '149 EUR/mois', limit: 'Clients illimites', icon: 'C' }
 }
 
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
+const SUBSCRIPTION_STATUS_COLORS = {
+  active: 'text-green-700 bg-green-100',
+  trialing: 'text-emerald-700 bg-emerald-100',
+  past_due: 'text-amber-700 bg-amber-100',
+  unpaid: 'text-red-700 bg-red-100',
+  incomplete: 'text-orange-700 bg-orange-100',
+  inactive: 'text-gray-700 bg-gray-100'
+}
+
 export default function Settings() {
   const { advisor, updateProfile, refreshAdvisor } = useAuth()
-  const { tr } = useLanguage()
+  const { tr, language } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
@@ -52,11 +62,31 @@ export default function Settings() {
 
   const [errors, setErrors] = useState({})
 
-  const currentPlan = advisor?.plan || 'solo'
-  const subscriptionStatus = advisor?.subscription_status || 'inactive'
-  const currentPeriodEnd = advisor?.current_period_end
-    ? new Date(advisor.current_period_end).toLocaleDateString('fr-FR')
-    : null
+  const formatDate = (value) => {
+    if (!value) return null
+    const locale = language === 'fr' ? 'fr-FR' : 'en-US'
+    return new Date(value).toLocaleDateString(locale)
+  }
+
+  const currentPlan = advisor?.plan || 'none'
+  const subscriptionStatus = String(advisor?.subscription_status || 'inactive').toLowerCase()
+  const hasActiveSubscription = ACTIVE_SUBSCRIPTION_STATUSES.has(subscriptionStatus)
+  const hasStripeCustomer = Boolean(advisor?.stripe_customer_id)
+  const currentPeriodStart = formatDate(advisor?.current_period_start)
+  const currentPeriodEnd = formatDate(advisor?.current_period_end)
+  const subscriptionStartedAt = formatDate(advisor?.subscription_started_at)
+  const subscriptionEndedAt = formatDate(advisor?.subscription_ended_at)
+  const cancelAt = formatDate(advisor?.cancel_at)
+  const canceledAt = formatDate(advisor?.canceled_at)
+  const statusLabel = {
+    active: tr('Actif', 'Active'),
+    trialing: tr('Essai', 'Trialing'),
+    past_due: tr('Paiement en retard', 'Past due'),
+    unpaid: tr('Impayes', 'Unpaid'),
+    incomplete: tr('En attente', 'Incomplete'),
+    inactive: tr('Inactif', 'Inactive')
+  }[subscriptionStatus] || subscriptionStatus
+  const planTitle = currentPlan === 'none' ? tr('Aucun plan payant', 'No paid plan') : `Plan ${currentPlan}`
 
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout')
@@ -203,6 +233,14 @@ export default function Settings() {
   }
 
   const openCustomerPortal = async () => {
+    if (!hasStripeCustomer) {
+      setMessage({
+        type: 'error',
+        text: tr('Aucun compte Stripe associe. Souscrivez d abord a un plan.', 'No Stripe customer linked yet. Subscribe to a plan first.')
+      })
+      return
+    }
+
     try {
       setPortalLoading(true)
       setMessage(null)
@@ -402,20 +440,48 @@ export default function Settings() {
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h4 className="text-2xl font-bold text-gray-800 capitalize">Plan {currentPlan}</h4>
-                    <p className="text-gray-600">
-                      {PLAN_DETAILS[currentPlan]?.price || PLAN_DETAILS.solo.price} -{' '}
-                      {PLAN_DETAILS[currentPlan]?.limit || PLAN_DETAILS.solo.limit}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">{tr('Statut', 'Status')}: {subscriptionStatus}</p>
+                    <h4 className="text-2xl font-bold text-gray-800 capitalize">{planTitle}</h4>
+                    {currentPlan !== 'none' ? (
+                      <p className="text-gray-600">
+                        {PLAN_DETAILS[currentPlan]?.price || PLAN_DETAILS.solo.price} -{' '}
+                        {PLAN_DETAILS[currentPlan]?.limit || PLAN_DETAILS.solo.limit}
+                      </p>
+                    ) : (
+                      <p className="text-gray-600">
+                        {tr('Demarrez sans abonnement puis activez un plan a tout moment.', 'Start without a subscription and activate a plan anytime.')}
+                      </p>
+                    )}
                   </div>
-                  <div className="text-4xl">{PLAN_DETAILS[currentPlan]?.icon || 'S'}</div>
+                  <div className="text-4xl">{PLAN_DETAILS[currentPlan]?.icon || '0'}</div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span>{currentPeriodEnd ? `${tr('Prochaine echeance le', 'Next billing date')} ${currentPeriodEnd}` : tr('Aucune echeance active', 'No active billing date')}</span>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-gray-600">{tr('Statut', 'Status')}:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${SUBSCRIPTION_STATUS_COLORS[subscriptionStatus] || SUBSCRIPTION_STATUS_COLORS.inactive}`}>
+                    {statusLabel}
+                  </span>
+                  {advisor?.cancel_at_period_end ? (
+                    <span className="px-2 py-1 rounded-full text-xs font-semibold text-amber-700 bg-amber-100">
+                      {tr('Resiliation programmee fin de periode', 'Cancellation scheduled at period end')}
+                    </span>
+                  ) : null}
                 </div>
+
+                <div className="grid sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                  <p>{tr('Souscrit le', 'Subscribed on')}: <span className="font-semibold">{subscriptionStartedAt || tr('Non renseigne', 'Not available')}</span></p>
+                  <p>{tr('Periode en cours depuis', 'Current period starts')}: <span className="font-semibold">{currentPeriodStart || tr('Non renseigne', 'Not available')}</span></p>
+                  <p>{tr('Prochaine echeance', 'Next billing date')}: <span className="font-semibold">{currentPeriodEnd || tr('Aucune', 'None')}</span></p>
+                  <p>{tr('Fin d abonnement', 'Subscription end')}: <span className="font-semibold">{subscriptionEndedAt || tr('Non terminee', 'Not ended')}</span></p>
+                  <p>{tr('Resiliation demandee pour', 'Cancellation date')}: <span className="font-semibold">{cancelAt || tr('Aucune', 'None')}</span></p>
+                  <p>{tr('Resilie le', 'Canceled on')}: <span className="font-semibold">{canceledAt || tr('Non', 'No')}</span></p>
+                </div>
+
+                {!hasActiveSubscription ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <span>{tr('Aucun abonnement actif. Choisissez un plan ci-dessous pour activer la facturation.', 'No active subscription. Choose a plan below to activate billing.')}</span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-4">
@@ -435,13 +501,17 @@ export default function Settings() {
                       <p className="text-2xl font-bold text-gray-800 mb-2">{PLAN_DETAILS[plan].price}</p>
                       <p className="text-sm text-gray-600 mb-4">{PLAN_DETAILS[plan].limit}</p>
 
-                      {currentPlan !== plan ? (
+                      {!(hasActiveSubscription && currentPlan === plan) ? (
                         <button
                           disabled={Boolean(checkoutLoadingPlan) || portalLoading}
                           onClick={() => goToCheckout(plan)}
                           className="w-full py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                         >
-                          {checkoutLoadingPlan === plan ? tr('Ouverture...', 'Opening...') : tr('Choisir ce plan', 'Choose this plan')}
+                          {checkoutLoadingPlan === plan
+                            ? tr('Ouverture...', 'Opening...')
+                            : hasActiveSubscription
+                              ? tr('Basculer vers ce plan', 'Switch to this plan')
+                              : tr('Souscrire a ce plan', 'Subscribe to this plan')}
                         </button>
                       ) : (
                         <div className="w-full py-2 text-center text-sm font-semibold text-emerald-700 bg-emerald-100 rounded-lg">
@@ -455,12 +525,17 @@ export default function Settings() {
 
               <div className="mt-8 pt-6 border-t">
                 <button
-                  disabled={portalLoading || Boolean(checkoutLoadingPlan)}
+                  disabled={portalLoading || Boolean(checkoutLoadingPlan) || !hasStripeCustomer}
                   onClick={openCustomerPortal}
-                  className="text-red-600 hover:text-red-700 font-semibold text-sm disabled:opacity-60"
+                  className="text-red-600 hover:text-red-700 font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {portalLoading ? tr('Ouverture du portail...', 'Opening portal...') : tr('Gerer mon abonnement (Stripe)', 'Manage my subscription (Stripe)')}
                 </button>
+                {!hasStripeCustomer ? (
+                  <p className="mt-2 text-xs text-gray-500">
+                    {tr('Le portail Stripe sera disponible apres une premiere souscription.', 'Stripe portal becomes available after your first subscription.')}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
