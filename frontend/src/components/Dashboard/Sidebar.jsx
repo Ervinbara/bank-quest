@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const location = useLocation()
   const { t } = useLanguage()
 
@@ -50,8 +50,8 @@ export default function Sidebar() {
     return location.pathname.startsWith(path)
   }
 
-  return (
-    <aside className="w-64 bg-white shadow-lg flex flex-col">
+  const sidebarContent = (
+    <>
       <div className="p-6 border-b">
         <Link to="/" className="flex items-center gap-2">
           <span className="text-3xl">FM</span>
@@ -70,6 +70,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 active
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
@@ -95,6 +96,35 @@ export default function Sidebar() {
           </Link>
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <aside className="hidden md:flex w-64 bg-white shadow-lg flex-col">{sidebarContent}</aside>
+
+      {mobileOpen ? (
+        <div className="md:hidden fixed inset-0 z-40">
+          <button
+            className="absolute inset-0 bg-black/40"
+            onClick={onClose}
+            aria-label={t('Fermer le menu', 'Close menu')}
+          />
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white shadow-xl flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <p className="font-semibold text-gray-800">{t('Navigation', 'Navigation')}</p>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-md hover:bg-gray-100"
+                aria-label={t('Fermer le menu', 'Close menu')}
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
+            </div>
+            {sidebarContent}
+          </aside>
+        </div>
+      ) : null}
+    </>
   )
 }
