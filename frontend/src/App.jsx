@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 // Pages publiques
@@ -26,9 +27,10 @@ import Settings from './pages/Dashboard/Settings'
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
           {/* Routes publiques */}
           <Route path="/" element={<Home />} />
           <Route path="/demo" element={<Demo />} />
@@ -64,9 +66,10 @@ function App() {
 
           {/* 404 — uniquement pour les routes hors /dashboard */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }
 

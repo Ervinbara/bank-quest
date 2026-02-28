@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import BankQuestGame from '@/components/Game/BankQuestGame'
 import { themes } from '@/data/themes'
+import { useLanguage } from '@/contexts/LanguageContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function Demo() {
   const [currentTheme, setCurrentTheme] = useState('blue')
+  const { t } = useLanguage()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -15,9 +18,12 @@ export default function Demo() {
               <span className="text-3xl">FM</span>
               <span className="text-2xl font-bold gradient-text">FinMate</span>
             </Link>
-            <Link to="/" className="text-gray-600 hover:text-purple-600 font-medium">
-              Retour a l accueil
-            </Link>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+              <Link to="/" className="text-gray-600 hover:text-purple-600 font-medium">
+                {t('header.backHome', 'Back to home')}
+              </Link>
+            </div>
           </div>
         </nav>
       </header>
@@ -25,12 +31,14 @@ export default function Demo() {
       <div className="py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold gradient-text mb-4">Demo interactive</h1>
-            <p className="text-xl text-gray-600">Visualisez FinMate avec plusieurs themes de marque</p>
+            <h1 className="text-4xl font-bold gradient-text mb-4">{t('demo.title')}</h1>
+            <p className="text-xl text-gray-600">{t('demo.description')}</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8 max-w-4xl mx-auto">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Choisissez un theme :</label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">
+              {t('demo.themeLabel')}
+            </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(themes).map(([key, theme]) => (
                 <button
