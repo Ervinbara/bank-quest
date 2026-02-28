@@ -57,6 +57,35 @@ const invokeFunction = async (name, body, fallbackError) => {
   }
 }
 
+const invokeJsonFunction = async (name, body, fallbackError) => {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
+  }
+
+  try {
+    const response = await supabase.functions.invoke(name, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body
+    })
+
+    if (response.error) {
+      const details = await extractFunctionErrorMessage(response.error, fallbackError)
+      throw new Error(details)
+    }
+
+    return response.data
+  } catch (invokeError) {
+    const details = await extractFunctionErrorMessage(invokeError, fallbackError)
+    throw new Error(details)
+  }
+}
+
 export const createStripeCheckoutSession = async (plan) => {
   const planId = String(plan || '').trim().toLowerCase()
   if (!['solo', 'pro', 'cabinet'].includes(planId)) {
@@ -67,4 +96,8 @@ export const createStripeCheckoutSession = async (plan) => {
 
 export const createStripeCustomerPortalSession = async () => {
   return invokeFunction('stripe-customer-portal', {}, 'Impossible de creer la session portail')
+}
+
+export const syncStripeSubscription = async () => {
+  return invokeJsonFunction('stripe-sync-subscription', {}, 'Impossible de synchroniser l abonnement Stripe')
 }

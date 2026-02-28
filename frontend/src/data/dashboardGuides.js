@@ -420,9 +420,9 @@ export const dashboardGuides = {
         }
       },
       {
-        title: { fr: 'Abonnement', en: 'Billing' },
+        title: { fr: 'Formule', en: 'Plan' },
         description: {
-          fr: 'Pilote ton plan et la facturation Stripe depuis ce bloc.',
+          fr: 'Pilote ta formule et la facturation Stripe depuis ce bloc.',
           en: 'Manage your plan and Stripe billing from this section.'
         },
         bullets: {

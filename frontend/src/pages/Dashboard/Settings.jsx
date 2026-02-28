@@ -9,7 +9,8 @@ import { dashboardGuides } from '@/data/dashboardGuides'
 import { validatePassword } from '@/services/authService'
 import {
   createStripeCheckoutSession,
-  createStripeCustomerPortalSession
+  createStripeCustomerPortalSession,
+  syncStripeSubscription
 } from '@/services/billingService'
 import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
 
@@ -94,13 +95,34 @@ export default function Settings() {
     if (!checkoutStatus && !portalStatus) return
 
     if (checkoutStatus === 'success') {
-      setMessage({ type: 'success', text: tr('Paiement confirme. Abonnement mis a jour.', 'Payment confirmed. Subscription updated.') })
-      void refreshAdvisor()
+      void (async () => {
+        try {
+          await syncStripeSubscription()
+          await refreshAdvisor()
+          setMessage({ type: 'success', text: tr('Paiement confirme. Formule mise a jour.', 'Payment confirmed. Plan updated.') })
+        } catch {
+          await refreshAdvisor()
+          setMessage({
+            type: 'success',
+            text: tr(
+              'Paiement confirme. Synchronisation en cours, rafraichissez si besoin.',
+              'Payment confirmed. Sync in progress, refresh if needed.'
+            )
+          })
+        }
+      })()
     } else if (checkoutStatus === 'cancel') {
       setMessage({ type: 'error', text: tr('Paiement annule.', 'Payment canceled.') })
     } else if (portalStatus === 'return') {
-      setMessage({ type: 'success', text: tr('Retour du portail de facturation.', 'Returned from billing portal.') })
-      void refreshAdvisor()
+      void (async () => {
+        try {
+          await syncStripeSubscription()
+        } catch {
+          // fallback: rely on webhook
+        }
+        await refreshAdvisor()
+        setMessage({ type: 'success', text: tr('Retour du portail de facturation.', 'Returned from billing portal.') })
+      })()
     }
 
     const next = new URLSearchParams(searchParams)
@@ -435,7 +457,7 @@ export default function Settings() {
         {activeTab === 'billing' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Abonnement actuel', 'Current subscription')}</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Formule actuelle', 'Current plan')}</h3>
 
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
