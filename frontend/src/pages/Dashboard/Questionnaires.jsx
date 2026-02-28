@@ -11,7 +11,8 @@ import {
   setAdvisorDefaultQuestionnaire,
   updateAdvisorQuestionnaire
 } from '@/services/questionnaireService'
-import { Loader2, Plus, Save, Star, Trash2 } from 'lucide-react'
+import { translateText } from '@/services/translationService'
+import { Languages, Loader2, Plus, Save, Star, Trash2 } from 'lucide-react'
 
 const DEFAULT_EDIT_OPTIONS = [
   { label: 'Jamais', points: 1 },
@@ -57,6 +58,7 @@ export default function Questionnaires() {
   const [bankTheme, setBankTheme] = useState('budget')
   const [bankQuestionIndex, setBankQuestionIndex] = useState(0)
   const [bankByTheme, setBankByTheme] = useState({})
+  const [questionBusy, setQuestionBusy] = useState({})
 
   const templates = useMemo(() => getDefaultQuestionnaireTemplates(), [])
   const bankThemes = useMemo(() => Object.keys(bankByTheme), [bankByTheme])
@@ -203,6 +205,41 @@ export default function Questionnaires() {
       orderIndex: idx
     }))
     setDraft((prev) => ({ ...prev, questions: next }))
+  }
+
+  const translateDraftQuestion = async (index, sourceLang, targetLang) => {
+    if (!draft?.questions?.[index]) return
+    try {
+      setQuestionBusy((prev) => ({ ...prev, [index]: true }))
+      setError(null)
+      setSuccess('')
+      const question = draft.questions[index]
+      const [questionResult, conceptResult] = await Promise.all([
+        translateText({
+          text: question.questionText || '',
+          sourceLang,
+          targetLang
+        }),
+        translateText({
+          text: question.concept || '',
+          sourceLang,
+          targetLang
+        })
+      ])
+
+      const next = [...draft.questions]
+      next[index] = {
+        ...next[index],
+        questionText: questionResult.translatedText || question.questionText,
+        concept: conceptResult.translatedText || question.concept
+      }
+      setDraft((prev) => ({ ...prev, questions: next }))
+      setSuccess(tr('Question traduite dans le brouillon', 'Question translated in draft'))
+    } catch (err) {
+      setError(err.message || tr('Impossible de traduire la question', 'Unable to translate question'))
+    } finally {
+      setQuestionBusy((prev) => ({ ...prev, [index]: false }))
+    }
   }
 
   const saveCurrent = async () => {
@@ -467,6 +504,24 @@ export default function Questionnaires() {
                              placeholder={tr('Concept', 'Concept')}
                             className="px-3 py-2 border border-gray-300 rounded-lg"
                           />
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => translateDraftQuestion(index, 'fr', 'en')}
+                            disabled={Boolean(questionBusy[index])}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            <Languages className="w-3 h-3" />
+                            FR -&gt; EN
+                          </button>
+                          <button
+                            onClick={() => translateDraftQuestion(index, 'en', 'fr')}
+                            disabled={Boolean(questionBusy[index])}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            <Languages className="w-3 h-3" />
+                            EN -&gt; FR
+                          </button>
                         </div>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center gap-2">

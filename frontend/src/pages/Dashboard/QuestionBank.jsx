@@ -7,9 +7,11 @@ import {
   deleteAdvisorQuestionBankQuestion,
   deleteAdvisorQuestionBankTheme,
   getAdvisorQuestionBankCatalog,
+  updateAdvisorQuestionBankQuestion,
   updateAdvisorQuestionBankTheme
 } from '@/services/questionnaireService'
-import { Loader2, Plus, Save, Trash2 } from 'lucide-react'
+import { translateText } from '@/services/translationService'
+import { Languages, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 
 export default function QuestionBank() {
   const { advisor } = useAuth()
@@ -26,6 +28,9 @@ export default function QuestionBank() {
   const [newPrompt, setNewPrompt] = useState('')
   const [editingThemeName, setEditingThemeName] = useState('')
   const [editingThemeDescription, setEditingThemeDescription] = useState('')
+  const [editingQuestionId, setEditingQuestionId] = useState('')
+  const [editingQuestionValues, setEditingQuestionValues] = useState({ concept: '', prompt: '' })
+  const [questionBusy, setQuestionBusy] = useState({})
 
   const selectedTheme = useMemo(
     () => themes.find((theme) => theme.id === selectedThemeId) || null,
@@ -142,7 +147,7 @@ export default function QuestionBank() {
 
   const removeQuestion = async (questionId) => {
     try {
-      setSaving(true)
+      setQuestionBusy((prev) => ({ ...prev, [questionId]: true }))
       setError('')
       setSuccess('')
       await deleteAdvisorQuestionBankQuestion({ advisorId: advisor.id, questionId })
@@ -151,7 +156,67 @@ export default function QuestionBank() {
     } catch (err) {
       setError(err.message || tr('Impossible de supprimer la question', 'Unable to delete question'))
     } finally {
-      setSaving(false)
+      setQuestionBusy((prev) => ({ ...prev, [questionId]: false }))
+    }
+  }
+
+  const startEditQuestion = (question) => {
+    setEditingQuestionId(question.id)
+    setEditingQuestionValues({
+      concept: question.concept || '',
+      prompt: question.prompt || ''
+    })
+  }
+
+  const cancelEditQuestion = () => {
+    setEditingQuestionId('')
+    setEditingQuestionValues({ concept: '', prompt: '' })
+  }
+
+  const saveQuestion = async (question) => {
+    try {
+      setQuestionBusy((prev) => ({ ...prev, [question.id]: true }))
+      setError('')
+      setSuccess('')
+      await updateAdvisorQuestionBankQuestion({
+        advisorId: advisor.id,
+        questionId: question.id,
+        concept: editingQuestionValues.concept,
+        prompt: editingQuestionValues.prompt,
+        options: question.options
+      })
+      await loadCatalog()
+      cancelEditQuestion()
+      setSuccess(tr('Question modifiee', 'Question updated'))
+    } catch (err) {
+      setError(err.message || tr('Impossible de modifier la question', 'Unable to update question'))
+    } finally {
+      setQuestionBusy((prev) => ({ ...prev, [question.id]: false }))
+    }
+  }
+
+  const translateQuestionDraft = async (question, sourceLang, targetLang) => {
+    try {
+      setQuestionBusy((prev) => ({ ...prev, [question.id]: true }))
+      setError('')
+      setSuccess('')
+      const conceptToTranslate = editingQuestionId === question.id ? editingQuestionValues.concept : question.concept
+      const promptToTranslate = editingQuestionId === question.id ? editingQuestionValues.prompt : question.prompt
+      const [conceptResult, promptResult] = await Promise.all([
+        translateText({ text: conceptToTranslate, sourceLang, targetLang }),
+        translateText({ text: promptToTranslate, sourceLang, targetLang })
+      ])
+
+      setEditingQuestionId(question.id)
+      setEditingQuestionValues({
+        concept: conceptResult.translatedText || conceptToTranslate,
+        prompt: promptResult.translatedText || promptToTranslate
+      })
+      setSuccess(tr('Traduction pre-remplie, enregistrez la question', 'Translation prefilled, save the question'))
+    } catch (err) {
+      setError(err.message || tr('Impossible de traduire la question', 'Unable to translate question'))
+    } finally {
+      setQuestionBusy((prev) => ({ ...prev, [question.id]: false }))
     }
   }
 
@@ -295,16 +360,94 @@ export default function QuestionBank() {
                     {(selectedTheme.questions || []).map((question) => (
                       <div key={question.id} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-gray-800">{question.concept}</p>
-                            <p className="text-sm text-gray-700">{question.prompt}</p>
+                          <div className="flex-1 space-y-2">
+                            {editingQuestionId === question.id ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={editingQuestionValues.concept}
+                                  onChange={(event) =>
+                                    setEditingQuestionValues((prev) => ({ ...prev, concept: event.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                  placeholder={tr('Concept', 'Concept')}
+                                />
+                                <textarea
+                                  rows={3}
+                                  value={editingQuestionValues.prompt}
+                                  onChange={(event) =>
+                                    setEditingQuestionValues((prev) => ({ ...prev, prompt: event.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                  placeholder={tr('Texte de la question', 'Question text')}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <p className="font-semibold text-gray-800">{question.concept}</p>
+                                <p className="text-sm text-gray-700">{question.prompt}</p>
+                              </>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={() => translateQuestionDraft(question, 'fr', 'en')}
+                                disabled={Boolean(questionBusy[question.id])}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                              >
+                                <Languages className="w-3 h-3" />
+                                FR -&gt; EN
+                              </button>
+                              <button
+                                onClick={() => translateQuestionDraft(question, 'en', 'fr')}
+                                disabled={Boolean(questionBusy[question.id])}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                              >
+                                <Languages className="w-3 h-3" />
+                                EN -&gt; FR
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => removeQuestion(question.id)}
-                            className="text-sm text-red-600 hover:text-red-700 font-semibold"
-                          >
-                             {tr('Supprimer', 'Delete')}
-                          </button>
+                          <div className="flex flex-col items-end gap-2">
+                            {editingQuestionId === question.id ? (
+                              <>
+                                <button
+                                  onClick={() => saveQuestion(question)}
+                                  disabled={
+                                    Boolean(questionBusy[question.id]) ||
+                                    editingQuestionValues.concept.trim().length < 2 ||
+                                    editingQuestionValues.prompt.trim().length < 6
+                                  }
+                                  className="text-sm text-purple-700 hover:text-purple-800 font-semibold disabled:opacity-60"
+                                >
+                                  {tr('Enregistrer', 'Save')}
+                                </button>
+                                <button
+                                  onClick={cancelEditQuestion}
+                                  disabled={Boolean(questionBusy[question.id])}
+                                  className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-700 font-semibold disabled:opacity-60"
+                                >
+                                  <X className="w-3 h-3" />
+                                  {tr('Annuler', 'Cancel')}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => startEditQuestion(question)}
+                                disabled={Boolean(questionBusy[question.id])}
+                                className="inline-flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 font-semibold disabled:opacity-60"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                {tr('Modifier', 'Edit')}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeQuestion(question.id)}
+                              disabled={Boolean(questionBusy[question.id])}
+                              className="text-sm text-red-600 hover:text-red-700 font-semibold disabled:opacity-60"
+                            >
+                              {tr('Supprimer', 'Delete')}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
