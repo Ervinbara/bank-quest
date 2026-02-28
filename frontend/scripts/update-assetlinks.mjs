@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const packageName = process.env.ANDROID_PACKAGE_NAME || 'com.bankquest.app'
+const packageName = process.env.ANDROID_PACKAGE_NAME || 'com.finmate.app'
 const fingerprintRaw = process.env.ANDROID_SHA256_FINGERPRINT || ''
 const fingerprint = fingerprintRaw.trim().toUpperCase()
 
