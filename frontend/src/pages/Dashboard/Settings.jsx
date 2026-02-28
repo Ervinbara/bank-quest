@@ -11,9 +11,9 @@ import {
 import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
 
 const PLAN_DETAILS = {
-  solo: { price: '49 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
-  pro: { price: '99 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
-  cabinet: { price: '299 EUR/mois', limit: 'Clients illimites', icon: 'C' }
+  solo: { price: '29 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
+  pro: { price: '79 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
+  cabinet: { price: '149 EUR/mois', limit: 'Clients illimites', icon: 'C' }
 }
 
 export default function Settings() {
@@ -21,7 +21,8 @@ export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
-  const [billingLoading, setBillingLoading] = useState(false)
+  const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState(null)
+  const [portalLoading, setPortalLoading] = useState(false)
   const [message, setMessage] = useState(null)
 
   const [profileData, setProfileData] = useState({
@@ -186,27 +187,27 @@ export default function Settings() {
 
   const goToCheckout = async (plan) => {
     try {
-      setBillingLoading(true)
+      setCheckoutLoadingPlan(plan)
       setMessage(null)
       const url = await createStripeCheckoutSession(plan)
       window.location.href = url
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Erreur Stripe checkout' })
     } finally {
-      setBillingLoading(false)
+      setCheckoutLoadingPlan(null)
     }
   }
 
   const openCustomerPortal = async () => {
     try {
-      setBillingLoading(true)
+      setPortalLoading(true)
       setMessage(null)
       const url = await createStripeCustomerPortalSession()
       window.location.href = url
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Erreur portail Stripe' })
     } finally {
-      setBillingLoading(false)
+      setPortalLoading(false)
     }
   }
 
@@ -429,11 +430,11 @@ export default function Settings() {
 
                       {currentPlan !== plan ? (
                         <button
-                          disabled={billingLoading}
+                          disabled={Boolean(checkoutLoadingPlan) || portalLoading}
                           onClick={() => goToCheckout(plan)}
                           className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-60"
                         >
-                          {billingLoading ? 'Ouverture...' : 'Choisir ce plan'}
+                          {checkoutLoadingPlan === plan ? 'Ouverture...' : 'Choisir ce plan'}
                         </button>
                       ) : (
                         <div className="w-full py-2 text-center text-sm font-semibold text-purple-700 bg-purple-100 rounded-lg">
@@ -447,11 +448,11 @@ export default function Settings() {
 
               <div className="mt-8 pt-6 border-t">
                 <button
-                  disabled={billingLoading}
+                  disabled={portalLoading || Boolean(checkoutLoadingPlan)}
                   onClick={openCustomerPortal}
                   className="text-red-600 hover:text-red-700 font-semibold text-sm disabled:opacity-60"
                 >
-                  {billingLoading ? 'Ouverture du portail...' : 'Gerer mon abonnement (Stripe)'}
+                  {portalLoading ? 'Ouverture du portail...' : 'Gerer mon abonnement (Stripe)'}
                 </button>
               </div>
             </div>
