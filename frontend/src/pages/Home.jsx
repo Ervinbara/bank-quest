@@ -128,7 +128,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Solo</h3>
               <p className="text-gray-600 mb-6">{t('home.soloDesc')}</p>
               <div className="text-4xl font-bold text-gray-800 mb-6">
-                29 EUR<span className="text-lg text-gray-600">{t('home.monthly')}</span>
+                19 EUR<span className="text-lg text-gray-600">{t('home.monthly')}</span>
               </div>
             </div>
 
@@ -139,7 +139,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-2">Pro</h3>
               <p className="text-emerald-100 mb-6">{t('home.proDesc')}</p>
               <div className="text-4xl font-bold mb-6">
-                79 EUR<span className="text-lg text-emerald-200">{t('home.monthly')}</span>
+                49 EUR<span className="text-lg text-emerald-200">{t('home.monthly')}</span>
               </div>
             </div>
 
@@ -147,7 +147,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Cabinet</h3>
               <p className="text-gray-600 mb-6">{t('home.cabinetDesc')}</p>
               <div className="text-4xl font-bold text-gray-800 mb-6">
-                149 EUR<span className="text-lg text-gray-600">{t('home.monthly')}</span>
+                99 EUR<span className="text-lg text-gray-600">{t('home.monthly')}</span>
               </div>
             </div>
           </div>

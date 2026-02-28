@@ -15,9 +15,9 @@ import {
 import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
 
 const PLAN_DETAILS = {
-  solo: { price: '29 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
-  pro: { price: '79 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
-  cabinet: { price: '149 EUR/mois', limit: 'Clients illimites', icon: 'C' }
+  solo: { price: '19 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
+  pro: { price: '49 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
+  cabinet: { price: '99 EUR/mois', limit: 'Clients illimites', icon: 'C' }
 }
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
