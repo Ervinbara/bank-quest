@@ -14,11 +14,27 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 
-const planFromPriceId = (priceId: string | null) => {
+const resolveStripeMode = () => {
+  const raw = String(Deno.env.get('STRIPE_MODE') || 'test').trim().toLowerCase()
+  return raw === 'live' ? 'live' : 'test'
+}
+
+const resolveStripeEnv = (baseName: string, mode: 'test' | 'live') => {
+  const preferredName = `${baseName}_${mode.toUpperCase()}`
+  const preferredValue = Deno.env.get(preferredName)
+  if (preferredValue) return preferredValue
+
+  const legacyValue = Deno.env.get(baseName)
+  if (legacyValue) return legacyValue
+
+  return null
+}
+
+const planFromPriceId = (priceId: string | null, mode: 'test' | 'live') => {
   const map = new Map([
-    [Deno.env.get('STRIPE_PRICE_SOLO_MONTHLY') || '', 'solo'],
-    [Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') || '', 'pro'],
-    [Deno.env.get('STRIPE_PRICE_CABINET_MONTHLY') || '', 'cabinet']
+    [resolveStripeEnv('STRIPE_PRICE_SOLO_MONTHLY', mode) || '', 'solo'],
+    [resolveStripeEnv('STRIPE_PRICE_PRO_MONTHLY', mode) || '', 'pro'],
+    [resolveStripeEnv('STRIPE_PRICE_CABINET_MONTHLY', mode) || '', 'cabinet']
   ])
   return (priceId && map.get(priceId)) || 'none'
 }
@@ -29,11 +45,11 @@ const extractPriceId = (subscription: any) =>
 const toIso = (unixSeconds?: number | null) =>
   unixSeconds ? new Date(unixSeconds * 1000).toISOString() : null
 
-const deriveSubscriptionUpdates = (subscription: Stripe.Subscription) => {
+const deriveSubscriptionUpdates = (subscription: Stripe.Subscription, mode: 'test' | 'live') => {
   const rawStatus = subscription.status || 'inactive'
   const finalStatus = rawStatus === 'canceled' ? 'inactive' : rawStatus
   const priceId = extractPriceId(subscription)
-  const plan = planFromPriceId(priceId)
+  const plan = planFromPriceId(priceId, mode)
   const currentPeriodStart = toIso(subscription.current_period_start)
   const currentPeriodEnd = toIso(subscription.current_period_end)
   const subscriptionStartedAt = toIso(subscription.start_date)
@@ -72,8 +88,9 @@ serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
-    const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+    const stripeMode = resolveStripeMode()
+    const stripeSecret = resolveStripeEnv('STRIPE_SECRET_KEY', stripeMode)
+    const webhookSecret = resolveStripeEnv('STRIPE_WEBHOOK_SECRET', stripeMode)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     if (!stripeSecret || !webhookSecret || !supabaseUrl || !serviceRoleKey) {
@@ -105,7 +122,7 @@ serve(async (req) => {
         subscriptionId = String(session.subscription || '')
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          updates = deriveSubscriptionUpdates(subscription)
+          updates = deriveSubscriptionUpdates(subscription, stripeMode)
         } else {
           updates = {
             stripe_subscription_id: null,
@@ -126,7 +143,7 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription
         customerId = String(subscription.customer || '')
         subscriptionId = String(subscription.id || '')
-        updates = deriveSubscriptionUpdates(subscription)
+        updates = deriveSubscriptionUpdates(subscription, stripeMode)
       }
 
       if (customerId) {

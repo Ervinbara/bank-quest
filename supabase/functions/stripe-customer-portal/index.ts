@@ -14,6 +14,22 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 
+const resolveStripeMode = () => {
+  const raw = String(Deno.env.get('STRIPE_MODE') || 'test').trim().toLowerCase()
+  return raw === 'live' ? 'live' : 'test'
+}
+
+const resolveStripeEnv = (baseName: string, mode: 'test' | 'live') => {
+  const preferredName = `${baseName}_${mode.toUpperCase()}`
+  const preferredValue = Deno.env.get(preferredName)
+  if (preferredValue) return preferredValue
+
+  const legacyValue = Deno.env.get(baseName)
+  if (legacyValue) return legacyValue
+
+  return null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -26,7 +42,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')
+    const stripeMode = resolveStripeMode()
+    const stripeSecret = resolveStripeEnv('STRIPE_SECRET_KEY', stripeMode)
     const appUrl = Deno.env.get('APP_URL') || 'http://localhost:3000'
 
     if (!supabaseUrl || !serviceRoleKey || !stripeSecret) {

@@ -14,17 +14,34 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 
-const PLAN_TO_PRICE_ENV: Record<string, string> = {
+const resolveStripeMode = () => {
+  const raw = String(Deno.env.get('STRIPE_MODE') || 'test').trim().toLowerCase()
+  return raw === 'live' ? 'live' : 'test'
+}
+
+const resolveStripeEnv = (baseName: string, mode: 'test' | 'live') => {
+  const preferredName = `${baseName}_${mode.toUpperCase()}`
+  const preferredValue = Deno.env.get(preferredName)
+  if (preferredValue) return preferredValue
+
+  // Compatibilite ancienne config: STRIPE_SECRET_KEY, STRIPE_PRICE_* sans suffixe
+  const legacyValue = Deno.env.get(baseName)
+  if (legacyValue) return legacyValue
+
+  return null
+}
+
+const PLAN_TO_PRICE_ENV_BASE: Record<string, string> = {
   solo: 'STRIPE_PRICE_SOLO_MONTHLY',
   pro: 'STRIPE_PRICE_PRO_MONTHLY',
   cabinet: 'STRIPE_PRICE_CABINET_MONTHLY'
 }
 
-const getPriceIdForPlan = (plan: string) => {
-  const envName = PLAN_TO_PRICE_ENV[plan]
-  if (!envName) throw new Error(`Plan inconnu: ${plan}`)
-  const priceId = Deno.env.get(envName)
-  if (!priceId) throw new Error(`Variable manquante: ${envName}`)
+const getPriceIdForPlan = (plan: string, mode: 'test' | 'live') => {
+  const envBase = PLAN_TO_PRICE_ENV_BASE[plan]
+  if (!envBase) throw new Error(`Plan inconnu: ${plan}`)
+  const priceId = resolveStripeEnv(envBase, mode)
+  if (!priceId) throw new Error(`Variable manquante: ${envBase}_${mode.toUpperCase()}`)
   return priceId
 }
 
@@ -40,7 +57,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')
+    const stripeMode = resolveStripeMode()
+    const stripeSecret = resolveStripeEnv('STRIPE_SECRET_KEY', stripeMode)
     const appUrl = Deno.env.get('APP_URL') || 'http://localhost:3000'
 
     if (!supabaseUrl || !serviceRoleKey || !stripeSecret) {
@@ -66,7 +84,7 @@ serve(async (req) => {
     const plan = String(payload?.plan || '').trim().toLowerCase()
     if (!['solo', 'pro', 'cabinet'].includes(plan)) return json({ error: 'Plan invalide' }, 400)
 
-    const priceId = getPriceIdForPlan(plan)
+    const priceId = getPriceIdForPlan(plan, stripeMode)
 
     let customerId = advisor.stripe_customer_id || ''
     if (!customerId) {

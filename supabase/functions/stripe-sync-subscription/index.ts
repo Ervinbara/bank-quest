@@ -14,11 +14,27 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 
-const planFromPriceId = (priceId: string | null) => {
+const resolveStripeMode = () => {
+  const raw = String(Deno.env.get('STRIPE_MODE') || 'test').trim().toLowerCase()
+  return raw === 'live' ? 'live' : 'test'
+}
+
+const resolveStripeEnv = (baseName: string, mode: 'test' | 'live') => {
+  const preferredName = `${baseName}_${mode.toUpperCase()}`
+  const preferredValue = Deno.env.get(preferredName)
+  if (preferredValue) return preferredValue
+
+  const legacyValue = Deno.env.get(baseName)
+  if (legacyValue) return legacyValue
+
+  return null
+}
+
+const planFromPriceId = (priceId: string | null, mode: 'test' | 'live') => {
   const map = new Map([
-    [Deno.env.get('STRIPE_PRICE_SOLO_MONTHLY') || '', 'solo'],
-    [Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') || '', 'pro'],
-    [Deno.env.get('STRIPE_PRICE_CABINET_MONTHLY') || '', 'cabinet']
+    [resolveStripeEnv('STRIPE_PRICE_SOLO_MONTHLY', mode) || '', 'solo'],
+    [resolveStripeEnv('STRIPE_PRICE_PRO_MONTHLY', mode) || '', 'pro'],
+    [resolveStripeEnv('STRIPE_PRICE_CABINET_MONTHLY', mode) || '', 'cabinet']
   ])
   return (priceId && map.get(priceId)) || 'none'
 }
@@ -41,7 +57,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')
+    const stripeMode = resolveStripeMode()
+    const stripeSecret = resolveStripeEnv('STRIPE_SECRET_KEY', stripeMode)
 
     if (!supabaseUrl || !serviceRoleKey || !stripeSecret) {
       return json({ error: 'Configuration serveur Stripe incomplete' }, 500)
@@ -117,7 +134,7 @@ serve(async (req) => {
     const rawStatus = latest.status || 'inactive'
     const finalStatus = rawStatus === 'canceled' ? 'inactive' : rawStatus
     const priceId = extractPriceId(latest)
-    const plan = planFromPriceId(priceId)
+    const plan = planFromPriceId(priceId, stripeMode)
     const currentPeriodStart = toIso(latest.current_period_start)
     const currentPeriodEnd = toIso(latest.current_period_end)
     const subscriptionStartedAt = toIso(latest.start_date)
