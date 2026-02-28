@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   getAdvisorInvitationLinks,
   regenerateInvitationLink,
@@ -170,6 +172,7 @@ export default function Invitations() {
               : `${pendingRows.length} active invitation${pendingRows.length > 1 ? 's' : ''}`}
           </p>
         </div>
+        <DashboardGuide guide={dashboardGuides.invitations} />
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">

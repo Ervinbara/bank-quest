@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   createAdvisorQuestionnaireFromTemplate,
   createCustomAdvisorQuestionnaire,
@@ -350,9 +352,12 @@ export default function Questionnaires() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">{tr('Questionnaires', 'Questionnaires')}</h2>
-        <p className="text-gray-600">{tr('Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.', 'Create questionnaires, use templates, and add topic-based questions.')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">{tr('Questionnaires', 'Questionnaires')}</h2>
+          <p className="text-gray-600">{tr('Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.', 'Create questionnaires, use templates, and add topic-based questions.')}</p>
+        </div>
+        <DashboardGuide guide={dashboardGuides.questionnaires} />
       </div>
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">

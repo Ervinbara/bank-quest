@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import SettingsTabs from '@/components/Dashboard/SettingsTabs'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import { validatePassword } from '@/services/authService'
 import {
   createStripeCheckoutSession,
@@ -215,9 +217,12 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr('Parametres', 'Settings')}</h2>
-        <p className="text-gray-600">{tr('Gerez votre compte et vos preferences', 'Manage your account and preferences')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr('Parametres', 'Settings')}</h2>
+          <p className="text-gray-600">{tr('Gerez votre compte et vos preferences', 'Manage your account and preferences')}</p>
+        </div>
+        <DashboardGuide guide={dashboardGuides.settings} />
       </div>
 
       <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />

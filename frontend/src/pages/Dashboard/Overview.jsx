@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorStats, subscribeToAdvisorClients } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
 import { Users, CheckCircle, Clock, TrendingUp, Loader2 } from 'lucide-react'
 
@@ -72,6 +74,10 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <DashboardGuide guide={dashboardGuides.overview} />
+      </div>
+
       <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-8 text-white">
         <h2 className="text-3xl font-bold mb-2">
           {tr('Bonjour', 'Hello')} {advisor?.name?.split(' ')[0]} !

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   createAdvisorQuestionBankQuestion,
   createAdvisorQuestionBankTheme,
@@ -315,9 +317,12 @@ export default function QuestionBank() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">{tr('Banque de questions', 'Question bank')}</h2>
-        <p className="text-gray-600">{tr('Gerez ici vos themes et questions reutilisables dans tous vos questionnaires.', 'Manage reusable themes and questions for all your questionnaires.')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">{tr('Banque de questions', 'Question bank')}</h2>
+          <p className="text-gray-600">{tr('Gerez ici vos themes et questions reutilisables dans tous vos questionnaires.', 'Manage reusable themes and questions for all your questionnaires.')}</p>
+        </div>
+        <DashboardGuide guide={dashboardGuides.questionBank} />
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}

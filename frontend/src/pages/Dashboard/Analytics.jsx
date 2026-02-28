@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import { getAdvisorAnalytics } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import {
@@ -161,6 +163,10 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <DashboardGuide guide={dashboardGuides.analytics} />
+      </div>
+
       <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-700 rounded-xl p-8 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

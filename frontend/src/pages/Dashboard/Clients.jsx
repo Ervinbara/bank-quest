@@ -4,7 +4,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientService'
 import ClientCard from '@/components/Dashboard/ClientCard'
+import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
+import { dashboardGuides } from '@/data/dashboardGuides'
 import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function Clients() {
@@ -127,7 +129,7 @@ export default function Clients() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{tr('Mes clients', 'My clients')}</h2>
           <p className="text-gray-600">
@@ -137,13 +139,16 @@ export default function Clients() {
           </p>
         </div>
 
-        <button
-          onClick={() => setInviteModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
-        >
-          <UserPlus className="w-4 h-4" />
-          {tr('Inviter un client', 'Invite a client')}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DashboardGuide guide={dashboardGuides.clients} />
+          <button
+            onClick={() => setInviteModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            {tr('Inviter un client', 'Invite a client')}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-4">
