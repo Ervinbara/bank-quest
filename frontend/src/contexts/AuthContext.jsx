@@ -27,7 +27,10 @@ export const AuthProvider = ({ children }) => {
       .eq('email', email)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+      throw error
+    }
+
     return data
   }
 
@@ -85,8 +88,8 @@ export const AuthProvider = ({ children }) => {
         if (mounted) {
           setUser(null)
           setAdvisor(null)
+          stopLoadingSafely()
         }
-        stopLoadingSafely()
       }
     }
 
