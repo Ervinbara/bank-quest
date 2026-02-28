@@ -177,7 +177,7 @@ export default function ClientDetail() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Chargement du client...</p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function ClientDetail() {
         <div>
           <Link
             to="/dashboard/clients"
-            className="inline-flex items-center gap-2 text-sm text-purple-700 font-semibold hover:text-purple-900 mb-2"
+            className="inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Retour aux clients
@@ -258,14 +258,14 @@ export default function ClientDetail() {
       ) : null}
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
               {editing ? formData.avatar || '👤' : client.avatar || client.name?.charAt(0)}
             </div>
             <div>
               <h3 className="text-2xl font-bold">{editing ? formData.name : client.name}</h3>
-              <div className="flex items-center gap-2 text-purple-100">
+              <div className="flex items-center gap-2 text-emerald-100">
                 <Mail className="w-4 h-4" />
                 <span>{editing ? formData.email : client.email}</span>
               </div>
@@ -284,7 +284,7 @@ export default function ClientDetail() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -293,7 +293,7 @@ export default function ClientDetail() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -302,7 +302,7 @@ export default function ClientDetail() {
                     name="avatar"
                     value={formData.avatar}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
                     placeholder="Ex: 👤"
                   />
                 </div>
@@ -311,7 +311,7 @@ export default function ClientDetail() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Enregistrer
@@ -379,7 +379,7 @@ export default function ClientDetail() {
           {isCompleted ? (
             <div className="bg-gray-50 rounded-xl p-6 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <TrendingUp className="w-6 h-6 text-emerald-700" />
                 <h3 className="text-lg font-bold text-gray-800">Score global</h3>
               </div>
               <div className={`text-5xl font-bold ${getScoreColor(client.score)} mb-2`}>
@@ -448,3 +448,5 @@ export default function ClientDetail() {
     </div>
   )
 }
+
+

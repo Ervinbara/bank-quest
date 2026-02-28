@@ -27,24 +27,24 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-emerald-100/70 bg-white/85 backdrop-blur-xl">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
             <span className="text-3xl">FM</span>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-emerald-700 bg-clip-text text-transparent">
               FinMate
             </span>
           </Link>
 
           <div className="hidden md:flex space-x-8">
-            <a href="#solution" className="text-gray-600 hover:text-purple-600 font-medium transition">
+            <a href="#solution" className="text-gray-600 hover:text-emerald-700 font-medium transition">
               {t('nav.solution', 'Solution')}
             </a>
-            <Link to="/demo" className="text-gray-600 hover:text-purple-600 font-medium transition">
+            <Link to="/demo" className="text-gray-600 hover:text-emerald-700 font-medium transition">
               {t('nav.demo', 'Demo')}
             </Link>
-            <a href="#features" className="text-gray-600 hover:text-purple-600 font-medium transition">
+            <a href="#features" className="text-gray-600 hover:text-emerald-700 font-medium transition">
               {t('nav.features', 'Features')}
             </a>
           </div>
@@ -55,7 +55,7 @@ export default function Header() {
               <>
                 <Link
                   to="/dashboard"
-                  className="hidden sm:flex items-center gap-2 text-gray-700 hover:text-purple-600 font-medium transition"
+                  className="hidden sm:flex items-center gap-2 text-gray-700 hover:text-emerald-700 font-medium transition"
                 >
                   <User className="w-5 h-5" />
                   <span>{advisor?.name || t('common.dashboard', 'Dashboard')}</span>
@@ -79,13 +79,13 @@ export default function Header() {
               <>
                 <Link
                   to="/auth/login"
-                  className="text-gray-700 hover:text-purple-600 font-medium transition"
+                  className="text-gray-700 hover:text-emerald-700 font-medium transition"
                 >
                   {t('common.login', 'Log in')}
                 </Link>
                 <Link
                   to="/auth/register"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition transform hover:scale-105 shadow-md"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-2 rounded-xl font-semibold hover:opacity-90 transition transform hover:-translate-y-0.5 shadow-md"
                 >
                   {t('common.register', 'Sign up')}
                 </Link>
@@ -97,3 +97,4 @@ export default function Header() {
     </header>
   )
 }
+

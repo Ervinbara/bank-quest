@@ -341,7 +341,7 @@ export default function Questionnaires() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement des questionnaires...', 'Loading questionnaires...')}</p>
         </div>
       </div>
@@ -372,7 +372,7 @@ export default function Questionnaires() {
                 key={item.id}
                 onClick={() => setSelectedId(item.id)}
                 className={`w-full text-left rounded-lg border px-3 py-2 transition ${
-                  selectedId === item.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'
+                  selectedId === item.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -415,7 +415,7 @@ export default function Questionnaires() {
                 <button
                   onClick={createFromTemplate}
                   disabled={saving}
-                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {tr('Ajouter depuis template', 'Add from template')}
@@ -641,7 +641,7 @@ export default function Questionnaires() {
                 <button
                   onClick={saveCurrent}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                    {tr('Enregistrer les modifications', 'Save changes')}
@@ -654,3 +654,5 @@ export default function Questionnaires() {
     </div>
   )
 }
+
+

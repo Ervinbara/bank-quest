@@ -152,7 +152,7 @@ export default function Invitations() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement des invitations...', 'Loading invitations...')}</p>
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function Invitations() {
               type="text"
               value={template.subject}
               onChange={(event) => setTemplate((prev) => ({ ...prev, subject: event.target.value }))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
             />
           </div>
           <div>
@@ -190,7 +190,7 @@ export default function Invitations() {
               rows={8}
               value={template.body}
               onChange={(event) => setTemplate((prev) => ({ ...prev, body: event.target.value }))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
             />
             <p className="text-xs text-gray-600 mt-2">
               {tr('Placeholders disponibles', 'Available placeholders')}: {'{{client_name}}'}, {'{{advisor_name}}'}, {'{{advisor_email}}'} {tr('et', 'and')}{' '}
@@ -201,7 +201,7 @@ export default function Invitations() {
             <button
               onClick={saveTemplate}
               disabled={templateSaving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
             >
               {templateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {tr('Enregistrer le template', 'Save template')}
@@ -274,7 +274,7 @@ export default function Invitations() {
                         <button
                           onClick={() => sendEmailForRow(row)}
                           disabled={sendingId === row.id || !row.invitation?.inviteUrl}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-purple-300 text-purple-700 font-semibold hover:bg-purple-50 transition disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-50"
                         >
                           {sendingId === row.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -286,7 +286,7 @@ export default function Invitations() {
                         <button
                           onClick={() => regenerate(row)}
                           disabled={regeneratingId === row.id || row.invitation?.legacyMode}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
                         >
                           {regeneratingId === row.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -307,3 +307,5 @@ export default function Invitations() {
     </div>
   )
 }
+
+

@@ -49,7 +49,7 @@ export default function Overview() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement des statistiques...', 'Loading statistics...')}</p>
         </div>
       </div>
@@ -72,11 +72,11 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-8 text-white">
         <h2 className="text-3xl font-bold mb-2">
           {tr('Bonjour', 'Hello')} {advisor?.name?.split(' ')[0]} !
         </h2>
-        <p className="text-purple-100 text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
+        <p className="text-emerald-100 text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -107,7 +107,7 @@ export default function Overview() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
           <button
             onClick={() => setInviteModalOpen(true)}
-            className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-all text-left"
+            className="p-4 border-2 border-emerald-200 rounded-lg hover:border-emerald-600 hover:bg-emerald-50 transition-all text-left"
           >
             <div className="text-2xl mb-2">+</div>
             <h4 className="font-semibold text-gray-800">{tr('Inviter un client', 'Invite a client')}</h4>
@@ -116,7 +116,7 @@ export default function Overview() {
 
           <Link
             to="/dashboard/clients"
-            className="p-4 border-2 border-pink-200 rounded-lg hover:border-pink-600 hover:bg-pink-50 transition-all text-left block"
+            className="p-4 border-2 border-teal-200 rounded-lg hover:border-teal-600 hover:bg-teal-50 transition-all text-left block"
           >
             <div className="text-2xl mb-2">Resultats</div>
             <h4 className="font-semibold text-gray-800">{tr('Voir les resultats', 'View results')}</h4>
@@ -211,3 +211,5 @@ export default function Overview() {
     </div>
   )
 }
+
+

@@ -306,7 +306,7 @@ export default function QuestionBank() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement de la banque de questions...', 'Loading question bank...')}</p>
         </div>
       </div>
@@ -332,7 +332,7 @@ export default function QuestionBank() {
                 key={theme.id}
                 onClick={() => setSelectedThemeId(theme.id)}
                 className={`w-full text-left rounded-lg border px-3 py-2 transition ${
-                  selectedThemeId === theme.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'
+                  selectedThemeId === theme.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 <p className="font-semibold text-gray-800">{theme.name}</p>
@@ -368,7 +368,7 @@ export default function QuestionBank() {
                 <button
                   onClick={createTheme}
                   disabled={saving || newThemeName.trim().length < 2}
-                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                 >
                   <Plus className="w-4 h-4" />
                    {tr('Creer le theme', 'Create theme')}
@@ -444,7 +444,7 @@ export default function QuestionBank() {
                     <button
                       onClick={createQuestion}
                       disabled={saving || newConcept.trim().length < 2 || newPrompt.trim().length < 6}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                     >
                       <Plus className="w-4 h-4" />
                        {tr('Ajouter la question', 'Add question')}
@@ -567,7 +567,7 @@ export default function QuestionBank() {
                                     getPrimaryValue(editingQuestionValues.conceptTranslations, editingQuestionValues.concept).trim().length < 2 ||
                                     getPrimaryValue(editingQuestionValues.promptTranslations, editingQuestionValues.prompt).trim().length < 6
                                   }
-                                  className="text-sm text-purple-700 hover:text-purple-800 font-semibold disabled:opacity-60"
+                                  className="text-sm text-emerald-700 hover:text-emerald-800 font-semibold disabled:opacity-60"
                                 >
                                   {tr('Enregistrer', 'Save')}
                                 </button>
@@ -611,3 +611,5 @@ export default function QuestionBank() {
     </div>
   )
 }
+
+

@@ -20,7 +20,7 @@ export default function Demo() {
             </Link>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
-              <Link to="/" className="text-gray-600 hover:text-purple-600 font-medium">
+              <Link to="/" className="text-gray-600 hover:text-emerald-700 font-medium">
                 {t('header.backHome', 'Back to home')}
               </Link>
             </div>
@@ -46,7 +46,7 @@ export default function Demo() {
                   onClick={() => setCurrentTheme(key)}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     currentTheme === key
-                      ? 'border-purple-500 bg-purple-50 scale-105'
+                      ? 'border-emerald-500 bg-emerald-50 scale-105'
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -68,3 +68,4 @@ export default function Demo() {
     </div>
   )
 }
+

@@ -35,7 +35,7 @@ export default function ClientDetailModal({ client, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-t-2xl">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6 rounded-t-2xl">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-3xl font-bold">
@@ -43,7 +43,7 @@ export default function ClientDetailModal({ client, onClose }) {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{client.name}</h2>
-                <div className="flex items-center gap-2 text-purple-100">
+                <div className="flex items-center gap-2 text-emerald-100">
                   <Mail className="w-4 h-4" />
                   <span>{client.email}</span>
                 </div>
@@ -64,7 +64,7 @@ export default function ClientDetailModal({ client, onClose }) {
           {isCompleted && (
             <div className="bg-gray-50 rounded-xl p-6 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <TrendingUp className="w-6 h-6 text-emerald-700" />
                 <h3 className="text-lg font-bold text-gray-800">Score global</h3>
               </div>
               <div className={`text-5xl font-bold ${getScoreColor(client.score)} mb-2`}>
@@ -154,7 +154,7 @@ export default function ClientDetailModal({ client, onClose }) {
 
           {/* Actions */}
           <div className="flex gap-3">
-            <button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
+            <button className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
               Télécharger le rapport PDF
             </button>
             <button className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition">
@@ -166,3 +166,4 @@ export default function ClientDetailModal({ client, onClose }) {
     </div>
   )
 }
+

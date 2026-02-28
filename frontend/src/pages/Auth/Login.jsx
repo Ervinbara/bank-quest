@@ -71,8 +71,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
+      <div className="surface-glass p-8 w-full max-w-md finance-animate-in">
         <div className="flex justify-end mb-4">
           <LanguageSwitcher />
         </div>
@@ -107,7 +107,7 @@ export default function Login() {
               value={formData.email}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="you@example.com"
             />
@@ -127,7 +127,7 @@ export default function Login() {
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                 errors.password
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:border-purple-500'
+                  : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="********"
             />
@@ -141,11 +141,11 @@ export default function Login() {
                 name="remember"
                 checked={formData.remember}
                 onChange={handleChange}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
               />
               <span className="text-sm text-gray-700">{t('auth.remember')}</span>
             </label>
-            <Link to="/auth/forgot-password" className="text-sm font-semibold text-purple-600 hover:text-purple-700">
+            <Link to="/auth/forgot-password" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
               {t('auth.forgot')}
             </Link>
           </div>
@@ -153,7 +153,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? t('auth.loadingLogin') : t('auth.loginSubmit')}
           </button>
@@ -162,7 +162,7 @@ export default function Login() {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             {t('auth.noAccount')}{' '}
-            <Link to="/auth/register" className="font-semibold text-purple-600 hover:text-purple-700">
+            <Link to="/auth/register" className="font-semibold text-emerald-700 hover:text-emerald-800">
               {t('auth.createAccount')}
             </Link>
           </p>
@@ -182,3 +182,5 @@ export default function Login() {
     </div>
   )
 }
+
+

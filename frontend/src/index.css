@@ -3,21 +3,85 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --fm-bg: #f4f8f7;
+    --fm-ink: #0f172a;
+    --fm-brand-1: #0f766e;
+    --fm-brand-2: #047857;
+    --fm-gold: #d4af37;
+    --fm-card: #ffffff;
+    --fm-border: #d9e7e3;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply text-slate-900 antialiased;
+    background:
+      radial-gradient(1200px 520px at 12% -5%, rgba(4, 120, 87, 0.14), transparent 62%),
+      radial-gradient(900px 460px at 100% 0%, rgba(20, 184, 166, 0.1), transparent 58%),
+      linear-gradient(180deg, #f7fbfa 0%, var(--fm-bg) 42%, #eef5f3 100%);
+  }
+
+  ::selection {
+    background: rgba(15, 118, 110, 0.22);
   }
 }
 
 @layer components {
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-emerald-700 to-teal-500 bg-clip-text text-transparent;
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg;
+    @apply text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg;
+    background-image: linear-gradient(120deg, var(--fm-brand-1), var(--fm-brand-2));
+    box-shadow: 0 12px 28px rgba(6, 95, 70, 0.24);
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow;
+    @apply rounded-2xl p-6 border transition-all duration-300;
+    background: var(--fm-card);
+    border-color: var(--fm-border);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .surface-glass {
+    @apply rounded-2xl border;
+    background: rgba(255, 255, 255, 0.74);
+    backdrop-filter: blur(10px);
+    border-color: rgba(217, 231, 227, 0.85);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  }
+
+  .finance-chip {
+    @apply rounded-full text-xs font-semibold px-3 py-1;
+    background: rgba(15, 118, 110, 0.1);
+    color: #0f766e;
+  }
+
+  .finance-animate-in {
+    animation: fm-rise-in 0.45s cubic-bezier(0.2, 0.65, 0.2, 1) both;
+  }
+
+  .finance-animate-delay-1 {
+    animation-delay: 80ms;
+  }
+
+  .finance-animate-delay-2 {
+    animation-delay: 140ms;
+  }
+
+  .finance-animate-delay-3 {
+    animation-delay: 200ms;
+  }
+}
+
+@keyframes fm-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

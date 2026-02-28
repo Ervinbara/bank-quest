@@ -104,7 +104,7 @@ export default function Clients() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement des clients...', 'Loading clients...')}</p>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function Clients() {
 
         <button
           onClick={() => setInviteModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
         >
           <UserPlus className="w-4 h-4" />
           {tr('Inviter un client', 'Invite a client')}
@@ -171,7 +171,7 @@ export default function Clients() {
                     onClick={() => setActiveStatusFilter(filter.key)}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                       activeStatusFilter === filter.key
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -223,7 +223,7 @@ export default function Clients() {
           {clients.length === 0 ? (
             <button
               onClick={() => setInviteModalOpen(true)}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
             >
               {tr('Inviter mon premier client', 'Invite my first client')}
             </button>
@@ -242,7 +242,7 @@ export default function Clients() {
                   </div>
                   <Link
                     to={`/dashboard/clients/${client.id}`}
-                    className="block w-full text-center bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm"
+                    className="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm"
                   >
                     {tr('Voir le detail', 'View details')}
                   </Link>
@@ -266,3 +266,4 @@ export default function Clients() {
     </div>
   )
 }
+

@@ -76,13 +76,13 @@ export default function BankQuestGame({
 
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <BookOpen className="text-purple-600" />
+                            <BookOpen className="text-emerald-700" />
                             Concepts Appris
                         </h2>
                         <div className="space-y-4">
                             {gameScenarios.map((scenario, index) => (
-                                <div key={index} className="bg-purple-50 rounded-xl p-4 border-l-4 border-purple-500">
-                                    <h3 className="font-bold text-purple-900 mb-2">{scenario.concept}</h3>
+                                <div key={index} className="bg-emerald-50 rounded-xl p-4 border-l-4 border-emerald-500">
+                                    <h3 className="font-bold text-emerald-900 mb-2">{scenario.concept}</h3>
                                     <p className="text-gray-700 text-sm">{scenario.lesson}</p>
                                 </div>
                             ))}
@@ -144,7 +144,7 @@ export default function BankQuestGame({
                                                 ? 'bg-yellow-100 border-2 border-yellow-500'
                                                 : 'bg-red-100 border-2 border-red-500'
                                         : 'bg-gray-100 opacity-50'
-                                    : 'bg-purple-50 hover:bg-purple-100 hover:scale-105 border-2 border-purple-200 cursor-pointer'
+                                    : 'bg-emerald-50 hover:bg-emerald-100 hover:scale-105 border-2 border-emerald-200 cursor-pointer'
                             }`}
                         >
                             <p className="font-semibold text-gray-800">{choice.text}</p>
@@ -157,8 +157,8 @@ export default function BankQuestGame({
 
                 {showFeedback && (
                     <div className="space-y-4">
-                        <div className="bg-purple-50 border-l-4 border-purple-500 rounded-xl p-4">
-                            <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
+                        <div className="bg-emerald-50 border-l-4 border-emerald-500 rounded-xl p-4">
+                            <h3 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5" />
                                 💡 Notion Bancaire
                             </h3>
@@ -178,3 +178,5 @@ export default function BankQuestGame({
         </div>
     )
 }
+
+

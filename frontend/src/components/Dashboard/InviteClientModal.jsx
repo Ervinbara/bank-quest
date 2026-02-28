@@ -166,11 +166,11 @@ export default function InviteClientModal({
       >
         {!createdInvitation ? (
           <>
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-xl font-bold">Inviter un client</h3>
-                  <p className="text-purple-100 text-sm mt-1">
+                  <p className="text-emerald-100 text-sm mt-1">
                     Creez un client, obtenez son lien et envoyez un email automatiquement.
                   </p>
                 </div>
@@ -196,7 +196,7 @@ export default function InviteClientModal({
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Ex: Marie Dubois"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -211,7 +211,7 @@ export default function InviteClientModal({
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="client@exemple.fr"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -220,7 +220,7 @@ export default function InviteClientModal({
                   type="checkbox"
                   checked={autoSendEmail}
                   onChange={(event) => setAutoSendEmail(event.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-purple-600"
+                  className="w-4 h-4 rounded border-gray-300 text-emerald-700"
                 />
                 Envoyer automatiquement un email au client
               </label>
@@ -230,7 +230,7 @@ export default function InviteClientModal({
                 <select
                   value={selectedQuestionnaireId}
                   onChange={(event) => setSelectedQuestionnaireId(event.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 bg-white"
                 >
                   {questionnaires.length === 0 ? <option value="">Questionnaire standard</option> : null}
                   {questionnaires.map((questionnaire) => (
@@ -263,7 +263,7 @@ export default function InviteClientModal({
                 <button
                   type="submit"
                   disabled={!isFormValid || loading}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 transition disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Generer l'invitation
@@ -339,7 +339,7 @@ export default function InviteClientModal({
                 type="button"
                 onClick={() => sendEmailNow(createdInvitation)}
                 disabled={sendingEmail}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 transition disabled:opacity-60"
               >
                 {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Envoyer le mail
@@ -351,3 +351,5 @@ export default function InviteClientModal({
     </div>
   )
 }
+
+

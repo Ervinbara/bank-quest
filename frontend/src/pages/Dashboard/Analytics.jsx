@@ -135,7 +135,7 @@ export default function Analytics() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">{tr('Chargement des analytics...', 'Loading analytics...')}</p>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-700 rounded-xl p-8 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold mb-2">{tr('Analytics avancees', 'Advanced analytics')}</h2>
@@ -268,7 +268,7 @@ export default function Analytics() {
                     </div>
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"
+                        className="h-full bg-gradient-to-r from-teal-500 to-emerald-700 rounded-full"
                         style={{ width: `${getBarWidth(bucket.count, maxDistributionCount)}%` }}
                       />
                     </div>
@@ -285,7 +285,7 @@ export default function Analytics() {
                   <div key={point.monthKey} className="flex-1 min-w-0">
                     <div className="h-40 flex items-end">
                       <div
-                        className="w-full bg-gradient-to-t from-indigo-600 to-blue-400 rounded-t-md transition-all"
+                        className="w-full bg-gradient-to-t from-emerald-700 to-teal-400 rounded-t-md transition-all"
                         style={{ height: `${getBarWidth(point.averageScore, maxEvolutionScore)}%` }}
                         title={`${point.averageScore}/100 (${point.completedCount} quiz)`}
                       />
@@ -309,7 +309,7 @@ export default function Analytics() {
         >
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-gray-800">{tr('Top 10 a relancer', 'Top 10 to follow up')}</h3>
-            <Target className="w-5 h-5 text-purple-600" />
+            <Target className="w-5 h-5 text-emerald-700" />
           </div>
           {panelOpen.priorities ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
         </button>
@@ -343,7 +343,7 @@ export default function Analytics() {
                   </span>
                   <Link
                     to={`/dashboard/clients/${row.id}`}
-                    className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition"
+                    className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
                   >
                     Ouvrir
                   </Link>
@@ -356,3 +356,5 @@ export default function Analytics() {
     </div>
   )
 }
+
+

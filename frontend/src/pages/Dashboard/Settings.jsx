@@ -262,7 +262,7 @@ export default function Settings() {
                     value={profileData.name}
                     onChange={handleProfileChange}
                     className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
                     } focus:outline-none`}
                   />
                   {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -281,7 +281,7 @@ export default function Settings() {
                     className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                       errors.company
                         ? 'border-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:border-purple-500'
+                        : 'border-gray-200 focus:border-emerald-500'
                     } focus:outline-none`}
                   />
                   {errors.company && <p className="mt-1 text-sm text-red-600">{errors.company}</p>}
@@ -297,7 +297,7 @@ export default function Settings() {
                     name="phone"
                     value={profileData.phone}
                     onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none transition-all"
                   />
                 </div>
               </div>
@@ -306,7 +306,7 @@ export default function Settings() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               {loading ? tr('Enregistrement...', 'Saving...') : tr('Enregistrer les modifications', 'Save changes')}
@@ -332,7 +332,7 @@ export default function Settings() {
                     className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                       errors.currentPassword
                         ? 'border-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:border-purple-500'
+                        : 'border-gray-200 focus:border-emerald-500'
                     } focus:outline-none`}
                   />
                   {errors.currentPassword && <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>}
@@ -351,7 +351,7 @@ export default function Settings() {
                     className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                       errors.newPassword
                         ? 'border-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:border-purple-500'
+                        : 'border-gray-200 focus:border-emerald-500'
                     } focus:outline-none`}
                   />
                   {errors.newPassword && <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>}
@@ -370,7 +370,7 @@ export default function Settings() {
                     className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                       errors.confirmPassword
                         ? 'border-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:border-purple-500'
+                        : 'border-gray-200 focus:border-emerald-500'
                     } focus:outline-none`}
                   />
                   {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
@@ -381,7 +381,7 @@ export default function Settings() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
               {loading ? tr('Modification...', 'Updating...') : tr('Changer le mot de passe', 'Change password')}
@@ -394,7 +394,7 @@ export default function Settings() {
             <div>
               <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Abonnement actuel', 'Current subscription')}</h3>
 
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6 mb-6">
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h4 className="text-2xl font-bold text-gray-800 capitalize">Plan {currentPlan}</h4>
@@ -422,8 +422,8 @@ export default function Settings() {
                       key={plan}
                       className={`border-2 rounded-xl p-4 transition-all ${
                         currentPlan === plan
-                          ? 'border-purple-600 bg-purple-50'
-                          : 'border-gray-200 hover:border-purple-300'
+                          ? 'border-emerald-600 bg-emerald-50'
+                          : 'border-gray-200 hover:border-emerald-300'
                       }`}
                     >
                       <h5 className="font-bold text-lg mb-1 capitalize">{plan}</h5>
@@ -434,12 +434,12 @@ export default function Settings() {
                         <button
                           disabled={Boolean(checkoutLoadingPlan) || portalLoading}
                           onClick={() => goToCheckout(plan)}
-                          className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                          className="w-full py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                         >
                           {checkoutLoadingPlan === plan ? tr('Ouverture...', 'Opening...') : tr('Choisir ce plan', 'Choose this plan')}
                         </button>
                       ) : (
-                        <div className="w-full py-2 text-center text-sm font-semibold text-purple-700 bg-purple-100 rounded-lg">
+                        <div className="w-full py-2 text-center text-sm font-semibold text-emerald-700 bg-emerald-100 rounded-lg">
                           {tr('Plan actuel', 'Current plan')}
                         </div>
                       )}
@@ -464,3 +464,5 @@ export default function Settings() {
     </div>
   )
 }
+
+

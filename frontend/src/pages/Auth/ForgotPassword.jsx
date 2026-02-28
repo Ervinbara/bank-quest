@@ -33,8 +33,8 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
+        <div className="surface-glass p-8 w-full max-w-md finance-animate-in text-center">
           <div className="flex justify-end mb-4">
             <LanguageSwitcher />
           </div>
@@ -45,7 +45,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/auth/login"
-            className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-8 rounded-lg hover:opacity-90 transition-all"
+            className="inline-block bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold py-3 px-8 rounded-lg hover:opacity-90 transition-all"
           >
             {t('auth.backToLogin')}
           </Link>
@@ -55,8 +55,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
+      <div className="surface-glass p-8 w-full max-w-md finance-animate-in">
         <div className="flex justify-end mb-4">
           <LanguageSwitcher />
         </div>
@@ -80,7 +80,7 @@ export default function ForgotPassword() {
                 setError('')
               }}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="you@example.com"
             />
@@ -90,14 +90,14 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? t('auth.sending') : t('auth.sendReset')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <Link to="/auth/login" className="text-sm font-semibold text-purple-600 hover:text-purple-700">
+          <Link to="/auth/login" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
             {t('auth.backToLogin')}
           </Link>
         </div>
@@ -105,3 +105,5 @@ export default function ForgotPassword() {
     </div>
   )
 }
+
+

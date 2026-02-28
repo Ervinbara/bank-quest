@@ -22,8 +22,8 @@ export default function SettingsTabs({ activeTab, onTabChange }) {
               onClick={() => onTabChange(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 ${
                 isActive
-                  ? 'text-purple-600 border-purple-600 bg-purple-50'
-                  : 'text-gray-600 border-transparent hover:text-purple-600 hover:bg-gray-50'
+                  ? 'text-emerald-700 border-emerald-600 bg-emerald-50'
+                  : 'text-gray-600 border-transparent hover:text-emerald-700 hover:bg-gray-50'
               }`}
             >
               <Icon className="w-5 h-5" />
@@ -35,3 +35,5 @@ export default function SettingsTabs({ activeTab, onTabChange }) {
     </div>
   )
 }
+
+

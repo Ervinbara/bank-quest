@@ -62,7 +62,7 @@ export default function Sidebar({
           <Link to="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} min-w-0`}>
             <span className="text-3xl">FM</span>
             {!collapsed ? (
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 FinMate
               </span>
             ) : null}
@@ -91,7 +91,7 @@ export default function Sidebar({
               title={collapsed ? item.label : undefined}
               className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all ${
                 active
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -103,13 +103,13 @@ export default function Sidebar({
       </nav>
 
       <div className="p-4 border-t">
-        <div className={`bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg ${collapsed ? 'p-2' : 'p-4'}`}>
+        <div className={`bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg ${collapsed ? 'p-2' : 'p-4'}`}>
           {!collapsed ? <p className="text-sm font-semibold text-gray-800 mb-1">{t('sidebar.freeVersion', 'Free plan')}</p> : null}
           {!collapsed ? <p className="text-xs text-gray-600 mb-3">{t('sidebar.daysLeft', '14 days left')}</p> : null}
           <Link
             to="/dashboard/settings"
             title={collapsed ? t('sidebar.upgrade', 'Upgrade to Pro') : undefined}
-            className={`block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center rounded-lg text-sm font-semibold hover:opacity-90 transition ${collapsed ? 'py-2 px-1' : 'py-2'}`}
+            className={`block w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-center rounded-lg text-sm font-semibold hover:opacity-90 transition ${collapsed ? 'py-2 px-1' : 'py-2'}`}
           >
             {collapsed ? 'Pro' : t('sidebar.upgrade', 'Upgrade to Pro')}
           </Link>
@@ -120,7 +120,7 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className={`hidden md:flex bg-white shadow-lg flex-col transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`hidden md:flex bg-white/85 backdrop-blur-xl border-r border-emerald-100 shadow-lg flex-col transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
         {sidebarContent}
       </aside>
 
@@ -131,7 +131,7 @@ export default function Sidebar({
             onClick={onClose}
             aria-label={t('Fermer le menu', 'Close menu')}
           />
-          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white shadow-xl flex flex-col">
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white/95 backdrop-blur-xl shadow-xl flex flex-col border-r border-emerald-100">
             <div className="p-4 border-b flex items-center justify-between">
               <p className="font-semibold text-gray-800">{t('Navigation', 'Navigation')}</p>
               <button
@@ -149,3 +149,4 @@ export default function Sidebar({
     </>
   )
 }
+

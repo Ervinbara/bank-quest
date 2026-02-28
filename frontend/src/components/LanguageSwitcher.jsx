@@ -9,7 +9,7 @@ export default function LanguageSwitcher() {
         type="button"
         onClick={() => setLanguage('fr')}
         className={`px-2 py-1 text-xs font-semibold rounded ${
-          language === 'fr' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+          language === 'fr' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
         }`}
       >
         {t('language.fr', 'FR')}
@@ -18,7 +18,7 @@ export default function LanguageSwitcher() {
         type="button"
         onClick={() => setLanguage('en')}
         className={`px-2 py-1 text-xs font-semibold rounded ${
-          language === 'en' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+          language === 'en' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
         }`}
       >
         {t('language.en', 'EN')}
@@ -26,3 +26,4 @@ export default function LanguageSwitcher() {
     </div>
   )
 }
+

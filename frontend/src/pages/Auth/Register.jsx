@@ -86,8 +86,8 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
+      <div className="surface-glass p-8 w-full max-w-md finance-animate-in">
         <div className="flex justify-end mb-4">
           <LanguageSwitcher />
         </div>
@@ -121,7 +121,7 @@ export default function Register() {
               value={formData.name}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="John Doe"
             />
@@ -139,7 +139,7 @@ export default function Register() {
               value={formData.email}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="you@example.com"
             />
@@ -157,7 +157,7 @@ export default function Register() {
               value={formData.company}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                errors.company ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                errors.company ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="FinMate Advisory"
             />
@@ -174,7 +174,7 @@ export default function Register() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none transition-all"
               placeholder="+33 6 12 34 56 78"
             />
           </div>
@@ -190,7 +190,7 @@ export default function Register() {
               value={formData.password}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                errors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-purple-500'
+                errors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="********"
             />
@@ -211,7 +211,7 @@ export default function Register() {
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
                 errors.confirmPassword
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:border-purple-500'
+                  : 'border-gray-200 focus:border-emerald-500'
               } focus:outline-none`}
               placeholder="********"
             />
@@ -221,22 +221,22 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? t('auth.creating') : t('auth.createMyAccount')}
           </button>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            {t('auth.terms')} <a href="#" className="text-purple-600 hover:underline">{t('auth.cgu')}</a>{' '}
+            {t('auth.terms')} <a href="#" className="text-emerald-700 hover:underline">{t('auth.cgu')}</a>{' '}
             {language === 'fr' ? 'et notre' : 'and our'}{' '}
-            <a href="#" className="text-purple-600 hover:underline">{t('auth.privacy')}</a>
+            <a href="#" className="text-emerald-700 hover:underline">{t('auth.privacy')}</a>
           </p>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             {t('auth.hasAccount')}{' '}
-            <Link to="/auth/login" className="font-semibold text-purple-600 hover:text-purple-700">
+            <Link to="/auth/login" className="font-semibold text-emerald-700 hover:text-emerald-800">
               {t('auth.goLogin')}
             </Link>
           </p>
@@ -245,3 +245,5 @@ export default function Register() {
     </div>
   )
 }
+
+

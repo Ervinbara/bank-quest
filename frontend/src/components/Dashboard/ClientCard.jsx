@@ -26,13 +26,13 @@ export default function ClientCard({ client, onClick, footerAction }) {
   return (
     <div
       onClick={onClick ? () => onClick(client) : undefined}
-      className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-2 border-transparent hover:border-purple-200 ${
+      className={`surface-glass hover:shadow-xl transition-all p-6 border hover:border-emerald-200 finance-animate-in ${
         onClick ? 'cursor-pointer' : ''
       }`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
             {client.avatar || client.name.charAt(0)}
           </div>
           <div>
@@ -81,10 +81,11 @@ export default function ClientCard({ client, onClick, footerAction }) {
       </div>
 
       {footerAction || (
-        <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm">
+        <button className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm">
           {isCompleted ? tr('Voir les resultats', 'View results') : tr("Relancer l'invitation", 'Resend invitation')}
         </button>
       )}
     </div>
   )
 }
+

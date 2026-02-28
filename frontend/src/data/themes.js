@@ -15,7 +15,7 @@ export const themes = {
     },
     purple: {
         name: "Banque Moderne",
-        primary: "from-purple-600 to-pink-600",
+        primary: "from-emerald-600 to-teal-500",
         secondary: "from-purple-100 to-pink-100",
         accent: "purple",
         logo: "💜"
