@@ -88,7 +88,7 @@ const invokeJsonFunction = async (name, body, fallbackError) => {
 
 export const createStripeCheckoutSession = async (plan) => {
   const planId = String(plan || '').trim().toLowerCase()
-  if (!['solo', 'pro', 'cabinet'].includes(planId)) {
+  if (!['solo', 'pro', 'cabinet', 'test'].includes(planId)) {
     throw new Error('Plan Stripe invalide')
   }
   return invokeFunction('stripe-checkout', { plan: planId }, 'Impossible de creer la session de paiement')
