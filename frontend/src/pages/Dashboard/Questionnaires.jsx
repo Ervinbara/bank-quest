@@ -12,7 +12,7 @@ import {
   updateAdvisorQuestionnaire
 } from '@/services/questionnaireService'
 import { translateText } from '@/services/translationService'
-import { Languages, Loader2, Plus, Save, Star, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Languages, Loader2, Plus, Save, Star, Trash2 } from 'lucide-react'
 
 const DEFAULT_EDIT_OPTIONS = [
   { label: 'Jamais', points: 1 },
@@ -60,6 +60,12 @@ export default function Questionnaires() {
   const [bankQuestionLanguage, setBankQuestionLanguage] = useState('fr')
   const [bankByTheme, setBankByTheme] = useState({})
   const [questionBusy, setQuestionBusy] = useState({})
+  const [panelOpen, setPanelOpen] = useState({
+    template: false,
+    custom: false,
+    bank: true,
+    questions: true
+  })
 
   const templates = useMemo(() => getDefaultQuestionnaireTemplates(), [])
   const bankThemes = useMemo(() => Object.keys(bankByTheme), [bankByTheme])
@@ -379,52 +385,72 @@ export default function Questionnaires() {
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">{tr('Creer depuis un template', 'Create from template')}</p>
-            <select
-              value={templateKey}
-              onChange={(event) => setTemplateKey(event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              {templates.map((template) => (
-                <option key={template.key} value={template.key}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={templateName}
-              onChange={(event) => setTemplateName(event.target.value)}
-              placeholder={tr('Nom personnalise (optionnel)', 'Custom name (optional)')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
             <button
-              onClick={createFromTemplate}
-              disabled={saving}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+              onClick={() => setPanelOpen((prev) => ({ ...prev, template: !prev.template }))}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {tr('Ajouter depuis template', 'Add from template')}
+              {tr('Creer depuis un template', 'Create from template')}
+              {panelOpen.template ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
             </button>
+            {panelOpen.template ? (
+              <>
+                <select
+                  value={templateKey}
+                  onChange={(event) => setTemplateKey(event.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {templates.map((template) => (
+                    <option key={template.key} value={template.key}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(event) => setTemplateName(event.target.value)}
+                  placeholder={tr('Nom personnalise (optionnel)', 'Custom name (optional)')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <button
+                  onClick={createFromTemplate}
+                  disabled={saving}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {tr('Ajouter depuis template', 'Add from template')}
+                </button>
+              </>
+            ) : null}
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">{tr('Creer un questionnaire vide', 'Create an empty questionnaire')}</p>
-            <input
-              type="text"
-              value={customName}
-              onChange={(event) => setCustomName(event.target.value)}
-              placeholder={tr('Ex: Questionnaire premium', 'Ex: Premium questionnaire')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
             <button
-              onClick={createCustom}
-              disabled={saving || customName.trim().length < 3}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-60"
+              onClick={() => setPanelOpen((prev) => ({ ...prev, custom: !prev.custom }))}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
             >
-              <Plus className="w-4 h-4" />
-              {tr('Creer vide', 'Create empty')}
+              {tr('Creer un questionnaire vide', 'Create an empty questionnaire')}
+              {panelOpen.custom ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
             </button>
+            {panelOpen.custom ? (
+              <>
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(event) => setCustomName(event.target.value)}
+                  placeholder={tr('Ex: Questionnaire premium', 'Ex: Premium questionnaire')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <button
+                  onClick={createCustom}
+                  disabled={saving || customName.trim().length < 3}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-60"
+                >
+                  <Plus className="w-4 h-4" />
+                  {tr('Creer vide', 'Create empty')}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -470,54 +496,70 @@ export default function Questionnaires() {
               </div>
 
               <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
-                 <p className="text-sm font-semibold text-gray-800">{tr('Banque de questions par theme', 'Question bank by topic')}</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <select
-                    value={bankQuestionLanguage}
-                    onChange={(event) => setBankQuestionLanguage(event.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                  >
-                    <option value="fr">FR</option>
-                    <option value="en">EN</option>
-                  </select>
-                  <select
-                    value={bankTheme}
-                    onChange={(event) => {
-                      setBankTheme(event.target.value)
-                      setBankQuestionIndex(0)
-                    }}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                  >
-                    {bankThemes.map((theme) => (
-                      <option key={theme} value={theme}>
-                        {THEME_LABELS[theme] || theme}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={bankQuestionIndex}
-                    onChange={(event) => setBankQuestionIndex(Number(event.target.value))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                  >
-                    {(bankByTheme[bankTheme] || []).map((question, index) => (
-                      <option key={`${bankTheme}-${index}`} value={index}>
-                        {resolveTranslated(question.promptTranslations, question.prompt, bankQuestionLanguage)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 <button
-                  onClick={addBankQuestion}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-white transition"
+                  onClick={() => setPanelOpen((prev) => ({ ...prev, bank: !prev.bank }))}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
                 >
-                  <Plus className="w-4 h-4" />
-                   {tr('Ajouter la question', 'Add question')}
+                  {tr('Banque de questions par theme', 'Question bank by topic')}
+                  {panelOpen.bank ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
                 </button>
+                {panelOpen.bank ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <select
+                        value={bankQuestionLanguage}
+                        onChange={(event) => setBankQuestionLanguage(event.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                      >
+                        <option value="fr">FR</option>
+                        <option value="en">EN</option>
+                      </select>
+                      <select
+                        value={bankTheme}
+                        onChange={(event) => {
+                          setBankTheme(event.target.value)
+                          setBankQuestionIndex(0)
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                      >
+                        {bankThemes.map((theme) => (
+                          <option key={theme} value={theme}>
+                            {THEME_LABELS[theme] || theme}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={bankQuestionIndex}
+                        onChange={(event) => setBankQuestionIndex(Number(event.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                      >
+                        {(bankByTheme[bankTheme] || []).map((question, index) => (
+                          <option key={`${bankTheme}-${index}`} value={index}>
+                            {resolveTranslated(question.promptTranslations, question.prompt, bankQuestionLanguage)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={addBankQuestion}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-white transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                       {tr('Ajouter la question', 'Add question')}
+                    </button>
+                  </>
+                ) : null}
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                   <p className="font-semibold text-gray-900">{tr('Questions', 'Questions')} ({draft.questions.length})</p>
+                   <button
+                    onClick={() => setPanelOpen((prev) => ({ ...prev, questions: !prev.questions }))}
+                    className="flex items-center gap-2 font-semibold text-gray-900"
+                  >
+                    <span>{tr('Questions', 'Questions')} ({draft.questions.length})</span>
+                    {panelOpen.questions ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
+                  </button>
                   <button
                     onClick={addCustomQuestion}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
@@ -527,7 +569,7 @@ export default function Questionnaires() {
                   </button>
                 </div>
 
-                {draft.questions.length === 0 ? (
+                {!panelOpen.questions ? null : draft.questions.length === 0 ? (
                    <p className="text-sm text-gray-600">{tr('Ajoutez des questions pour activer ce questionnaire.', 'Add questions to activate this questionnaire.')}</p>
                 ) : (
                   <div className="space-y-3 max-h-[460px] overflow-auto pr-1">

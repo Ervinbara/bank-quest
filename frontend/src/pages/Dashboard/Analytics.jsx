@@ -5,7 +5,6 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorAnalytics } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import {
-  BarChart3,
   TrendingUp,
   CheckCircle,
   Clock3,
@@ -13,7 +12,9 @@ import {
   Download,
   RefreshCw,
   Users,
-  Target
+  Target,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 const FOLLOWUP_LABELS = {
@@ -74,6 +75,11 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState(null)
+  const [panelOpen, setPanelOpen] = useState({
+    overview: true,
+    distribution: true,
+    priorities: true
+  })
 
   const loadAnalytics = useCallback(async () => {
     if (!advisor?.id) return
@@ -188,99 +194,126 @@ export default function Analytics() {
         <StatsCard title={tr('Score moyen', 'Average score')} value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Pipeline conseiller</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-              <span>Invites</span>
-              <strong>{pipeline.invited}</strong>
-            </div>
-            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-              <span>Quiz completes</span>
-              <strong>{pipeline.completed}</strong>
-            </div>
-            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-              <span>RDV planifies</span>
-              <strong>{pipeline.rdvPlanifie}</strong>
-            </div>
-            <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-              <span>Dossiers clos</span>
-              <strong>{pipeline.clos}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Segmentation clients</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
-              <p className="text-sm text-green-800 font-semibold">Chaud</p>
-              <p className="text-2xl font-bold text-green-700">{segmentation.chaud}</p>
-            </div>
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
-              <p className="text-sm text-amber-800 font-semibold">Tiede</p>
-              <p className="text-2xl font-bold text-amber-700">{segmentation.tiede}</p>
-            </div>
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-center">
-              <p className="text-sm text-slate-800 font-semibold">Froid</p>
-              <p className="text-2xl font-bold text-slate-700">{segmentation.froid}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Repartition des scores</h3>
-          <p className="text-sm text-gray-500 mb-5">Nombre de clients par tranche</p>
-          <div className="space-y-4">
-            {analytics.scoreDistribution.map((bucket) => (
-              <div key={bucket.label}>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-semibold text-gray-700">{bucket.label}</span>
-                  <span className="text-gray-500">{bucket.count} client(s)</span>
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <button
+          onClick={() => setPanelOpen((prev) => ({ ...prev, overview: !prev.overview }))}
+          className="w-full flex items-center justify-between mb-4"
+        >
+          <h3 className="text-xl font-bold text-gray-800">{tr('Vue pipeline et segmentation', 'Pipeline and segmentation overview')}</h3>
+          {panelOpen.overview ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+        </button>
+        {panelOpen.overview ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-lg font-bold text-gray-800 mb-4">{tr('Pipeline conseiller', 'Advisor pipeline')}</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+                  <span>Invites</span>
+                  <strong>{pipeline.invited}</strong>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"
-                    style={{ width: `${getBarWidth(bucket.count, maxDistributionCount)}%` }}
-                  />
+                <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+                  <span>Quiz completes</span>
+                  <strong>{pipeline.completed}</strong>
+                </div>
+                <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+                  <span>RDV planifies</span>
+                  <strong>{pipeline.rdvPlanifie}</strong>
+                </div>
+                <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
+                  <span>Dossiers clos</span>
+                  <strong>{pipeline.clos}</strong>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Evolution mensuelle</h3>
-          <p className="text-sm text-gray-500 mb-5">Score moyen des 6 derniers mois</p>
-          <div className="h-52 flex items-end gap-3">
-            {analytics.monthlyEvolution.map((point) => (
-              <div key={point.monthKey} className="flex-1 min-w-0">
-                <div className="h-40 flex items-end">
-                  <div
-                    className="w-full bg-gradient-to-t from-indigo-600 to-blue-400 rounded-t-md transition-all"
-                    style={{ height: `${getBarWidth(point.averageScore, maxEvolutionScore)}%` }}
-                    title={`${point.averageScore}/100 (${point.completedCount} quiz)`}
-                  />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-gray-800 mb-4">{tr('Segmentation clients', 'Client segmentation')}</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center">
+                  <p className="text-sm text-green-800 font-semibold">Chaud</p>
+                  <p className="text-2xl font-bold text-green-700">{segmentation.chaud}</p>
                 </div>
-                <div className="mt-2 text-center">
-                  <p className="text-xs font-semibold text-gray-700 truncate">{point.label}</p>
-                  <p className="text-[11px] text-gray-500">{point.averageScore}/100</p>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center">
+                  <p className="text-sm text-amber-800 font-semibold">Tiede</p>
+                  <p className="text-2xl font-bold text-amber-700">{segmentation.tiede}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-center">
+                  <p className="text-sm text-slate-800 font-semibold">Froid</p>
+                  <p className="text-2xl font-bold text-slate-700">{segmentation.froid}</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">{tr('Top 10 a relancer', 'Top 10 to follow up')}</h3>
-          <Target className="w-5 h-5 text-purple-600" />
-        </div>
-        {analytics.priorities.length === 0 ? (
+        <button
+          onClick={() => setPanelOpen((prev) => ({ ...prev, distribution: !prev.distribution }))}
+          className="w-full flex items-center justify-between mb-4"
+        >
+          <h3 className="text-xl font-bold text-gray-800">{tr('Repartition et evolution', 'Distribution and evolution')}</h3>
+          {panelOpen.distribution ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+        </button>
+        {panelOpen.distribution ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-lg font-bold text-gray-800 mb-1">Repartition des scores</h4>
+              <p className="text-sm text-gray-500 mb-5">Nombre de clients par tranche</p>
+              <div className="space-y-4">
+                {analytics.scoreDistribution.map((bucket) => (
+                  <div key={bucket.label}>
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="font-semibold text-gray-700">{bucket.label}</span>
+                      <span className="text-gray-500">{bucket.count} client(s)</span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full"
+                        style={{ width: `${getBarWidth(bucket.count, maxDistributionCount)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-bold text-gray-800 mb-1">Evolution mensuelle</h4>
+              <p className="text-sm text-gray-500 mb-5">Score moyen des 6 derniers mois</p>
+              <div className="h-52 flex items-end gap-3">
+                {analytics.monthlyEvolution.map((point) => (
+                  <div key={point.monthKey} className="flex-1 min-w-0">
+                    <div className="h-40 flex items-end">
+                      <div
+                        className="w-full bg-gradient-to-t from-indigo-600 to-blue-400 rounded-t-md transition-all"
+                        style={{ height: `${getBarWidth(point.averageScore, maxEvolutionScore)}%` }}
+                        title={`${point.averageScore}/100 (${point.completedCount} quiz)`}
+                      />
+                    </div>
+                    <div className="mt-2 text-center">
+                      <p className="text-xs font-semibold text-gray-700 truncate">{point.label}</p>
+                      <p className="text-[11px] text-gray-500">{point.averageScore}/100</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <button
+          onClick={() => setPanelOpen((prev) => ({ ...prev, priorities: !prev.priorities }))}
+          className="w-full flex items-center justify-between mb-4"
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800">{tr('Top 10 a relancer', 'Top 10 to follow up')}</h3>
+            <Target className="w-5 h-5 text-purple-600" />
+          </div>
+          {panelOpen.priorities ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+        </button>
+        {!panelOpen.priorities ? null : analytics.priorities.length === 0 ? (
           <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
         ) : (
           <div className="space-y-3">
@@ -289,11 +322,11 @@ export default function Analytics() {
                 <div>
                   <p className="font-semibold text-gray-800">{row.name}</p>
                   <p className="text-sm text-gray-500">
-                    {row.email} • {FOLLOWUP_LABELS[row.followupStatus] || row.followupStatus} • Score:{' '}
+                    {row.email} - {FOLLOWUP_LABELS[row.followupStatus] || row.followupStatus} - Score:{' '}
                     {typeof row.score === 'number' ? `${row.score}/100` : 'N/A'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    Dernier contact: {formatDate(row.lastContactedAt || row.createdAt)} • {row.priority.reason}
+                    Dernier contact: {formatDate(row.lastContactedAt || row.createdAt)} - {row.priority.reason}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

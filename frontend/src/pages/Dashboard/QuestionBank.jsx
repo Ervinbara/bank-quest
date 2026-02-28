@@ -11,7 +11,7 @@ import {
   updateAdvisorQuestionBankTheme
 } from '@/services/questionnaireService'
 import { translateText } from '@/services/translationService'
-import { Languages, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Languages, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 
 export default function QuestionBank() {
   const { advisor } = useAuth()
@@ -37,6 +37,11 @@ export default function QuestionBank() {
     promptTranslations: {}
   })
   const [questionBusy, setQuestionBusy] = useState({})
+  const [panelOpen, setPanelOpen] = useState({
+    newTheme: false,
+    addQuestion: true,
+    themeQuestions: true
+  })
 
   const selectedTheme = useMemo(
     () => themes.find((theme) => theme.id === selectedThemeId) || null,
@@ -337,29 +342,39 @@ export default function QuestionBank() {
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">{tr('Nouveau theme', 'New theme')}</p>
-            <input
-              type="text"
-              value={newThemeName}
-              onChange={(event) => setNewThemeName(event.target.value)}
-               placeholder={tr('Ex: Credit immobilier', 'Ex: Mortgage')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <input
-              type="text"
-              value={newThemeDescription}
-              onChange={(event) => setNewThemeDescription(event.target.value)}
-               placeholder={tr('Description (optionnel)', 'Description (optional)')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
             <button
-              onClick={createTheme}
-              disabled={saving || newThemeName.trim().length < 2}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+              onClick={() => setPanelOpen((prev) => ({ ...prev, newTheme: !prev.newTheme }))}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
             >
-              <Plus className="w-4 h-4" />
-               {tr('Creer le theme', 'Create theme')}
+              {tr('Nouveau theme', 'New theme')}
+              {panelOpen.newTheme ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
             </button>
+            {panelOpen.newTheme ? (
+              <>
+                <input
+                  type="text"
+                  value={newThemeName}
+                  onChange={(event) => setNewThemeName(event.target.value)}
+                   placeholder={tr('Ex: Credit immobilier', 'Ex: Mortgage')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={newThemeDescription}
+                  onChange={(event) => setNewThemeDescription(event.target.value)}
+                   placeholder={tr('Description (optionnel)', 'Description (optional)')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <button
+                  onClick={createTheme}
+                  disabled={saving || newThemeName.trim().length < 2}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                >
+                  <Plus className="w-4 h-4" />
+                   {tr('Creer le theme', 'Create theme')}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -403,37 +418,53 @@ export default function QuestionBank() {
               </div>
 
               <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-                 <p className="text-sm font-semibold text-gray-800">{tr('Ajouter une question a ce theme', 'Add a question to this theme')}</p>
-                <input
-                  type="text"
-                  value={newConcept}
-                  onChange={(event) => setNewConcept(event.target.value)}
-                   placeholder={tr('Concept', 'Concept')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                />
-                <textarea
-                  rows={3}
-                  value={newPrompt}
-                  onChange={(event) => setNewPrompt(event.target.value)}
-                   placeholder={tr('Texte de la question', 'Question text')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                />
                 <button
-                  onClick={createQuestion}
-                  disabled={saving || newConcept.trim().length < 2 || newPrompt.trim().length < 6}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                  onClick={() => setPanelOpen((prev) => ({ ...prev, addQuestion: !prev.addQuestion }))}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-gray-800"
                 >
-                  <Plus className="w-4 h-4" />
-                   {tr('Ajouter la question', 'Add question')}
+                  {tr('Ajouter une question a ce theme', 'Add a question to this theme')}
+                  {panelOpen.addQuestion ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
                 </button>
-                <p className="text-xs text-gray-500">
-                  {tr('Astuce: creez en FR puis utilisez FR -> EN pour ajouter la version anglaise.', 'Tip: create in FR then use FR -> EN to add the English version.')}
-                </p>
+                {panelOpen.addQuestion ? (
+                  <>
+                    <input
+                      type="text"
+                      value={newConcept}
+                      onChange={(event) => setNewConcept(event.target.value)}
+                       placeholder={tr('Concept', 'Concept')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                    />
+                    <textarea
+                      rows={3}
+                      value={newPrompt}
+                      onChange={(event) => setNewPrompt(event.target.value)}
+                       placeholder={tr('Texte de la question', 'Question text')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                    />
+                    <button
+                      onClick={createQuestion}
+                      disabled={saving || newConcept.trim().length < 2 || newPrompt.trim().length < 6}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                    >
+                      <Plus className="w-4 h-4" />
+                       {tr('Ajouter la question', 'Add question')}
+                    </button>
+                    <p className="text-xs text-gray-500">
+                      {tr('Astuce: creez en FR puis utilisez FR -> EN pour ajouter la version anglaise.', 'Tip: create in FR then use FR -> EN to add the English version.')}
+                    </p>
+                  </>
+                ) : null}
               </div>
 
               <div className="space-y-2">
-                 <p className="font-semibold text-gray-900">{tr('Questions du theme', 'Theme questions')} ({selectedTheme.questions?.length || 0})</p>
-                {(selectedTheme.questions || []).length === 0 ? (
+                 <button
+                  onClick={() => setPanelOpen((prev) => ({ ...prev, themeQuestions: !prev.themeQuestions }))}
+                  className="flex items-center gap-2 font-semibold text-gray-900"
+                >
+                  <span>{tr('Questions du theme', 'Theme questions')} ({selectedTheme.questions?.length || 0})</span>
+                  {panelOpen.themeQuestions ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
+                </button>
+                {!panelOpen.themeQuestions ? null : (selectedTheme.questions || []).length === 0 ? (
                    <p className="text-sm text-gray-600">{tr('Aucune question dans ce theme.', 'No questions in this theme.')}</p>
                 ) : (
                   <div className="space-y-2">
