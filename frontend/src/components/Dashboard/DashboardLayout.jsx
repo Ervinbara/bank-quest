@@ -6,12 +6,15 @@ import Sidebar from './Sidebar'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { LogOut, User, Loader2, Menu } from 'lucide-react'
 
+const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
+
 export default function DashboardLayout() {
   const { advisor, logout } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1')
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -27,9 +30,22 @@ export default function DashboardLayout() {
     }
   }
 
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <Sidebar
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        collapsed={mobileMenuOpen ? false : sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
+      />
 
       <div className="flex-1 flex flex-col">
         <header className="bg-white shadow-sm sticky top-0 z-10">

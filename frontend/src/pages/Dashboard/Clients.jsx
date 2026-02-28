@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientService'
 import ClientCard from '@/components/Dashboard/ClientCard'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
-import { Loader2, Users, UserPlus, ListFilter } from 'lucide-react'
+import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function Clients() {
   const { advisor } = useAuth()
@@ -37,6 +37,7 @@ export default function Clients() {
   const [activeStatusFilter, setActiveStatusFilter] = useState('all')
   const [activeFollowupFilter, setActiveFollowupFilter] = useState('all')
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false)
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
@@ -126,7 +127,7 @@ export default function Clients() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{tr('Mes clients', 'My clients')}</h2>
           <p className="text-gray-600">
@@ -146,50 +147,64 @@ export default function Clients() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-4">
-        <div>
-          <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setFiltersCollapsed((prev) => !prev)}
+          className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 transition"
+        >
+          <div className="flex items-center gap-2">
             <ListFilter className="w-4 h-4 text-gray-600" />
-            <p className="text-sm font-semibold text-gray-700">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
+            <p className="text-sm font-semibold text-gray-700">{tr('Filtres', 'Filters')}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {STATUS_FILTERS.map((filter) => (
-              <button
-                key={filter.key}
-                onClick={() => setActiveStatusFilter(filter.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                  activeStatusFilter === filter.key
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {filter.label}
-                <span className="ml-2 text-xs opacity-90">({stats[filter.key] ?? 0})</span>
-              </button>
-            ))}
-          </div>
-        </div>
+          {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronUp className="w-4 h-4 text-gray-600" />}
+        </button>
 
-        <div>
-          <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Filtrer par suivi commercial', 'Filter by sales follow-up')}</p>
-          <div className="flex flex-wrap gap-2">
-            {FOLLOWUP_FILTERS.map((filter) => (
-              <button
-                key={filter.key}
-                onClick={() => setActiveFollowupFilter(filter.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                  activeFollowupFilter === filter.key
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                }`}
-              >
-                {filter.label}
-                <span className="ml-2 text-xs opacity-90">
-                  ({filter.key === 'all' ? stats.all : stats[filter.key] || 0})
-                </span>
-              </button>
-            ))}
+        {!filtersCollapsed ? (
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-sm font-semibold text-gray-700">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_FILTERS.map((filter) => (
+                  <button
+                    key={filter.key}
+                    onClick={() => setActiveStatusFilter(filter.key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                      activeStatusFilter === filter.key
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {filter.label}
+                    <span className="ml-2 text-xs opacity-90">({stats[filter.key] ?? 0})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Filtrer par suivi commercial', 'Filter by sales follow-up')}</p>
+              <div className="flex flex-wrap gap-2">
+                {FOLLOWUP_FILTERS.map((filter) => (
+                  <button
+                    key={filter.key}
+                    onClick={() => setActiveFollowupFilter(filter.key)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                      activeFollowupFilter === filter.key
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    }`}
+                  >
+                    {filter.label}
+                    <span className="ml-2 text-xs opacity-90">
+                      ({filter.key === 'all' ? stats.all : stats[filter.key] || 0})
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {filteredClients.length === 0 ? (

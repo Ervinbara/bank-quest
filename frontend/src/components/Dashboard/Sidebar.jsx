@@ -1,8 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
+export default function Sidebar({
+  mobileOpen = false,
+  onClose = () => {},
+  collapsed = false,
+  onToggleCollapsed = () => {}
+}) {
   const location = useLocation()
   const { t } = useLanguage()
 
@@ -52,13 +57,25 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
   const sidebarContent = (
     <>
-      <div className="p-6 border-b">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-3xl">FM</span>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            FinMate
-          </span>
-        </Link>
+      <div className={`p-4 border-b ${collapsed ? 'md:px-3' : 'md:p-6'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center md:justify-between' : 'justify-between'} gap-2`}>
+          <Link to="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} min-w-0`}>
+            <span className="text-3xl">FM</span>
+            {!collapsed ? (
+              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                FinMate
+              </span>
+            ) : null}
+          </Link>
+          <button
+            onClick={onToggleCollapsed}
+            className="hidden md:inline-flex p-2 rounded-lg hover:bg-gray-100"
+            aria-label={collapsed ? t('Etendre le menu', 'Expand menu') : t('Reduire le menu', 'Collapse menu')}
+            title={collapsed ? t('Etendre le menu', 'Expand menu') : t('Reduire le menu', 'Collapse menu')}
+          >
+            {collapsed ? <PanelLeftOpen className="w-4 h-4 text-gray-700" /> : <PanelLeftClose className="w-4 h-4 text-gray-700" />}
+          </button>
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
@@ -71,28 +88,30 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
               key={item.path}
               to={item.path}
               onClick={onClose}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all ${
                 active
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               <Icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
+              {!collapsed ? <span className="font-medium">{item.label}</span> : null}
             </Link>
           )
         })}
       </nav>
 
       <div className="p-4 border-t">
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
-          <p className="text-sm font-semibold text-gray-800 mb-1">{t('sidebar.freeVersion', 'Free plan')}</p>
-          <p className="text-xs text-gray-600 mb-3">{t('sidebar.daysLeft', '14 days left')}</p>
+        <div className={`bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg ${collapsed ? 'p-2' : 'p-4'}`}>
+          {!collapsed ? <p className="text-sm font-semibold text-gray-800 mb-1">{t('sidebar.freeVersion', 'Free plan')}</p> : null}
+          {!collapsed ? <p className="text-xs text-gray-600 mb-3">{t('sidebar.daysLeft', '14 days left')}</p> : null}
           <Link
             to="/dashboard/settings"
-            className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition"
+            title={collapsed ? t('sidebar.upgrade', 'Upgrade to Pro') : undefined}
+            className={`block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center rounded-lg text-sm font-semibold hover:opacity-90 transition ${collapsed ? 'py-2 px-1' : 'py-2'}`}
           >
-            {t('sidebar.upgrade', 'Upgrade to Pro')}
+            {collapsed ? 'Pro' : t('sidebar.upgrade', 'Upgrade to Pro')}
           </Link>
         </div>
       </div>
@@ -101,7 +120,9 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
   return (
     <>
-      <aside className="hidden md:flex w-64 bg-white shadow-lg flex-col">{sidebarContent}</aside>
+      <aside className={`hidden md:flex bg-white shadow-lg flex-col transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
+        {sidebarContent}
+      </aside>
 
       {mobileOpen ? (
         <div className="md:hidden fixed inset-0 z-40">
