@@ -53,6 +53,14 @@ export default function QuestionBank() {
     return map.fr || map.en || Object.values(map).find((value) => String(value || '').trim().length > 0) || fallbackValue || ''
   }
 
+  const hasLangValue = (translations, lang, fallbackValue) => {
+    const map = translations && typeof translations === 'object' ? translations : {}
+    const value = map[lang]
+    if (String(value || '').trim().length > 0) return true
+    if (lang === 'fr' && String(fallbackValue || '').trim().length > 0) return true
+    return false
+  }
+
   useEffect(() => {
     setEditingQuestionLanguage(language === 'en' ? 'en' : 'fr')
   }, [language])
@@ -473,6 +481,30 @@ export default function QuestionBank() {
                               <>
                                 <p className="font-semibold text-gray-800">{getTranslationValue(question.conceptTranslations, question.concept, language)}</p>
                                 <p className="text-sm text-gray-700">{getTranslationValue(question.promptTranslations, question.prompt, language)}</p>
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                  <span
+                                    className={`px-2 py-0.5 text-xs rounded-full ${
+                                      hasLangValue(question.promptTranslations, 'fr', question.prompt)
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-700'
+                                    }`}
+                                  >
+                                    {hasLangValue(question.promptTranslations, 'fr', question.prompt)
+                                      ? tr('FR OK', 'FR ready')
+                                      : tr('FR manquant', 'FR missing')}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 text-xs rounded-full ${
+                                      hasLangValue(question.promptTranslations, 'en')
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}
+                                  >
+                                    {hasLangValue(question.promptTranslations, 'en')
+                                      ? tr('EN OK', 'EN ready')
+                                      : tr('EN manquant', 'EN missing')}
+                                  </span>
+                                </div>
                               </>
                             )}
                             <div className="flex flex-wrap items-center gap-2">
