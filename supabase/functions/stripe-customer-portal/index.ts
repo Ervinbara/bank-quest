@@ -65,6 +65,20 @@ serve(async (req) => {
     if (advisorError || !advisor) return json({ error: 'Conseiller introuvable' }, 404)
     if (!advisor.stripe_customer_id) return json({ error: 'Aucun client Stripe associe' }, 400)
 
+    try {
+      await stripe.customers.retrieve(advisor.stripe_customer_id)
+    } catch (customerError: any) {
+      const message = String(customerError?.message || '')
+      if (message.includes('No such customer')) {
+        await supabase
+          .from('advisors')
+          .update({ stripe_customer_id: null })
+          .eq('id', advisor.id)
+        return json({ error: 'Client Stripe invalide pour ce mode. Relancez une souscription.' }, 400)
+      }
+      throw customerError
+    }
+
     const session = await stripe.billingPortal.sessions.create({
       customer: advisor.stripe_customer_id,
       return_url: `${appUrl}/dashboard/settings?portal=return`

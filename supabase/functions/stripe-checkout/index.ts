@@ -87,6 +87,23 @@ serve(async (req) => {
     const priceId = getPriceIdForPlan(plan, stripeMode)
 
     let customerId = advisor.stripe_customer_id || ''
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId)
+      } catch (customerError: any) {
+        const message = String(customerError?.message || '')
+        if (message.includes('No such customer')) {
+          customerId = ''
+          await supabase
+            .from('advisors')
+            .update({ stripe_customer_id: null })
+            .eq('id', advisor.id)
+        } else {
+          throw customerError
+        }
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: advisor.email,

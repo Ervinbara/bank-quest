@@ -100,6 +100,35 @@ serve(async (req) => {
       return json({ success: true, synced: true, status: 'inactive' })
     }
 
+    try {
+      await stripe.customers.retrieve(advisor.stripe_customer_id)
+    } catch (customerError: any) {
+      const message = String(customerError?.message || '')
+      if (message.includes('No such customer')) {
+        await supabase
+          .from('advisors')
+          .update({
+            stripe_customer_id: null,
+            plan: 'none',
+            subscription_status: 'inactive',
+            stripe_subscription_id: null,
+            stripe_price_id: null,
+            current_period_start: null,
+            current_period_end: null,
+            subscription_started_at: null,
+            cancel_at_period_end: false,
+            cancel_at: null,
+            canceled_at: null,
+            subscription_ended_at: null,
+            subscription_updated_at: new Date().toISOString()
+          })
+          .eq('id', advisor.id)
+
+        return json({ success: true, synced: true, status: 'inactive' })
+      }
+      throw customerError
+    }
+
     const subscriptions = await stripe.subscriptions.list({
       customer: advisor.stripe_customer_id,
       status: 'all',
