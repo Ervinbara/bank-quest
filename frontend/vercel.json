@@ -1,4 +1,17 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "bank-quest.vercel.app"
+        }
+      ],
+      "destination": "https://finmate-advisor.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/((?!.*\\.).*)", "destination": "/" }
   ]

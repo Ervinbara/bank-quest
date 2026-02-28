@@ -1,4 +1,4 @@
-# Bank Quest - Publication Play Store (PWA + TWA)
+# FinMate - Publication Play Store (PWA + TWA)
 
 ## 1) Ce qui est deja en place
 - PWA active (manifest + service worker)
@@ -12,9 +12,9 @@
 ## 2) Etapes a faire maintenant
 1. Deployer la derniere version sur Vercel.
 2. Verifier que ces URLs repondent en production:
-   - `https://bank-quest.vercel.app/manifest.webmanifest`
-   - `https://bank-quest.vercel.app/.well-known/assetlinks.json`
-3. Creer votre app Android (package recommande: `com.bankquest.app`) dans Play Console.
+   - `https://finmate-advisor.vercel.app/manifest.webmanifest`
+   - `https://finmate-advisor.vercel.app/.well-known/assetlinks.json`
+3. Creer votre app Android (package recommande: `com.finmate.app`) dans Play Console.
 4. Initialiser la TWA:
    - `npm run twa:doctor`
    - `npm run twa:init`
@@ -32,12 +32,12 @@ keytool -list -v -keystore <votre-keystore.jks> -alias <votre-alias>
 
 Puis generez automatiquement `public/.well-known/assetlinks.json`:
 ```bash
-ANDROID_PACKAGE_NAME=com.bankquest.app ANDROID_SHA256_FINGERPRINT=AA:BB:...:FF npm run twa:assetlinks
+ANDROID_PACKAGE_NAME=com.finmate.app ANDROID_SHA256_FINGERPRINT=AA:BB:...:FF npm run twa:assetlinks
 ```
 
 Note Windows PowerShell:
 ```powershell
-$env:ANDROID_PACKAGE_NAME="com.bankquest.app"
+$env:ANDROID_PACKAGE_NAME="com.finmate.app"
 $env:ANDROID_SHA256_FINGERPRINT="AA:BB:...:FF"
 npm run twa:assetlinks
 ```

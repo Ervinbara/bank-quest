@@ -1,4 +1,4 @@
-# Stripe Setup (Bank Quest)
+# Stripe Setup (FinMate)
 
 ## 1) Recuperer les cles Stripe
 Dans votre dashboard Stripe:
@@ -21,7 +21,7 @@ Dans Supabase:
    - `STRIPE_PRICE_SOLO_MONTHLY=price_...`
    - `STRIPE_PRICE_PRO_MONTHLY=price_...`
    - `STRIPE_PRICE_CABINET_MONTHLY=price_...`
-   - `APP_URL=https://bank-quest.vercel.app`
+   - `APP_URL=https://finmate-advisor.vercel.app`
 
 Le `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont fournis automatiquement par Supabase pour les fonctions deployees.
 
