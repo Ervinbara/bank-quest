@@ -14,8 +14,8 @@ export default defineConfig({
       includeAssets: ['icon-192.png', 'icon-512.png', 'vite.svg'],
       manifest: {
         id: '/',
-        name: 'Bank Quest',
-        short_name: 'BankQuest',
+        name: 'FinMate',
+        short_name: 'FinMate',
         description: 'Qualification client et quiz financiers pour conseillers',
         start_url: '/',
         scope: '/',

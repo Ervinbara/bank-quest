@@ -3,10 +3,10 @@ import { supabase } from '@/lib/supabase'
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
 export const DEFAULT_EMAIL_TEMPLATE = {
-  subject: 'Invitation quiz Bank Quest - {{client_name}}',
+  subject: 'Invitation questionnaire FinMate - {{client_name}}',
   body: `Bonjour {{client_name}},
 
-{{advisor_name}} vous invite a completer votre quiz Bank Quest.
+{{advisor_name}} vous invite a completer votre questionnaire FinMate.
 
 Cliquez ici pour demarrer:
 {{invite_link}}

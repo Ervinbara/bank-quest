@@ -156,7 +156,8 @@ export const AuthProvider = ({ children }) => {
         (key.startsWith('sb-') ||
           key.includes('supabase') ||
           key.includes('auth-token') ||
-          key.includes('bankquest'))
+          key.includes('bankquest') ||
+          key.includes('finmate'))
       ) {
         localKeysToRemove.push(key)
       }

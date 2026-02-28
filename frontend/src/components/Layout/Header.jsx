@@ -5,7 +5,7 @@ import { LogOut, User, Loader2 } from 'lucide-react'
 
 export default function Header() {
   const navigate = useNavigate()
-  const { user, advisor, logout, isAuthenticated } = useAuth()
+  const { advisor, logout, isAuthenticated } = useAuth()
   const [loggingOut, setLoggingOut] = useState(false)
 
   const handleLogout = async () => {
@@ -39,7 +39,7 @@ export default function Header() {
           <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
             <span className="text-3xl">🎯</span>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Bank Quest
+              FinMate
             </span>
           </Link>
 

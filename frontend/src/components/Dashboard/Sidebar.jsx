@@ -51,11 +51,11 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-6 border-b">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-3xl">Bank</span>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Bank Quest
-          </span>
+          <Link to="/" className="flex items-center gap-2">
+            <span className="text-3xl">FM</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              FinMate
+            </span>
         </Link>
       </div>
 

@@ -39,7 +39,7 @@ const buildInsights = (questions, answersByQuestionId) => {
   }
 }
 
-const getProgressStorageKey = (clientId, token) => `bankquest-quiz-progress:${clientId}:${token}`
+const getProgressStorageKey = (clientId, token) => `finmate-quiz-progress:${clientId}:${token}`
 
 const getAccessErrorMessage = (err) => {
   const message = String(err?.message || '').toLowerCase()

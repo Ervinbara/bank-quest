@@ -173,7 +173,7 @@ export default function Login() {
             <strong>💡 Compte de démo :</strong>
           </p>
           <p className="text-xs text-gray-600 text-center">
-            Email: demo@bankquest.fr<br />
+            Email: demo@finmate.app<br />
             Mot de passe: demo123
           </p>
         </div>

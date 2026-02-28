@@ -50,7 +50,7 @@ export default function BankQuestGame({
     }
 
     if (gameCompleted) {
-        const maxScore = gameScenarios.reduce((acc, s) => acc + 20, 0)
+        const maxScore = gameScenarios.reduce((acc) => acc + 20, 0)
         const percentage = Math.round((score / maxScore) * 100)
 
         return (
@@ -59,7 +59,7 @@ export default function BankQuestGame({
                     <div className="text-center mb-8">
                         <Award className="w-20 h-20 text-yellow-500 mx-auto mb-4" />
                         <h1 className="text-4xl font-bold text-gray-800 mb-2">Félicitations !</h1>
-                        <p className="text-xl text-gray-600">Vous avez terminé Bank Quest</p>
+                        <p className="text-xl text-gray-600">Vous avez termine FinMate</p>
                     </div>
 
                     <div className={`bg-gradient-to-r ${currentTheme.secondary} rounded-2xl p-6 mb-6`}>
