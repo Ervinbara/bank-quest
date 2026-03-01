@@ -227,9 +227,14 @@ export default function Register() {
           </button>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            {t('auth.terms')} <a href="#" className="text-emerald-700 hover:underline">{t('auth.cgu')}</a>{' '}
+            {t('auth.terms')}{' '}
+            <Link to="/terms" className="text-emerald-700 hover:underline">
+              {t('auth.cgu')}
+            </Link>{' '}
             {language === 'fr' ? 'et notre' : 'and our'}{' '}
-            <a href="#" className="text-emerald-700 hover:underline">{t('auth.privacy')}</a>
+            <Link to="/privacy" className="text-emerald-700 hover:underline">
+              {t('auth.privacy')}
+            </Link>
           </p>
         </form>
 

@@ -8,6 +8,8 @@ import Home from './pages/Home'
 import Demo from './pages/Demo'
 import NotFound from './pages/NotFound'
 import ClientQuiz from './pages/ClientQuiz'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 
 // Pages d'authentification
 import Login from './pages/Auth/Login'
@@ -35,6 +37,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/quiz/:clientId" element={<ClientQuiz />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           
           {/* Routes d'authentification */}
           <Route path="/auth/login" element={<Login />} />

@@ -166,6 +166,15 @@ export default function Login() {
               {t('auth.createAccount')}
             </Link>
           </p>
+          <p className="text-xs text-gray-500 mt-3">
+            <Link to="/privacy" className="text-emerald-700 hover:underline">
+              {t('auth.privacy')}
+            </Link>{' '}
+            ·{' '}
+            <Link to="/terms" className="text-emerald-700 hover:underline">
+              {t('auth.cgu')}
+            </Link>
+          </p>
         </div>
 
       </div>

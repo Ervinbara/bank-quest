@@ -178,6 +178,15 @@ export default function Home() {
       <footer className="bg-gray-800 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-400">{t('home.footer')}</p>
+          <div className="mt-3 flex items-center justify-center gap-4 text-sm">
+            <Link to="/privacy" className="text-emerald-300 hover:text-emerald-200">
+              {t('auth.privacy')}
+            </Link>
+            <span className="text-gray-500">|</span>
+            <Link to="/terms" className="text-emerald-300 hover:text-emerald-200">
+              {t('auth.cgu')}
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
