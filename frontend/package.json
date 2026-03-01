@@ -9,9 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "twa:assetlinks": "node ./scripts/update-assetlinks.mjs",
-    "twa:doctor": "npx @bubblewrap/cli doctor",
+    "twa:doctor": "npx @bubblewrap/cli doctor --manifest ./android-twa/twa-manifest.json",
     "twa:init": "npx @bubblewrap/cli init --manifest https://finmate-advisor.vercel.app/manifest.webmanifest --directory ./android-twa",
-    "twa:build": "npx @bubblewrap/cli build --directory ./android-twa"
+    "twa:build": "npx @bubblewrap/cli build --manifest ./android-twa/twa-manifest.json --directory ./android-twa"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
