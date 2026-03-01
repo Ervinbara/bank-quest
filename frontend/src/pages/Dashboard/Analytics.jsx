@@ -17,7 +17,9 @@ import {
   Users,
   Target,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search,
+  RotateCcw
 } from 'lucide-react'
 
 const FOLLOWUP_LABELS = {
@@ -84,7 +86,10 @@ export default function Analytics() {
     priorities: true
   })
   const [priorityLimit, setPriorityLimit] = useState(10)
+  const [priorityFollowupFilterDraft, setPriorityFollowupFilterDraft] = useState('all')
   const [priorityFollowupFilter, setPriorityFollowupFilter] = useState('all')
+  const [prioritySearchDraft, setPrioritySearchDraft] = useState('')
+  const [prioritySearch, setPrioritySearch] = useState('')
   const [priorityPage, setPriorityPage] = useState(1)
   const [priorityPageSize, setPriorityPageSize] = useState(5)
 
@@ -140,12 +145,27 @@ export default function Analytics() {
 
   const filteredPriorities = useMemo(() => {
     const rows = analytics?.crmRows || []
+    const normalizedSearch = prioritySearch.trim().toLowerCase()
+
     return rows.filter((row) => {
       if (row.followupStatus === 'clos') return false
-      if (priorityFollowupFilter === 'all') return true
-      return row.followupStatus === priorityFollowupFilter
+      const followupOk =
+        priorityFollowupFilter === 'all' ? true : row.followupStatus === priorityFollowupFilter
+
+      if (!followupOk) return false
+      if (!normalizedSearch) return true
+
+      const name = String(row.name || '').toLowerCase()
+      const email = String(row.email || '').toLowerCase()
+      const reason = String(row.priority?.reason || '').toLowerCase()
+
+      return (
+        name.includes(normalizedSearch) ||
+        email.includes(normalizedSearch) ||
+        reason.includes(normalizedSearch)
+      )
     })
-  }, [analytics?.crmRows, priorityFollowupFilter])
+  }, [analytics?.crmRows, priorityFollowupFilter, prioritySearch])
 
   const topPriorityRows = useMemo(
     () => filteredPriorities.slice(0, priorityLimit),
@@ -154,12 +174,27 @@ export default function Analytics() {
 
   useEffect(() => {
     setPriorityPage(1)
-  }, [priorityLimit, priorityFollowupFilter])
+  }, [priorityLimit, priorityFollowupFilter, prioritySearch])
 
   const paginatedTopPriorityRows = useMemo(() => {
     const start = (priorityPage - 1) * priorityPageSize
     return topPriorityRows.slice(start, start + priorityPageSize)
   }, [topPriorityRows, priorityPage, priorityPageSize])
+
+  const applyPriorityFilters = () => {
+    setPriorityFollowupFilter(priorityFollowupFilterDraft)
+    setPrioritySearch(prioritySearchDraft)
+    setPriorityPage(1)
+  }
+
+  const resetPriorityFilters = () => {
+    setPriorityFollowupFilterDraft('all')
+    setPriorityFollowupFilter('all')
+    setPrioritySearchDraft('')
+    setPrioritySearch('')
+    setPriorityLimit(10)
+    setPriorityPage(1)
+  }
 
   if (loading) {
     return (
@@ -349,7 +384,7 @@ export default function Analytics() {
         </button>
         {!panelOpen.priorities ? null : (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <select
                 value={priorityLimit}
                 onChange={(event) => setPriorityLimit(Number(event.target.value))}
@@ -360,8 +395,8 @@ export default function Analytics() {
                 <option value={30}>{tr('Top 30', 'Top 30')}</option>
               </select>
               <select
-                value={priorityFollowupFilter}
-                onChange={(event) => setPriorityFollowupFilter(event.target.value)}
+                value={priorityFollowupFilterDraft}
+                onChange={(event) => setPriorityFollowupFilterDraft(event.target.value)}
                 className="rounded-lg border border-gray-300 px-3 py-2 bg-white"
               >
                 <option value="all">{tr('Tous suivis', 'All follow-ups')}</option>
@@ -369,6 +404,37 @@ export default function Analytics() {
                 <option value="rdv_planifie">{tr('RDV planifie', 'Meeting scheduled')}</option>
                 <option value="en_cours">{tr('En cours', 'In progress')}</option>
               </select>
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={prioritySearchDraft}
+                  onChange={(event) => setPrioritySearchDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') applyPriorityFilters()
+                  }}
+                  placeholder={tr('Nom, email, raison...', 'Name, email, reason...')}
+                  className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={applyPriorityFilters}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 text-white px-3 py-2 font-semibold hover:bg-emerald-700 transition"
+                >
+                  <Search className="w-4 h-4" />
+                  {tr('Rechercher', 'Search')}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetPriorityFilters}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 text-gray-700 px-3 py-2 font-semibold hover:bg-gray-50 transition"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  {tr('Reset', 'Reset')}
+                </button>
+              </div>
             </div>
           {topPriorityRows.length === 0 ? (
           <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
