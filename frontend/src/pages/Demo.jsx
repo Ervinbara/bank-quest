@@ -12,15 +12,15 @@ export default function Demo() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-3xl">FM</span>
-              <span className="text-2xl font-bold gradient-text">FinMate</span>
+        <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex justify-between items-center gap-2 min-w-0">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-2xl sm:text-3xl max-[420px]:hidden">FM</span>
+              <span className="text-xl sm:text-2xl font-bold gradient-text truncate">FinMate</span>
             </Link>
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <Link to="/" className="text-gray-600 hover:text-emerald-700 font-medium">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <LanguageSwitcher compact />
+              <Link to="/" className="text-sm sm:text-base text-gray-600 hover:text-emerald-700 font-medium whitespace-nowrap max-[520px]:hidden">
                 {t('header.backHome', 'Back to home')}
               </Link>
             </div>
@@ -31,8 +31,8 @@ export default function Demo() {
       <div className="py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold gradient-text mb-4">{t('demo.title')}</h1>
-            <p className="text-xl text-gray-600">{t('demo.description')}</p>
+            <h1 className="text-3xl sm:text-4xl font-bold gradient-text mb-4">{t('demo.title')}</h1>
+            <p className="text-base sm:text-xl text-gray-600">{t('demo.description')}</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8 max-w-4xl mx-auto">

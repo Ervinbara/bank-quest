@@ -10,7 +10,7 @@ export default function Home() {
     <div className="min-h-screen">
       <Header />
 
-      <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 text-white py-20 relative overflow-hidden">
+      <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 text-white py-14 sm:py-20 relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-emerald-300/20 blur-3xl animate-float-soft" />
         <div className="absolute -bottom-20 -left-16 w-72 h-72 rounded-full bg-teal-300/20 blur-3xl animate-float-soft" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,22 +18,22 @@ export default function Home() {
             <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/30">
               <span className="text-sm font-semibold">{t('home.badge')}</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               {t('home.titleLine1')}
               <br />
               {t('home.titleLine2')}
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">{t('home.subtitle')}</p>
+            <p className="text-lg sm:text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">{t('home.subtitle')}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <Link
                 to="/demo"
-                className="bg-white text-emerald-700 px-8 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transition transform hover:-translate-y-1"
+                className="w-full sm:w-auto text-center bg-white text-emerald-700 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition transform hover:-translate-y-1"
               >
                 {t('home.ctaDemo')}
               </Link>
               <Link
                 to="/auth/register"
-                className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/10 transition"
+                className="w-full sm:w-auto text-center bg-transparent border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-white/10 transition"
               >
                 {t('home.ctaRegister')}
               </Link>
@@ -60,8 +60,8 @@ export default function Home() {
       <section id="solution" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">{t('home.workflowTitle')}</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">{t('home.workflowTitle')}</h2>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -87,8 +87,8 @@ export default function Home() {
       <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">{t('home.whyTitle')}</h2>
-            <p className="text-xl text-gray-600">{t('home.whySubtitle')}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">{t('home.whyTitle')}</h2>
+            <p className="text-lg sm:text-xl text-gray-600">{t('home.whySubtitle')}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -119,8 +119,8 @@ export default function Home() {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">{t('home.pricingTitle')}</h2>
-            <p className="text-xl text-gray-600">{t('home.pricingSubtitle')}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">{t('home.pricingTitle')}</h2>
+            <p className="text-lg sm:text-xl text-gray-600">{t('home.pricingSubtitle')}</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -156,18 +156,18 @@ export default function Home() {
 
       <section className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-4">{t('home.ctaTitle')}</h2>
-          <p className="text-xl mb-8 text-emerald-100">{t('home.ctaSubtitle')}</p>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t('home.ctaTitle')}</h2>
+          <p className="text-lg sm:text-xl mb-8 text-emerald-100">{t('home.ctaSubtitle')}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/auth/register"
-              className="bg-white text-emerald-700 px-8 py-4 rounded-lg font-bold text-lg hover:shadow-2xl transition transform hover:scale-105"
+              className="w-full sm:w-auto text-center bg-white text-emerald-700 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:shadow-2xl transition transform hover:scale-105"
             >
               {t('home.ctaRegister')}
             </Link>
             <Link
               to="/demo"
-              className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-2"
+              className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-white/10 transition flex items-center justify-center gap-2"
             >
               {t('home.ctaTry')} <ArrowRight className="w-5 h-5" />
             </Link>

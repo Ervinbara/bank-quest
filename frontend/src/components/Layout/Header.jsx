@@ -28,11 +28,11 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-emerald-100/70 bg-white/85 backdrop-blur-xl">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
-            <span className="text-3xl">FM</span>
-            <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-emerald-700 bg-clip-text text-transparent">
+      <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="flex justify-between items-center gap-2 min-w-0">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition min-w-0">
+            <span className="text-2xl sm:text-3xl max-[420px]:hidden">FM</span>
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-900 to-emerald-700 bg-clip-text text-transparent truncate">
               FinMate
             </span>
           </Link>
@@ -49,8 +49,8 @@ export default function Header() {
             </a>
           </div>
 
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <LanguageSwitcher compact />
             {isAuthenticated ? (
               <>
                 <Link
@@ -79,13 +79,13 @@ export default function Header() {
               <>
                 <Link
                   to="/auth/login"
-                  className="text-gray-700 hover:text-emerald-700 font-medium transition"
+                  className="text-sm sm:text-base text-gray-700 hover:text-emerald-700 font-medium transition whitespace-nowrap max-[520px]:hidden"
                 >
                   {t('common.login', 'Log in')}
                 </Link>
                 <Link
                   to="/auth/register"
-                  className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-2 rounded-xl font-semibold hover:opacity-90 transition transform hover:-translate-y-0.5 shadow-md"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-3 sm:px-6 py-2 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold hover:opacity-90 transition transform hover:-translate-y-0.5 shadow-md whitespace-nowrap"
                 >
                   {t('common.register', 'Sign up')}
                 </Link>

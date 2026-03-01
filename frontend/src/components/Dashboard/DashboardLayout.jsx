@@ -49,7 +49,7 @@ export default function DashboardLayout() {
 
       <div className="flex-1 flex flex-col">
         <header className="bg-white/80 backdrop-blur-xl border-b border-emerald-100/80 sticky top-0 z-10">
-          <div className="px-4 sm:px-6 py-4 flex justify-between items-center gap-3">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
@@ -66,8 +66,8 @@ export default function DashboardLayout() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              <LanguageSwitcher />
+            <div className="flex items-center gap-1 sm:gap-4 shrink-0">
+              <LanguageSwitcher compact />
               <div className="text-right hidden lg:block">
                 <p className="text-sm font-semibold text-gray-800">
                   {advisor?.name || t('dashboardLayout.userFallback', 'User')}

@@ -87,13 +87,13 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
-      <div className="surface-glass p-8 w-full max-w-md finance-animate-in">
+      <div className="surface-glass p-5 sm:p-8 w-full max-w-md finance-animate-in">
         <div className="flex justify-end mb-4">
-          <LanguageSwitcher />
+          <LanguageSwitcher compact />
         </div>
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">FM</div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('auth.registerTitle')}</h1>
+          <div className="text-4xl sm:text-5xl mb-4">FM</div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">{t('auth.registerTitle')}</h1>
           <p className="text-gray-600">{t('auth.registerSubtitle')}</p>
         </div>
 
