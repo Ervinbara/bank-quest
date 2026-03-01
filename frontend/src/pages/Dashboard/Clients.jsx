@@ -6,8 +6,9 @@ import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientS
 import ClientCard from '@/components/Dashboard/ClientCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
+import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
-import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search } from 'lucide-react'
 
 export default function Clients() {
   const { advisor } = useAuth()
@@ -40,6 +41,9 @@ export default function Clients() {
   const [activeFollowupFilter, setActiveFollowupFilter] = useState('all')
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(9)
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
@@ -87,6 +91,8 @@ export default function Clients() {
   }, [clients])
 
   const filteredClients = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
     return clients.filter((client) => {
       const statusOk =
         activeStatusFilter === 'all'
@@ -98,9 +104,23 @@ export default function Clients() {
       const followupOk =
         activeFollowupFilter === 'all' ? true : client.followup_status === activeFollowupFilter
 
-      return statusOk && followupOk
+      if (!statusOk || !followupOk) return false
+      if (!normalizedSearch) return true
+
+      const name = String(client.name || '').toLowerCase()
+      const email = String(client.email || '').toLowerCase()
+      return name.includes(normalizedSearch) || email.includes(normalizedSearch)
     })
-  }, [activeStatusFilter, activeFollowupFilter, clients])
+  }, [activeStatusFilter, activeFollowupFilter, clients, searchTerm])
+
+  useEffect(() => {
+    setPage(1)
+  }, [activeStatusFilter, activeFollowupFilter, searchTerm])
+
+  const paginatedClients = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredClients.slice(start, start + pageSize)
+  }, [filteredClients, page, pageSize])
 
   if (loading) {
     return (
@@ -146,7 +166,7 @@ export default function Clients() {
             className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
           >
             <UserPlus className="w-4 h-4" />
-            {tr('Inviter un client', 'Invite a client')}
+            {tr('Ajouter / Inviter un client', 'Add / Invite a client')}
           </button>
         </div>
       </div>
@@ -165,6 +185,20 @@ export default function Clients() {
 
         {!filtersCollapsed ? (
           <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Recherche', 'Search')}</p>
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={tr('Nom ou email client...', 'Client name or email...')}
+                  className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <p className="text-sm font-semibold text-gray-700">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
@@ -235,26 +269,48 @@ export default function Clients() {
           ) : null}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              footerAction={
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold text-gray-600">
-                    {tr('Suivi', 'Follow-up')}: {FOLLOWUP_LABELS[client.followup_status] || tr('A contacter', 'To contact')}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedClients.map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                footerAction={
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-gray-600">
+                      {tr('Suivi', 'Follow-up')}: {FOLLOWUP_LABELS[client.followup_status] || tr('A contacter', 'To contact')}
+                    </div>
+                    <Link
+                      to={`/dashboard/clients/${client.id}`}
+                      className="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm"
+                    >
+                      {tr('Voir le detail', 'View details')}
+                    </Link>
                   </div>
-                  <Link
-                    to={`/dashboard/clients/${client.id}`}
-                    className="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm"
-                  >
-                    {tr('Voir le detail', 'View details')}
-                  </Link>
-                </div>
-              }
-            />
-          ))}
+                }
+              />
+            ))}
+          </div>
+
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalItems={filteredClients.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value)
+              setPage(1)
+            }}
+            pageSizeOptions={[6, 9, 12, 24]}
+            labels={{
+              itemsPerPage: tr('Par page', 'Per page'),
+              showing: tr('Affichage', 'Showing'),
+              of: tr('sur', 'of'),
+              prev: tr('Precedent', 'Previous'),
+              next: tr('Suivant', 'Next'),
+              page: tr('Page', 'Page')
+            }}
+          />
         </div>
       )}
 

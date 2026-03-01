@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import { getAdvisorAnalytics } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
@@ -82,6 +83,10 @@ export default function Analytics() {
     distribution: true,
     priorities: true
   })
+  const [priorityLimit, setPriorityLimit] = useState(10)
+  const [priorityFollowupFilter, setPriorityFollowupFilter] = useState('all')
+  const [priorityPage, setPriorityPage] = useState(1)
+  const [priorityPageSize, setPriorityPageSize] = useState(5)
 
   const loadAnalytics = useCallback(async () => {
     if (!advisor?.id) return
@@ -132,6 +137,29 @@ export default function Analytics() {
       setExporting(false)
     }
   }
+
+  const filteredPriorities = useMemo(() => {
+    const rows = analytics?.crmRows || []
+    return rows.filter((row) => {
+      if (row.followupStatus === 'clos') return false
+      if (priorityFollowupFilter === 'all') return true
+      return row.followupStatus === priorityFollowupFilter
+    })
+  }, [analytics?.crmRows, priorityFollowupFilter])
+
+  const topPriorityRows = useMemo(
+    () => filteredPriorities.slice(0, priorityLimit),
+    [filteredPriorities, priorityLimit]
+  )
+
+  useEffect(() => {
+    setPriorityPage(1)
+  }, [priorityLimit, priorityFollowupFilter])
+
+  const paginatedTopPriorityRows = useMemo(() => {
+    const start = (priorityPage - 1) * priorityPageSize
+    return topPriorityRows.slice(start, start + priorityPageSize)
+  }, [topPriorityRows, priorityPage, priorityPageSize])
 
   if (loading) {
     return (
@@ -314,16 +342,39 @@ export default function Analytics() {
           className="w-full flex items-center justify-between mb-4"
         >
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-gray-800">{tr('Top 10 a relancer', 'Top 10 to follow up')}</h3>
+            <h3 className="text-xl font-bold text-gray-800">{tr('Priorites de relance', 'Follow-up priorities')}</h3>
             <Target className="w-5 h-5 text-emerald-700" />
           </div>
           {panelOpen.priorities ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
         </button>
-        {!panelOpen.priorities ? null : analytics.priorities.length === 0 ? (
+        {!panelOpen.priorities ? null : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select
+                value={priorityLimit}
+                onChange={(event) => setPriorityLimit(Number(event.target.value))}
+                className="rounded-lg border border-gray-300 px-3 py-2 bg-white"
+              >
+                <option value={10}>{tr('Top 10', 'Top 10')}</option>
+                <option value={20}>{tr('Top 20', 'Top 20')}</option>
+                <option value={30}>{tr('Top 30', 'Top 30')}</option>
+              </select>
+              <select
+                value={priorityFollowupFilter}
+                onChange={(event) => setPriorityFollowupFilter(event.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 bg-white"
+              >
+                <option value="all">{tr('Tous suivis', 'All follow-ups')}</option>
+                <option value="a_contacter">{tr('A contacter', 'To contact')}</option>
+                <option value="rdv_planifie">{tr('RDV planifie', 'Meeting scheduled')}</option>
+                <option value="en_cours">{tr('En cours', 'In progress')}</option>
+              </select>
+            </div>
+          {topPriorityRows.length === 0 ? (
           <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
         ) : (
           <div className="space-y-3">
-            {analytics.priorities.map((row) => (
+            {paginatedTopPriorityRows.map((row) => (
               <div key={row.id} className="rounded-lg border border-gray-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
                   <p className="font-semibold text-gray-800">{row.name}</p>
@@ -356,6 +407,27 @@ export default function Analytics() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+            <PaginationControls
+              page={priorityPage}
+              pageSize={priorityPageSize}
+              totalItems={topPriorityRows.length}
+              onPageChange={setPriorityPage}
+              onPageSizeChange={(value) => {
+                setPriorityPageSize(value)
+                setPriorityPage(1)
+              }}
+              pageSizeOptions={[5, 10, 15]}
+              labels={{
+                itemsPerPage: tr('Par page', 'Per page'),
+                showing: tr('Affichage', 'Showing'),
+                of: tr('sur', 'of'),
+                prev: tr('Precedent', 'Previous'),
+                next: tr('Suivant', 'Next'),
+                page: tr('Page', 'Page')
+              }}
+            />
           </div>
         )}
       </div>

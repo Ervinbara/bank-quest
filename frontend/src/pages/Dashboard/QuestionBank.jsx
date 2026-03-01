@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   createAdvisorQuestionBankQuestion,
@@ -13,7 +14,7 @@ import {
   updateAdvisorQuestionBankTheme
 } from '@/services/questionnaireService'
 import { translateText } from '@/services/translationService'
-import { ChevronDown, ChevronUp, Languages, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Languages, Loader2, Pencil, Plus, Save, Trash2, X, Search } from 'lucide-react'
 
 export default function QuestionBank() {
   const { advisor } = useAuth()
@@ -39,6 +40,12 @@ export default function QuestionBank() {
     promptTranslations: {}
   })
   const [questionBusy, setQuestionBusy] = useState({})
+  const [themeSearchTerm, setThemeSearchTerm] = useState('')
+  const [questionSearchTerm, setQuestionSearchTerm] = useState('')
+  const [themePage, setThemePage] = useState(1)
+  const [themePageSize, setThemePageSize] = useState(8)
+  const [questionPage, setQuestionPage] = useState(1)
+  const [questionPageSize, setQuestionPageSize] = useState(10)
   const [panelOpen, setPanelOpen] = useState({
     newTheme: false,
     addQuestion: true,
@@ -49,6 +56,25 @@ export default function QuestionBank() {
     () => themes.find((theme) => theme.id === selectedThemeId) || null,
     [themes, selectedThemeId]
   )
+
+  const filteredThemes = useMemo(() => {
+    const normalizedSearch = themeSearchTerm.trim().toLowerCase()
+    if (!normalizedSearch) return themes
+    return themes.filter((theme) => {
+      const name = String(theme.name || '').toLowerCase()
+      const description = String(theme.description || '').toLowerCase()
+      return name.includes(normalizedSearch) || description.includes(normalizedSearch)
+    })
+  }, [themes, themeSearchTerm])
+
+  useEffect(() => {
+    setThemePage(1)
+  }, [themeSearchTerm])
+
+  const paginatedThemes = useMemo(() => {
+    const start = (themePage - 1) * themePageSize
+    return filteredThemes.slice(start, start + themePageSize)
+  }, [filteredThemes, themePage, themePageSize])
 
   const getTranslationValue = useCallback((translations, fallbackValue, lang) => {
     const map = translations && typeof translations === 'object' ? translations : {}
@@ -67,6 +93,27 @@ export default function QuestionBank() {
     if (lang === 'fr' && String(fallbackValue || '').trim().length > 0) return true
     return false
   }
+
+  const filteredThemeQuestions = useMemo(() => {
+    const normalizedSearch = questionSearchTerm.trim().toLowerCase()
+    const questions = selectedTheme?.questions || []
+    if (!normalizedSearch) return questions
+
+    return questions.filter((question) => {
+      const concept = String(getTranslationValue(question.conceptTranslations, question.concept, language)).toLowerCase()
+      const prompt = String(getTranslationValue(question.promptTranslations, question.prompt, language)).toLowerCase()
+      return concept.includes(normalizedSearch) || prompt.includes(normalizedSearch)
+    })
+  }, [selectedTheme?.questions, questionSearchTerm, getTranslationValue, language])
+
+  useEffect(() => {
+    setQuestionPage(1)
+  }, [selectedThemeId, questionSearchTerm])
+
+  const paginatedThemeQuestions = useMemo(() => {
+    const start = (questionPage - 1) * questionPageSize
+    return filteredThemeQuestions.slice(start, start + questionPageSize)
+  }, [filteredThemeQuestions, questionPage, questionPageSize])
 
   useEffect(() => {
     setEditingQuestionLanguage(language === 'en' ? 'en' : 'fr')
@@ -331,8 +378,18 @@ export default function QuestionBank() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
           <h3 className="font-bold text-gray-900">{tr('Themes', 'Themes')}</h3>
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={themeSearchTerm}
+              onChange={(event) => setThemeSearchTerm(event.target.value)}
+              placeholder={tr('Rechercher un theme...', 'Search a theme...')}
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
           <div className="space-y-2">
-            {themes.map((theme) => (
+            {paginatedThemes.map((theme) => (
               <button
                 key={theme.id}
                 onClick={() => setSelectedThemeId(theme.id)}
@@ -345,6 +402,26 @@ export default function QuestionBank() {
               </button>
             ))}
           </div>
+
+          <PaginationControls
+            page={themePage}
+            pageSize={themePageSize}
+            totalItems={filteredThemes.length}
+            onPageChange={setThemePage}
+            onPageSizeChange={(value) => {
+              setThemePageSize(value)
+              setThemePage(1)
+            }}
+            pageSizeOptions={[5, 8, 12, 20]}
+            labels={{
+              itemsPerPage: tr('Par page', 'Per page'),
+              showing: tr('Affichage', 'Showing'),
+              of: tr('sur', 'of'),
+              prev: tr('Precedent', 'Previous'),
+              next: tr('Suivant', 'Next'),
+              page: tr('Page', 'Page')
+            }}
+          />
 
           <div className="border-t pt-4 space-y-3">
             <button
@@ -466,14 +543,27 @@ export default function QuestionBank() {
                   onClick={() => setPanelOpen((prev) => ({ ...prev, themeQuestions: !prev.themeQuestions }))}
                   className="flex items-center gap-2 font-semibold text-gray-900"
                 >
-                  <span>{tr('Questions du theme', 'Theme questions')} ({selectedTheme.questions?.length || 0})</span>
+                  <span>{tr('Questions du theme', 'Theme questions')} ({filteredThemeQuestions.length})</span>
                   {panelOpen.themeQuestions ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
                 </button>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={questionSearchTerm}
+                    onChange={(event) => setQuestionSearchTerm(event.target.value)}
+                    placeholder={tr('Rechercher concept ou question...', 'Search concept or question...')}
+                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
                 {!panelOpen.themeQuestions ? null : (selectedTheme.questions || []).length === 0 ? (
                    <p className="text-sm text-gray-600">{tr('Aucune question dans ce theme.', 'No questions in this theme.')}</p>
+                ) : filteredThemeQuestions.length === 0 ? (
+                  <p className="text-sm text-gray-600">{tr('Aucune question ne correspond a la recherche.', 'No questions match your search.')}</p>
                 ) : (
-                  <div className="space-y-2">
-                    {(selectedTheme.questions || []).map((question) => (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                    {paginatedThemeQuestions.map((question) => (
                       <div key={question.id} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 space-y-2">
@@ -606,6 +696,26 @@ export default function QuestionBank() {
                         </div>
                       </div>
                     ))}
+                    </div>
+                    <PaginationControls
+                      page={questionPage}
+                      pageSize={questionPageSize}
+                      totalItems={filteredThemeQuestions.length}
+                      onPageChange={setQuestionPage}
+                      onPageSizeChange={(value) => {
+                        setQuestionPageSize(value)
+                        setQuestionPage(1)
+                      }}
+                      pageSizeOptions={[5, 10, 20, 30]}
+                      labels={{
+                        itemsPerPage: tr('Par page', 'Per page'),
+                        showing: tr('Affichage', 'Showing'),
+                        of: tr('sur', 'of'),
+                        prev: tr('Precedent', 'Previous'),
+                        next: tr('Suivant', 'Next'),
+                        page: tr('Page', 'Page')
+                      }}
+                    />
                   </div>
                 )}
               </div>

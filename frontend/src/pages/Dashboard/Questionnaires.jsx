@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   createAdvisorQuestionnaireFromTemplate,
@@ -14,7 +15,7 @@ import {
   updateAdvisorQuestionnaire
 } from '@/services/questionnaireService'
 import { translateText } from '@/services/translationService'
-import { ChevronDown, ChevronUp, Languages, Loader2, Plus, Save, Star, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Languages, Loader2, Plus, Save, Star, Trash2, Search } from 'lucide-react'
 
 const DEFAULT_EDIT_OPTIONS = [
   { label: 'Jamais', points: 1 },
@@ -62,6 +63,9 @@ export default function Questionnaires() {
   const [bankQuestionLanguage, setBankQuestionLanguage] = useState('fr')
   const [bankByTheme, setBankByTheme] = useState({})
   const [questionBusy, setQuestionBusy] = useState({})
+  const [searchTerm, setSearchTerm] = useState('')
+  const [listPage, setListPage] = useState(1)
+  const [listPageSize, setListPageSize] = useState(8)
   const [panelOpen, setPanelOpen] = useState({
     template: false,
     custom: false,
@@ -76,6 +80,25 @@ export default function Questionnaires() {
     () => items.find((item) => item.id === selectedId) || null,
     [items, selectedId]
   )
+
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+    if (!normalizedSearch) return items
+    return items.filter((item) => {
+      const name = String(item.name || '').toLowerCase()
+      const description = String(item.description || '').toLowerCase()
+      return name.includes(normalizedSearch) || description.includes(normalizedSearch)
+    })
+  }, [items, searchTerm])
+
+  useEffect(() => {
+    setListPage(1)
+  }, [searchTerm])
+
+  const paginatedItems = useMemo(() => {
+    const start = (listPage - 1) * listPageSize
+    return filteredItems.slice(start, start + listPageSize)
+  }, [filteredItems, listPage, listPageSize])
 
   const resolveTranslated = useCallback((translations, fallbackText, lang) => {
     const map = translations && typeof translations === 'object' ? translations : {}
@@ -371,8 +394,18 @@ export default function Questionnaires() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
           <h3 className="font-bold text-gray-900">{tr('Vos questionnaires', 'Your questionnaires')}</h3>
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={tr('Rechercher un questionnaire...', 'Search a questionnaire...')}
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
           <div className="space-y-2">
-            {items.map((item) => (
+            {paginatedItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setSelectedId(item.id)}
@@ -388,6 +421,26 @@ export default function Questionnaires() {
               </button>
             ))}
           </div>
+
+          <PaginationControls
+            page={listPage}
+            pageSize={listPageSize}
+            totalItems={filteredItems.length}
+            onPageChange={setListPage}
+            onPageSizeChange={(value) => {
+              setListPageSize(value)
+              setListPage(1)
+            }}
+            pageSizeOptions={[5, 8, 12, 20]}
+            labels={{
+              itemsPerPage: tr('Par page', 'Per page'),
+              showing: tr('Affichage', 'Showing'),
+              of: tr('sur', 'of'),
+              prev: tr('Precedent', 'Previous'),
+              next: tr('Suivant', 'Next'),
+              page: tr('Page', 'Page')
+            }}
+          />
 
           <div className="border-t pt-4 space-y-3">
             <button

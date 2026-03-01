@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
+import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import {
   getAdvisorInvitationLinks,
@@ -15,7 +16,7 @@ import {
   saveAdvisorEmailTemplate,
   sendInvitationEmail
 } from '@/services/invitationEmailService'
-import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save } from 'lucide-react'
+import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save, Search } from 'lucide-react'
 
 const formatDate = (dateString) => {
   if (!dateString) return '-'
@@ -40,6 +41,11 @@ export default function Invitations() {
   const [templateSaving, setTemplateSaving] = useState(false)
   const [templateMessage, setTemplateMessage] = useState('')
   const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [quizFilter, setQuizFilter] = useState('pending')
+  const [linkFilter, setLinkFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const loadInvitations = useCallback(async () => {
     if (!advisor?.id) return
@@ -82,7 +88,44 @@ export default function Invitations() {
     return unsubscribe
   }, [advisor?.id, loadInvitations])
 
-  const pendingRows = useMemo(() => rows.filter((row) => row.quiz_status !== 'completed'), [rows])
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return rows.filter((row) => {
+      const isCompleted = row.quiz_status === 'completed'
+      const hasLink = Boolean(row.invitation?.inviteUrl)
+
+      const quizOk =
+        quizFilter === 'all'
+          ? true
+          : quizFilter === 'pending'
+            ? !isCompleted
+            : isCompleted
+
+      const linkOk =
+        linkFilter === 'all'
+          ? true
+          : linkFilter === 'with_link'
+            ? hasLink
+            : !hasLink
+
+      if (!quizOk || !linkOk) return false
+      if (!normalizedSearch) return true
+
+      const name = String(row.name || '').toLowerCase()
+      const email = String(row.email || '').toLowerCase()
+      return name.includes(normalizedSearch) || email.includes(normalizedSearch)
+    })
+  }, [rows, searchTerm, quizFilter, linkFilter])
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, quizFilter, linkFilter])
+
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredRows.slice(start, start + pageSize)
+  }, [filteredRows, page, pageSize])
 
   const copyLink = async (row) => {
     if (!row?.invitation?.inviteUrl) return
@@ -168,11 +211,44 @@ export default function Invitations() {
           <h2 className="text-2xl font-bold text-gray-800">{tr('Liens invitations', 'Invitation links')}</h2>
           <p className="text-gray-600">
             {language === 'fr'
-              ? `${pendingRows.length} invitation${pendingRows.length > 1 ? 's' : ''} active${pendingRows.length > 1 ? 's' : ''}`
-              : `${pendingRows.length} active invitation${pendingRows.length > 1 ? 's' : ''}`}
+              ? `${filteredRows.length} invitation${filteredRows.length > 1 ? 's' : ''} affichee${filteredRows.length > 1 ? 's' : ''}`
+              : `${filteredRows.length} invitation${filteredRows.length > 1 ? 's' : ''} shown`}
           </p>
         </div>
         <DashboardGuide guide={dashboardGuides.invitations} />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={tr('Rechercher client/email...', 'Search client/email...')}
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <select
+            value={quizFilter}
+            onChange={(event) => setQuizFilter(event.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
+          >
+            <option value="pending">{tr('Quiz en attente', 'Pending quiz')}</option>
+            <option value="completed">{tr('Quiz completes', 'Completed quiz')}</option>
+            <option value="all">{tr('Tous les quiz', 'All quiz statuses')}</option>
+          </select>
+          <select
+            value={linkFilter}
+            onChange={(event) => setLinkFilter(event.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
+          >
+            <option value="all">{tr('Avec et sans lien', 'With and without link')}</option>
+            <option value="with_link">{tr('Lien disponible', 'Link available')}</option>
+            <option value="without_link">{tr('Sans lien', 'No link')}</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
@@ -220,91 +296,113 @@ export default function Invitations() {
         </div>
       ) : null}
 
-      {pendingRows.length === 0 ? (
+      {filteredRows.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-10 text-center">
           <Link2 className="w-14 h-14 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">{tr('Aucune invitation active', 'No active invitations')}</h3>
-          <p className="text-gray-600">{tr('Invitez un client depuis les pages Apercu ou Mes clients.', 'Invite a client from Overview or Clients pages.')}</p>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">{tr('Aucun resultat', 'No results')}</h3>
+          <p className="text-gray-600">{tr('Ajustez vos filtres ou ajoutez de nouveaux clients.', 'Adjust your filters or add new clients.')}</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Client', 'Client')}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Lien', 'Link')}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Questionnaire', 'Questionnaire')}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Expire le', 'Expires')}</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Maj', 'Updated')}</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-700">{tr('Actions', 'Actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingRows.map((row) => (
-                  <tr key={row.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-gray-800">{row.name}</p>
-                      <p className="text-gray-500">{row.email}</p>
-                    </td>
-                    <td className="px-4 py-3 max-w-md">
-                      <p className="truncate text-gray-700">{row.invitation?.inviteUrl || tr('Lien non genere', 'Link not generated')}</p>
-                      {row.invitation?.legacyMode ? (
-                        <p className="text-xs text-amber-700 mt-1">
-                          {tr('Mode compatibilite actif: migration Supabase requise pour une regeneration unique.', 'Compatibility mode enabled: Supabase migration required for unique regeneration.')}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {row.invitation?.questionnaireName || tr('Questionnaire standard', 'Standard questionnaire')}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {row.invitation?.updatedAt ? formatDate(row.invitation.updatedAt) : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => copyLink(row)}
-                          disabled={!row.invitation?.inviteUrl}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
-                        >
-                          {copyState === row.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          {copyState === row.id ? tr('Copie', 'Copied') : tr('Copier', 'Copy')}
-                        </button>
-                        <button
-                          onClick={() => sendEmailForRow(row)}
-                          disabled={sendingId === row.id || !row.invitation?.inviteUrl}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-50"
-                        >
-                          {sendingId === row.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                          {tr('Envoyer mail', 'Send email')}
-                        </button>
-                        <button
-                          onClick={() => regenerate(row)}
-                          disabled={regeneratingId === row.id || row.invitation?.legacyMode}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
-                        >
-                          {regeneratingId === row.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4" />
-                          )}
-                          {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer', 'Regenerate')}
-                        </button>
-                      </div>
-                    </td>
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Client', 'Client')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Lien', 'Link')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Questionnaire', 'Questionnaire')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Expire le', 'Expires')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-700">{tr('Maj', 'Updated')}</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-700">{tr('Actions', 'Actions')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginatedRows.map((row) => (
+                    <tr key={row.id} className="border-t">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-800">{row.name}</p>
+                        <p className="text-gray-500">{row.email}</p>
+                      </td>
+                      <td className="px-4 py-3 max-w-md">
+                        <p className="truncate text-gray-700">{row.invitation?.inviteUrl || tr('Lien non genere', 'Link not generated')}</p>
+                        {row.invitation?.legacyMode ? (
+                          <p className="text-xs text-amber-700 mt-1">
+                            {tr('Mode compatibilite actif: migration Supabase requise pour une regeneration unique.', 'Compatibility mode enabled: Supabase migration required for unique regeneration.')}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {row.invitation?.questionnaireName || tr('Questionnaire standard', 'Standard questionnaire')}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {row.invitation?.updatedAt ? formatDate(row.invitation.updatedAt) : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => copyLink(row)}
+                            disabled={!row.invitation?.inviteUrl}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+                          >
+                            {copyState === row.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            {copyState === row.id ? tr('Copie', 'Copied') : tr('Copier', 'Copy')}
+                          </button>
+                          <button
+                            onClick={() => sendEmailForRow(row)}
+                            disabled={sendingId === row.id || !row.invitation?.inviteUrl}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-50"
+                          >
+                            {sendingId === row.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
+                            {tr('Envoyer mail', 'Send email')}
+                          </button>
+                          <button
+                            onClick={() => regenerate(row)}
+                            disabled={regeneratingId === row.id || row.invitation?.legacyMode}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+                          >
+                            {regeneratingId === row.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                            {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer', 'Regenerate')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalItems={filteredRows.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value)
+              setPage(1)
+            }}
+            pageSizeOptions={[5, 10, 20, 30]}
+            labels={{
+              itemsPerPage: tr('Par page', 'Per page'),
+              showing: tr('Affichage', 'Showing'),
+              of: tr('sur', 'of'),
+              prev: tr('Precedent', 'Previous'),
+              next: tr('Suivant', 'Next'),
+              page: tr('Page', 'Page')
+            }}
+          />
         </div>
       )}
     </div>
