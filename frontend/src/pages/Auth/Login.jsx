@@ -168,16 +168,6 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-600 text-center mb-2">
-            <strong>{t('auth.demoAccount')}:</strong>
-          </p>
-          <p className="text-xs text-gray-600 text-center">
-            Email: demo@finmate.app
-            <br />
-            {t('auth.demoPassword')}: demo123
-          </p>
-        </div>
       </div>
     </div>
   )

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { LogOut, User, Loader2 } from 'lucide-react'
+import { LogOut, User, Loader2, UserPlus } from 'lucide-react'
 
 export default function Header() {
   const navigate = useNavigate()
@@ -79,15 +79,17 @@ export default function Header() {
               <>
                 <Link
                   to="/auth/login"
-                  className="text-sm sm:text-base text-gray-700 hover:text-emerald-700 font-medium transition whitespace-nowrap max-[520px]:hidden"
+                  className="text-xs sm:text-base text-gray-700 hover:text-emerald-700 font-medium transition whitespace-nowrap"
                 >
                   {t('common.login', 'Log in')}
                 </Link>
                 <Link
                   to="/auth/register"
-                  className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-3 sm:px-6 py-2 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold hover:opacity-90 transition transform hover:-translate-y-0.5 shadow-md whitespace-nowrap"
+                  className="inline-flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-2.5 sm:px-6 py-2 rounded-lg sm:rounded-xl text-xs sm:text-base font-semibold hover:opacity-90 transition transform hover:-translate-y-0.5 shadow-md whitespace-nowrap"
                 >
-                  {t('common.register', 'Sign up')}
+                  <UserPlus className="w-3.5 h-3.5 sm:hidden" />
+                  <span className="max-[420px]:hidden">{t('common.register', 'Sign up')}</span>
+                  <span className="hidden max-[420px]:inline">{t('common.register', 'Sign up').slice(0, 3)}</span>
                 </Link>
               </>
             )}
