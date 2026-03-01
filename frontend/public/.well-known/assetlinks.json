@@ -1,11 +1,13 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.finmate.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_UPLOAD_KEY_SHA256_FINGERPRINT"
+        "00:8D:38:D3:DA:9C:DB:40:13:63:E3:C0:90:04:60:7B:D2:BF:3C:EF:B5:74:9D:39:10:08:24:7A:BE:22:36:1A"
       ]
     }
   }
