@@ -6,9 +6,10 @@ import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientS
 import ClientCard from '@/components/Dashboard/ClientCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
+import ImportClientsModal from '@/components/Dashboard/ImportClientsModal'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
-import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search, Upload } from 'lucide-react'
 
 export default function Clients() {
   const { advisor } = useAuth()
@@ -40,6 +41,7 @@ export default function Clients() {
   const [activeStatusFilter, setActiveStatusFilter] = useState('all')
   const [activeFollowupFilter, setActiveFollowupFilter] = useState('all')
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
@@ -161,6 +163,13 @@ export default function Clients() {
 
         <div className="flex flex-wrap items-center gap-2">
           <DashboardGuide guide={dashboardGuides.clients} />
+          <button
+            onClick={() => setImportModalOpen(true)}
+            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
+          >
+            <Upload className="w-4 h-4" />
+            {tr('Importer des clients', 'Import clients')}
+          </button>
           <button
             onClick={() => setInviteModalOpen(true)}
             className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
@@ -321,6 +330,16 @@ export default function Clients() {
         advisorEmail={advisor?.email}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
+          void loadClients()
+        }}
+      />
+
+      <ImportClientsModal
+        isOpen={importModalOpen}
+        advisorId={advisor?.id}
+        tr={tr}
+        onClose={() => setImportModalOpen(false)}
+        onImported={() => {
           void loadClients()
         }}
       />

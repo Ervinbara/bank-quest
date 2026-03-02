@@ -7,6 +7,7 @@ const generateInvitationToken = () => {
 }
 
 const normalizeEmail = (email) => (email || '').trim().toLowerCase()
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const buildInviteUrl = (clientId, token) => {
   if (!clientId || !token) return `${window.location.origin}/quiz`
   return `${window.location.origin}/quiz/${token}`
@@ -395,6 +396,83 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
     expiresAt: invitation.expiresAt,
     updatedAt: invitation.updatedAt,
     legacyMode: invitation.legacyMode
+  }
+}
+
+// Import batch clients (CSV/XLSX deja parse en front)
+export const importClientsBatch = async ({ advisorId, clients }) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  if (!Array.isArray(clients) || clients.length === 0) {
+    return { created: 0, skippedExisting: 0, invalid: 0, createdRows: [], skippedRows: [], invalidRows: [] }
+  }
+
+  const invalidRows = []
+  const dedupedByEmail = new Map()
+
+  clients.forEach((row, index) => {
+    const name = String(row?.name || '').trim()
+    const email = normalizeEmail(row?.email)
+
+    if (!name || !email || !isValidEmail(email)) {
+      invalidRows.push({ index, row, reason: 'invalid_name_or_email' })
+      return
+    }
+
+    if (!dedupedByEmail.has(email)) {
+      dedupedByEmail.set(email, { name, email })
+    }
+  })
+
+  const normalizedRows = [...dedupedByEmail.values()]
+  if (normalizedRows.length === 0) {
+    return {
+      created: 0,
+      skippedExisting: 0,
+      invalid: invalidRows.length,
+      createdRows: [],
+      skippedRows: [],
+      invalidRows
+    }
+  }
+
+  const emails = normalizedRows.map((item) => item.email)
+  const { data: existingRows, error: existingError } = await supabase
+    .from('clients')
+    .select('id, email')
+    .eq('advisor_id', advisorId)
+    .in('email', emails)
+
+  if (existingError) throw existingError
+
+  const existingEmails = new Set((existingRows || []).map((item) => normalizeEmail(item.email)))
+  const rowsToInsert = normalizedRows.filter((item) => !existingEmails.has(item.email))
+  const skippedRows = normalizedRows.filter((item) => existingEmails.has(item.email))
+
+  let createdRows = []
+  if (rowsToInsert.length > 0) {
+    const { data: inserted, error: insertError } = await supabase
+      .from('clients')
+      .insert(
+        rowsToInsert.map((item) => ({
+          advisor_id: advisorId,
+          name: item.name,
+          email: item.email,
+          quiz_status: 'pending'
+        }))
+      )
+      .select('id, name, email')
+
+    if (insertError) throw insertError
+    createdRows = inserted || []
+  }
+
+  return {
+    created: createdRows.length,
+    skippedExisting: skippedRows.length,
+    invalid: invalidRows.length,
+    createdRows,
+    skippedRows,
+    invalidRows
   }
 }
 
