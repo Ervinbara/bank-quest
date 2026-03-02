@@ -34,6 +34,40 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
+  const createAdvisorIfMissing = async (authUser) => {
+    const email = authUser?.email
+    if (!email) return null
+
+    const existing = await fetchAdvisorByEmail(email)
+    if (existing) return existing
+
+    const fullName =
+      authUser?.user_metadata?.full_name ||
+      authUser?.user_metadata?.name ||
+      email.split('@')[0]
+
+    const company =
+      authUser?.user_metadata?.company ||
+      authUser?.user_metadata?.hd ||
+      'FinMate Advisor'
+
+    const { data, error } = await supabase
+      .from('advisors')
+      .insert([
+        {
+          email,
+          name: fullName,
+          company,
+          phone: null
+        }
+      ])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
   useEffect(() => {
     let mounted = true
     let subscription = null
@@ -49,14 +83,18 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    const loadAdvisorForUser = async (email, contextLabel = 'advisor') => {
+    const loadAdvisorForUser = async (authUser, contextLabel = 'advisor') => {
+      const email = authUser?.email
       if (!email) {
         if (mounted) setAdvisor(null)
         return
       }
 
       try {
-        const advisorData = await fetchAdvisorByEmail(email)
+        let advisorData = await fetchAdvisorByEmail(email)
+        if (!advisorData) {
+          advisorData = await createAdvisorIfMissing(authUser)
+        }
         if (mounted) setAdvisor(advisorData || null)
       } catch (err) {
         console.error(`Init ${contextLabel} load error:`, err)
@@ -77,7 +115,7 @@ export const AuthProvider = ({ children }) => {
         if (session?.user) {
           setUser(session.user)
           stopLoadingSafely()
-          void loadAdvisorForUser(session.user.email, 'advisor')
+          void loadAdvisorForUser(session.user, 'advisor')
         } else {
           setUser(null)
           setAdvisor(null)
@@ -110,7 +148,7 @@ export const AuthProvider = ({ children }) => {
         stopLoadingSafely()
 
         // Evite les deadlocks Supabase: ne pas await d'appel auth/db dans ce callback.
-        void loadAdvisorForUser(session.user.email, 'advisor')
+        void loadAdvisorForUser(session.user, 'advisor')
       }
     })
 
@@ -142,6 +180,11 @@ export const AuthProvider = ({ children }) => {
     setUser(authUser)
     setAdvisor(advisorData)
     return { success: true, user: authUser, advisor: advisorData }
+  }
+
+  const loginWithGoogle = async () => {
+    await authService.loginWithGoogle()
+    return { success: true }
   }
 
   const clearAllData = () => {
@@ -216,6 +259,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    loginWithGoogle,
     logout,
     updateProfile,
     refreshAdvisor,

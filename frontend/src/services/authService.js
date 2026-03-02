@@ -21,6 +21,20 @@ export const login = async (email, password) => {
   return { user: data.user, advisor }
 }
 
+// Connexion Google OAuth
+export const loginWithGoogle = async () => {
+  const redirectTo = `${window.location.origin}/dashboard`
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo
+    }
+  })
+
+  if (error) throw error
+  return data
+}
+
 // Inscription
 export const register = async (userData) => {
   // 1. Créer l'utilisateur dans Supabase Auth

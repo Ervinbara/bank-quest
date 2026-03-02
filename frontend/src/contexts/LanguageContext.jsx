@@ -123,7 +123,9 @@ const translations = {
       sending: 'Envoi...',
       backToLogin: 'Retour a la connexion',
       resetSent: 'Email envoye !',
-      resetMessage: 'Nous avons envoye un lien de reinitialisation a'
+      resetMessage: 'Nous avons envoye un lien de reinitialisation a',
+      continueWithGoogle: 'Continuer avec Google',
+      or: 'ou'
     }
   },
   en: {
@@ -244,7 +246,9 @@ const translations = {
       sending: 'Sending...',
       backToLogin: 'Back to login',
       resetSent: 'Email sent!',
-      resetMessage: 'We sent a reset link to'
+      resetMessage: 'We sent a reset link to',
+      continueWithGoogle: 'Continue with Google',
+      or: 'or'
     }
   }
 }

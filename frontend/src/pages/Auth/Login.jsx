@@ -7,7 +7,7 @@ import { isValidEmail } from '@/services/authService'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
   const { t, language } = useLanguage()
 
   const [formData, setFormData] = useState({
@@ -17,6 +17,7 @@ export default function Login() {
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [alert, setAlert] = useState(null)
 
   const handleChange = (e) => {
@@ -70,6 +71,17 @@ export default function Login() {
     }
   }
 
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
+    setAlert(null)
+    try {
+      await loginWithGoogle()
+    } catch (error) {
+      setAlert({ type: 'error', message: error.message })
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
       <div className="surface-glass p-5 sm:p-8 w-full max-w-md finance-animate-in">
@@ -96,6 +108,21 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full bg-white text-gray-700 border-2 border-gray-200 font-semibold py-3 px-6 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {googleLoading ? `${t('auth.continueWithGoogle')}...` : t('auth.continueWithGoogle')}
+          </button>
+
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <div className="h-px bg-gray-200 flex-1" />
+            <span>{t('auth.or')}</span>
+            <div className="h-px bg-gray-200 flex-1" />
+          </div>
+
           <div>
             <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
               {t('auth.businessEmail', 'Business email *')}
