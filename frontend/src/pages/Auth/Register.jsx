@@ -8,7 +8,7 @@ import { isValidEmail, validatePassword } from '@/services/authService'
 export default function Register() {
   const navigate = useNavigate()
   const { register, loginWithGoogle } = useAuth()
-  const { t, language } = useLanguage()
+  const { t, tr, language } = useLanguage()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -16,7 +16,10 @@ export default function Register() {
     company: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    termsAccepted: false,
+    privacyAccepted: false,
+    marketingOptIn: false
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -24,8 +27,8 @@ export default function Register() {
   const [alert, setAlert] = useState(null)
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = e.target
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
@@ -53,6 +56,18 @@ export default function Register() {
       newErrors.confirmPassword =
         language === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match'
     }
+    if (!formData.termsAccepted) {
+      newErrors.termsAccepted =
+        language === 'fr'
+          ? "Vous devez accepter les conditions d'utilisation"
+          : 'You must accept the terms of service'
+    }
+    if (!formData.privacyAccepted) {
+      newErrors.privacyAccepted =
+        language === 'fr'
+          ? 'Vous devez accepter la politique de confidentialite'
+          : 'You must accept the privacy policy'
+    }
     return newErrors
   }
 
@@ -72,7 +87,12 @@ export default function Register() {
         email: formData.email,
         company: formData.company,
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
+        consents: {
+          termsAccepted: formData.termsAccepted,
+          privacyAccepted: formData.privacyAccepted,
+          marketingOptIn: formData.marketingOptIn
+        }
       })
       setAlert({
         type: 'success',
@@ -87,6 +107,19 @@ export default function Register() {
   }
 
   const handleGoogleSignup = async () => {
+    if (!formData.termsAccepted || !formData.privacyAccepted) {
+      setErrors((prev) => ({
+        ...prev,
+        termsAccepted: !formData.termsAccepted
+          ? tr("Vous devez accepter les conditions d'utilisation", 'You must accept the terms of service')
+          : '',
+        privacyAccepted: !formData.privacyAccepted
+          ? tr('Vous devez accepter la politique de confidentialite', 'You must accept the privacy policy')
+          : ''
+      }))
+      return
+    }
+
     setGoogleLoading(true)
     setAlert(null)
     try {
@@ -245,6 +278,58 @@ export default function Register() {
             {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
           </div>
 
+          <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr("J'accepte les", 'I accept the')}{' '}
+                <Link to="/terms" className="text-emerald-700 hover:underline font-semibold">
+                  {t('auth.cgu')}
+                </Link>
+              </span>
+            </label>
+            {errors.termsAccepted && <p className="text-xs text-red-600">{errors.termsAccepted}</p>}
+
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="privacyAccepted"
+                checked={formData.privacyAccepted}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr("J'accepte la", 'I accept the')}{' '}
+                <Link to="/privacy" className="text-emerald-700 hover:underline font-semibold">
+                  {t('auth.privacy')}
+                </Link>
+              </span>
+            </label>
+            {errors.privacyAccepted && <p className="text-xs text-red-600">{errors.privacyAccepted}</p>}
+
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="marketingOptIn"
+                checked={formData.marketingOptIn}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr(
+                  "Je souhaite recevoir des communications produit (optionnel)",
+                  'I want to receive product communications (optional)'
+                )}
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -254,14 +339,10 @@ export default function Register() {
           </button>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            {t('auth.terms')}{' '}
-            <Link to="/terms" className="text-emerald-700 hover:underline">
-              {t('auth.cgu')}
-            </Link>{' '}
-            {language === 'fr' ? 'et notre' : 'and our'}{' '}
-            <Link to="/privacy" className="text-emerald-700 hover:underline">
-              {t('auth.privacy')}
-            </Link>
+            {tr(
+              'Vos consentements sont enregistres et modifiables via le support RGPD.',
+              'Your consents are recorded and can be updated via GDPR support.'
+            )}
           </p>
         </form>
 

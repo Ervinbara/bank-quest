@@ -258,6 +258,7 @@ export default function ClientQuiz() {
 
       await submitClientQuizResult({
         clientId: resolvedClientId,
+        token: resolvedToken,
         score,
         strengths: insights.strengths,
         weaknesses: insights.weaknesses

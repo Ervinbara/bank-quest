@@ -2,71 +2,51 @@
 
 Application SaaS pour conseillers financiers:
 - qualification client via quiz
-- gestion des clients/invitations
+- gestion clients/invitations
 - analytics de suivi commercial
 - abonnement Stripe
-- traduction FR/EN + traduction automatique
-- distribution web + PWA + TWA Android (Play Store)
+- traduction FR/EN
+- distribution web + PWA + TWA Android
 
 ## 1) Stack technique
-
 - Frontend: React 19, Vite 7, React Router 7, Tailwind CSS
 - Backend: Supabase (Postgres, Auth, Realtime, Edge Functions)
 - Paiements: Stripe (test/live)
 - Traduction: Edge Function avec fallback providers
 - Mobile: PWA + TWA (Bubblewrap)
 
-## 2) Arborescence du projet
-
-```
+## 2) Arborescence
+```txt
 bank-quest/
-  .gitignore
   README.md
   frontend/
     package.json
     vite.config.js
+    public/
+      .well-known/assetlinks.json
     scripts/
       update-assetlinks.mjs
-    public/
-      .well-known/
-        assetlinks.json
     src/
-      main.jsx
       App.jsx
-      lib/
-        supabase.js
+      main.jsx
+      lib/supabase.js
       contexts/
         AuthContext.jsx
         LanguageContext.jsx
       services/
         authService.js
-        clientService.js
-        questionnaireService.js
         billingService.js
+        clientService.js
         invitationEmailService.js
+        privacyService.js
+        questionnaireService.js
         translationService.js
-      components/
-        ProtectedRoute.jsx
-        LanguageSwitcher.jsx
-        common/
-          PaginationControls.jsx
-        Dashboard/
-          DashboardLayout.jsx
-          Sidebar.jsx
-          DashboardGuide.jsx
-          StatsCard.jsx
-          ClientCard.jsx
-          ClientDetailModal.jsx
-          InviteClientModal.jsx
-          ImportClientsModal.jsx
-          SettingsTabs.jsx
       pages/
         Home.jsx
         Demo.jsx
         ClientQuiz.jsx
         Privacy.jsx
         Terms.jsx
-        NotFound.jsx
         Auth/
           Login.jsx
           Register.jsx
@@ -80,6 +60,20 @@ bank-quest/
           QuestionBank.jsx
           Analytics.jsx
           Settings.jsx
+      components/
+        ProtectedRoute.jsx
+        LanguageSwitcher.jsx
+        common/PaginationControls.jsx
+        Dashboard/
+          DashboardLayout.jsx
+          Sidebar.jsx
+          DashboardGuide.jsx
+          StatsCard.jsx
+          ClientCard.jsx
+          ClientDetailModal.jsx
+          InviteClientModal.jsx
+          ImportClientsModal.jsx
+          SettingsTabs.jsx
       data/
         dashboardGuides.js
         clientQuizQuestions.js
@@ -87,64 +81,43 @@ bank-quest/
         themes.js
   supabase/
     migrations/
-      001_...sql -> 011_...sql
+      001_...sql -> 012_...sql
     functions/
+      delete-account/
       send-invitation-email/
       stripe-checkout/
       stripe-customer-portal/
       stripe-sync-subscription/
       stripe-webhook/
+      submit-quiz-result/
       translate-text/
-    STRIPE_SETUP.md
-    TRANSLATION_SETUP.md
 ```
 
-## 3) Ce que fait chaque bloc
+## 3) Blocs principaux
+### Frontend
+- `contexts/AuthContext.jsx`: session, profil advisor, login/register/logout, OAuth Google.
+- `contexts/LanguageContext.jsx`: i18n FR/EN, helper `tr(fr, en)`.
+- `services/authService.js`: auth Supabase + creation profil advisor + consentement legal.
+- `services/clientService.js`: CRUD clients, invitations, analytics, quiz public.
+- `services/privacyService.js`: export RGPD JSON et suppression de compte.
+- `pages/Dashboard/Settings.jsx`: profil, securite, abonnement, actions RGPD.
 
-### `frontend/src/App.jsx`
-- Déclare toutes les routes publiques/auth/dashboard.
-- Protège `/dashboard/*` via `ProtectedRoute`.
-
-### `frontend/src/contexts`
-- `AuthContext.jsx`: session utilisateur, profil advisor, login/register/logout, OAuth Google.
-- `LanguageContext.jsx`: i18n FR/EN, fonction `tr(fr, en)`.
-
-### `frontend/src/services`
-- `authService.js`: auth Supabase (email/password + OAuth).
-- `clientService.js`: coeur métier clients (CRUD, invitations, suivi, analytics, quiz).
-- `questionnaireService.js`: gestion banque de questions/questionnaires.
-- `billingService.js`: checkout + portail Stripe via Edge Functions.
-- `invitationEmailService.js`: templates + envoi invitations.
-- `translationService.js`: appel Edge Function de traduction.
-
-### `frontend/src/pages/Dashboard`
-- `Clients.jsx`: listing clients, filtres, pagination, import, invitation, quick actions suivi.
-- `ClientDetail.jsx`: édition client, notes conseiller, statut suivi.
-- `Invitations.jsx`: gestion templates + liens invitations.
-- `Questionnaires.jsx`: construction questionnaires.
-- `QuestionBank.jsx`: bibliothèque de questions (incluant traductions).
-- `Analytics.jsx`: KPIs, distribution, priorisation relances, export CSV.
-- `Settings.jsx`: profil/sécurité/abonnement.
-
-### `supabase/migrations`
-- Schéma SQL versionné (clients, insights, invitations, questionnaires, billing, etc.).
-- À pousser via `npx supabase db push`.
-
-### `supabase/functions`
-- `stripe-*`: checkout, portail client, webhook, synchro abonnement.
-- `send-invitation-email`: envoi email via providers.
-- `translate-text`: traduction auto avec fallback providers + garde-fous de coût.
+### Supabase
+- `migrations`: schema SQL versionne + politiques RLS.
+- `functions/stripe-*`: checkout, portail client, webhook, sync abonnement.
+- `functions/send-invitation-email`: envoi email transactionnel.
+- `functions/translate-text`: traduction automatique avec guardrails.
+- `functions/submit-quiz-result`: soumission quiz publique securisee par token invitation.
+- `functions/delete-account`: suppression compte auth + donnees metier.
 
 ## 4) Variables d'environnement
-
-## Frontend (`frontend/.env.local`)
+### Frontend (`frontend/.env.local`)
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-## Supabase Edge Function secrets (Dashboard Supabase > Edge Functions > Secrets)
-
-### Stripe
-- `STRIPE_MODE` = `test` ou `live`
+### Supabase Edge Function secrets
+#### Stripe
+- `STRIPE_MODE=test|live`
 - `STRIPE_SECRET_KEY_TEST`
 - `STRIPE_SECRET_KEY_LIVE`
 - `STRIPE_PRICE_SOLO_MONTHLY_TEST`
@@ -157,54 +130,62 @@ bank-quest/
 - `STRIPE_PRICE_TEST_MONTHLY_LIVE` (optionnel)
 - `STRIPE_WEBHOOK_SECRET_TEST`
 - `STRIPE_WEBHOOK_SECRET_LIVE`
-- `APP_URL` (URL prod publique)
+- `APP_URL`
 
-### Email invitations
-- `EMAIL_PROVIDER_ORDER` (ex: `mailjet,brevo`)
+#### Email
+- `EMAIL_PROVIDER_ORDER`
 - `EMAIL_FROM_ADDRESS`
 - `MAILJET_API_KEY`
 - `MAILJET_SECRET_KEY`
 - `BREVO_API_KEY`
 
-### Traduction
-- `TRANSLATION_MODE` = `enabled` ou `disabled`
-- `TRANSLATION_PROVIDER_ORDER` (ex: `deepl_free,libretranslate,google`)
+#### Traduction
+- `TRANSLATION_MODE=enabled|disabled`
+- `TRANSLATION_PROVIDER_ORDER`
 - `TRANSLATION_MAX_CHARS_PER_REQUEST`
 - `TRANSLATION_HARD_MONTHLY_LIMIT`
 - `DEEPL_API_KEY`
 - `LIBRETRANSLATE_URL`
-- `LIBRETRANSLATE_API_KEY` (optionnel selon instance)
+- `LIBRETRANSLATE_API_KEY` (optionnel)
 - `GOOGLE_TRANSLATE_API_KEY`
-- `GOOGLE_TRANSLATE_ALLOW_BILLING` (`false` recommandé pour contrôle coût)
+- `GOOGLE_TRANSLATE_ALLOW_BILLING`
 
-## 5) Commandes principales
-
+## 5) Commandes
+### Frontend
 Depuis `frontend/`:
-- Dev: `npm run dev`
-- Build: `npm run build`
-- Lint: `npm run lint`
-- Preview: `npm run preview`
+- `npm run dev`
+- `npm run build`
+- `npm run lint`
+- `npm run preview`
 
-Depuis racine (Supabase):
-- Lier projet: `npx supabase link --project-ref <project_ref>`
-- Push migrations: `npx supabase db push`
-- Déployer function: `npx supabase functions deploy <function_name> --no-verify-jwt`
+### Supabase
+Depuis la racine:
+- `npx supabase link --project-ref <project_ref>`
+- `npx supabase db push`
+- `npx supabase functions deploy send-invitation-email`
+- `npx supabase functions deploy stripe-checkout --no-verify-jwt`
+- `npx supabase functions deploy stripe-customer-portal --no-verify-jwt`
+- `npx supabase functions deploy stripe-sync-subscription --no-verify-jwt`
+- `npx supabase functions deploy stripe-webhook --no-verify-jwt`
+- `npx supabase functions deploy translate-text --no-verify-jwt`
+- `npx supabase functions deploy submit-quiz-result --no-verify-jwt`
+- `npx supabase functions deploy delete-account`
 
-## 6) Routes principales
-
-Publiques:
-- `/` Home
+## 6) Routes
+### Publiques
+- `/`
 - `/demo`
-- `/quiz/:clientId` (flux invitation)
+- `/quiz/:token` (nouveau lien invitation)
+- `/quiz/:clientId?token=...` (compat legacy)
 - `/privacy`
 - `/terms`
 
-Auth:
+### Auth
 - `/auth/login`
 - `/auth/register`
 - `/auth/forgot-password`
 
-Dashboard (protégées):
+### Dashboard (protege)
 - `/dashboard`
 - `/dashboard/clients`
 - `/dashboard/clients/:clientId`
@@ -214,36 +195,35 @@ Dashboard (protégées):
 - `/dashboard/analytics`
 - `/dashboard/settings`
 
-## 7) Fonctionnement “quick actions” (boutons de relance)
+## 7) RGPD (etat actuel)
+- Consentement explicite obligatoire en inscription:
+  - CGU acceptees
+  - Politique de confidentialite acceptee
+- Horodatage des consentements stocke en base:
+  - `terms_accepted_at`
+  - `privacy_accepted_at`
+  - `terms_version`
+  - `privacy_policy_version`
+  - `marketing_opt_in`
+- RLS activee sur tables metier principales (migration `012_rgpd_foundation.sql`).
+- Export des donnees utilisateur en JSON depuis `Parametres > Securite`.
+- Suppression definitive de compte depuis `Parametres > Securite`.
+- Politique de confidentialite detaillee exposee sur `/privacy`.
 
-Quand on clique sur les boutons (`A contacter`, `RDV`, `Clore`) dans:
-- `Clients` (cartes client)
-- `Analytics > Priorités de relance`
-
-Alors:
-1. Le statut `followup_status` du client est mis à jour en base (`updateClientFollowup`).
-2. `last_contacted_at` est actualisé automatiquement pour les statuts hors `a_contacter`.
-3. L’écran recharge les données (liste ou analytics) pour refléter le nouveau statut.
-4. Le bouton est temporairement désactivé pendant l’update (évite double-clic).
-
-## 8) OAuth Google (résumé prod)
-
-1. Créer un client OAuth 2.0 Web dans Google Cloud.
-2. Ajouter l'URL de callback Supabase:
+## 8) Google OAuth (production)
+1. Creer un client OAuth 2.0 Web dans Google Cloud.
+2. Ajouter callback Supabase:
    - `https://<project-ref>.supabase.co/auth/v1/callback`
 3. Dans Supabase > Auth > Sign In / Providers > Google:
-   - activer provider
-   - renseigner `Client ID` et `Client Secret`
-4. Vérifier `Site URL` + `Redirect URLs` côté Supabase Auth.
+   - activer
+   - renseigner Client ID + Client Secret
+4. Verifier `Site URL` + `Redirect URLs` dans Supabase Auth.
 
 ## 9) PWA / TWA / Play Store
-
-### PWA
-- Config dans `frontend/vite.config.js` (manifest, service worker).
-
-### TWA
-- Manifest TWA: `frontend/android-twa/twa-manifest.json`
-- AAB attendu: `frontend/android-twa/app/build/outputs/bundle/release/app-release.aab`
+- PWA: config dans `frontend/vite.config.js`.
+- TWA manifest: `frontend/android-twa/twa-manifest.json`.
+- AAB attendu:
+  - `frontend/android-twa/app/build/outputs/bundle/release/app-release.aab`
 
 Scripts utiles:
 - `npm run twa:doctor`
@@ -251,34 +231,10 @@ Scripts utiles:
 - `npm run twa:build`
 - `npm run twa:assetlinks`
 
-Asset Links:
-- Généré dans `frontend/public/.well-known/assetlinks.json` via `scripts/update-assetlinks.mjs`.
+## 10) Maintenance repo
+- Ne jamais committer de secrets.
+- `supabase/.temp/` doit rester ignore.
+- Garder les migrations idempotentes et incrementales.
+- Verifier `npm run build` avant push.
+- Mettre a jour ce README a chaque feature.
 
-## 10) Règles de maintenance du repo
-
-- Ne jamais commit de secrets (API keys, service role key, tokens).
-- `supabase/.temp/` est ignoré (et doit le rester).
-- Garder migrations SQL idempotentes et incrémentales.
-- Vérifier build avant push.
-
-## 11) Process “README à mettre à jour à chaque commit”
-
-À chaque feature:
-1. Mettre à jour la section concernée (routes, services, env vars, UX).
-2. Ajouter une ligne dans “Journal des changements”.
-3. Vérifier commandes/chemins encore valides.
-4. Committer README avec la feature.
-
-Template rapide à ajouter en fin de commit:
-- `README: update <section> for <feature>`
-
-## 12) Journal des changements (récent)
-
-- `4ae174d` feat(dashboard): quick actions de suivi dans `Clients` et `Analytics`.
-- `add6e11` feat(clients): import clients CSV/XLSX + modal d’import.
-- `6da8f1c` feat(auth): connexion Google OAuth (login/register/context).
-- `0c6cca6` feat(legal): pages `/privacy` et `/terms`.
-
----
-
-Si tu veux, je peux aussi ajouter un `docs/ARCHITECTURE.md` séparé avec des diagrammes (flux Auth, flux Invitation, flux Stripe, flux Traduction) pour faciliter l’onboarding.

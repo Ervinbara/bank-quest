@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
+const LEGAL_VERSION = '2026-03-02'
+
 // Connexion
 export const login = async (email, password) => {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -9,7 +11,6 @@ export const login = async (email, password) => {
 
   if (error) throw error
 
-  // Récupérer les infos du conseiller
   const { data: advisor, error: advisorError } = await supabase
     .from('advisors')
     .select('*')
@@ -37,23 +38,41 @@ export const loginWithGoogle = async () => {
 
 // Inscription
 export const register = async (userData) => {
-  // 1. Créer l'utilisateur dans Supabase Auth
+  if (!userData?.consents?.termsAccepted || !userData?.consents?.privacyAccepted) {
+    throw new Error('Veuillez accepter les conditions et la politique de confidentialite')
+  }
+
+  const acceptedAt = new Date().toISOString()
+
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: userData.email,
-    password: userData.password
+    password: userData.password,
+    options: {
+      data: {
+        legal_version: LEGAL_VERSION,
+        terms_accepted_at: acceptedAt,
+        privacy_accepted_at: acceptedAt
+      }
+    }
   })
 
   if (authError) throw authError
 
-  // 2. Créer le profil conseiller
   const { data: advisor, error: advisorError } = await supabase
     .from('advisors')
-    .insert([{
-      email: userData.email,
-      name: userData.name,
-      company: userData.company,
-      phone: userData.phone || null
-    }])
+    .insert([
+      {
+        email: userData.email,
+        name: userData.name,
+        company: userData.company,
+        phone: userData.phone || null,
+        terms_version: LEGAL_VERSION,
+        privacy_policy_version: LEGAL_VERSION,
+        terms_accepted_at: acceptedAt,
+        privacy_accepted_at: acceptedAt,
+        marketing_opt_in: Boolean(userData?.consents?.marketingOptIn)
+      }
+    ])
     .select()
     .single()
 
@@ -62,7 +81,7 @@ export const register = async (userData) => {
   return { user: authData.user, advisor }
 }
 
-// Déconnexion
+// Deconnexion
 export const logout = async () => {
   const { error } = await supabase.auth.signOut()
   if (error) throw error
@@ -72,7 +91,7 @@ export const isUserAuthenticated = async () => {
   try {
     const session = await getSession()
     return !!session?.user
-  } catch (error) {
+  } catch {
     return false
   }
 }
@@ -83,9 +102,12 @@ export const refreshSession = async () => {
   return data.session
 }
 
-// Récupérer la session actuelle
+// Recuperer la session actuelle
 export const getSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const {
+    data: { session },
+    error
+  } = await supabase.auth.getSession()
   if (error) throw error
   return session
 }
@@ -98,17 +120,18 @@ export const isValidEmail = (email) => {
 
 // Validation de mot de passe
 export const validatePassword = (password) => {
-  if (password.length < 6) {
-    return 'Le mot de passe doit contenir au moins 6 caractères'
-  }
+  if (password.length < 8) return 'Le mot de passe doit contenir au moins 8 caracteres'
+  if (!/[A-Z]/.test(password)) return 'Le mot de passe doit contenir au moins une majuscule'
+  if (!/[a-z]/.test(password)) return 'Le mot de passe doit contenir au moins une minuscule'
+  if (!/[0-9]/.test(password)) return 'Le mot de passe doit contenir au moins un chiffre'
   return null
 }
 
-// Générer les initiales
+// Generer les initiales
 export const getUserInitials = (name) => {
   return name
     .split(' ')
-    .map(n => n[0])
+    .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)

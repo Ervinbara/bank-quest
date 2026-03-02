@@ -28,7 +28,7 @@ export default function Terms() {
           </div>
 
           <p className="text-sm text-slate-500 mb-8">
-            {tr('Derniere mise a jour : 1 mars 2026', 'Last updated: March 1, 2026')}
+            {tr('Derniere mise a jour : 2 mars 2026', 'Last updated: March 2, 2026')}
           </p>
 
           <section className="space-y-6 text-slate-700 leading-relaxed">
@@ -119,6 +119,18 @@ export default function Terms() {
                 {tr(
                   "Pour toute question sur ces conditions : bankquest.pro@gmail.com",
                   'For any question about these terms: bankquest.pro@gmail.com'
+                )}
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('8. Donnees personnelles', '8. Personal data')}
+              </h2>
+              <p>
+                {tr(
+                  "Le traitement des donnees personnelles est detaille dans la Politique de confidentialite. L'utilisateur reste responsable des donnees clients qu'il importe dans FinMate.",
+                  'Personal data processing is detailed in the Privacy Policy. The user remains responsible for client data imported into FinMate.'
                 )}
               </p>
             </div>

@@ -28,97 +28,97 @@ export default function Privacy() {
           </div>
 
           <p className="text-sm text-slate-500 mb-8">
-            {tr('Derniere mise a jour : 1 mars 2026', 'Last updated: March 1, 2026')}
+            {tr('Derniere mise a jour : 2 mars 2026', 'Last updated: March 2, 2026')}
           </p>
 
           <section className="space-y-6 text-slate-700 leading-relaxed">
             <p>
               {tr(
-                "FinMate est un outil de qualification client pour les conseillers financiers. Cette page explique quelles donnees nous traitons, pourquoi, et quels sont vos droits.",
-                'FinMate is a client qualification tool for financial advisors. This page explains which data we process, why, and what your rights are.'
+                'FinMate est un service SaaS de qualification client pour conseillers financiers. Cette politique detaille le traitement de vos donnees personnelles au sens du RGPD.',
+                'FinMate is a SaaS client qualification platform for financial advisors. This policy details personal data processing under GDPR.'
               )}
             </p>
 
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('1. Donnees collectees', '1. Data we collect')}
+                {tr('1. Responsable du traitement', '1. Data controller')}
               </h2>
               <p>
                 {tr(
-                  "Nous pouvons traiter les informations de compte (nom, email, societe), les donnees de clients que vous saisissez dans l'application, et les donnees techniques necessaires au fonctionnement (logs, securite, diagnostics).",
-                  'We may process account information (name, email, company), client data you enter in the app, and technical data required for operation (logs, security, diagnostics).'
+                  'Le responsable du traitement est FinMate. Contact: bankquest.pro@gmail.com',
+                  'The data controller is FinMate. Contact: bankquest.pro@gmail.com'
                 )}
               </p>
             </div>
 
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('2. Finalites', '2. Purposes')}
+                {tr('2. Donnees traitees', '2. Processed data')}
+              </h2>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>{tr('Compte conseiller: nom, email, societe, telephone.', 'Advisor account: name, email, company, phone.')}</li>
+                <li>{tr('Donnees clients saisies dans FinMate.', 'Client data entered in FinMate.')}</li>
+                <li>{tr('Resultats de quiz, scoring et suivi commercial.', 'Quiz results, scoring and sales follow-up.')}</li>
+                <li>{tr('Donnees techniques de securite (logs, diagnostics).', 'Technical security data (logs, diagnostics).')}</li>
+                <li>{tr('Donnees de facturation Stripe (references, statut).', 'Stripe billing data (references, status).')}</li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('3. Finalites et bases legales', '3. Purposes and legal bases')}
+              </h2>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>{tr('Execution du contrat: acces a la plateforme et gestion des comptes.', 'Contract performance: platform access and account management.')}</li>
+                <li>{tr('Interet legitime: securite, prevention de fraude, amelioration du service.', 'Legitimate interest: security, fraud prevention, service improvement.')}</li>
+                <li>{tr('Obligation legale: conservation des donnees liees a la facturation.', 'Legal obligation: retention of billing-related records.')}</li>
+                <li>{tr('Consentement: communications marketing optionnelles.', 'Consent: optional marketing communications.')}</li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('4. Sous-traitants', '4. Processors')}
+              </h2>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>{tr('Supabase: base de donnees, authentification, fonctions serveur.', 'Supabase: database, authentication, server functions.')}</li>
+                <li>{tr('Stripe: gestion des paiements et abonnements.', 'Stripe: payment and subscription management.')}</li>
+                <li>{tr('Fournisseurs email transactionnel (Mailjet/Brevo selon configuration).', 'Transactional email providers (Mailjet/Brevo depending on configuration).')}</li>
+                <li>{tr('Vercel: hebergement de l application web.', 'Vercel: web application hosting.')}</li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('5. Durees de conservation', '5. Retention periods')}
+              </h2>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>{tr('Donnees de compte: pendant la duree du compte actif.', 'Account data: while account is active.')}</li>
+                <li>{tr('Donnees clients et quiz: jusqu a suppression du compte ou demande explicite.', 'Client and quiz data: until account deletion or explicit request.')}</li>
+                <li>{tr('Donnees de facturation: selon obligations fiscales et comptables applicables.', 'Billing data: according to applicable tax/accounting obligations.')}</li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('6. Vos droits RGPD', '6. Your GDPR rights')}
               </h2>
               <p>
                 {tr(
-                  "Les donnees sont utilisees pour fournir le service FinMate, authentifier les utilisateurs, envoyer des invitations, produire des analyses, et assurer la securite de la plateforme.",
-                  'Data is used to provide the FinMate service, authenticate users, send invitations, generate analytics, and keep the platform secure.'
+                  'Depuis Parametres > Securite, vous pouvez exporter vos donnees (JSON) et supprimer votre compte. Vous pouvez aussi demander rectification, limitation ou opposition en contactant bankquest.pro@gmail.com.',
+                  'From Settings > Security, you can export your data (JSON) and delete your account. You can also request rectification, restriction or objection by contacting bankquest.pro@gmail.com.'
                 )}
               </p>
             </div>
 
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('3. Base legale', '3. Legal basis')}
+                {tr('7. Securite', '7. Security')}
               </h2>
               <p>
                 {tr(
-                  "Le traitement repose sur l'execution du service, votre consentement lorsque requis, et notre interet legitime de securiser et ameliorer l'application.",
-                  'Processing relies on service delivery, your consent when required, and our legitimate interest in securing and improving the application.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('4. Conservation', '4. Retention')}
-              </h2>
-              <p>
-                {tr(
-                  "Les donnees sont conservees pendant la duree necessaire a la fourniture du service et au respect des obligations legales, puis supprimees ou anonymisees.",
-                  'Data is retained for as long as needed to deliver the service and meet legal obligations, then deleted or anonymized.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('5. Partage', '5. Sharing')}
-              </h2>
-              <p>
-                {tr(
-                  "Nous ne vendons pas vos donnees. Certaines donnees peuvent etre traitees par nos sous-traitants techniques (hebergement, paiements, email transactionnel) strictement pour exploiter le service.",
-                  'We do not sell your data. Some data may be processed by technical providers (hosting, payments, transactional email) strictly to operate the service.'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('6. Vos droits', '6. Your rights')}
-              </h2>
-              <p>
-                {tr(
-                  "Vous pouvez demander l'acces, la rectification, la suppression, la limitation ou l'export de vos donnees, selon la reglementation applicable (dont RGPD).",
-                  'You may request access, correction, deletion, restriction, or export of your data, depending on applicable regulations (including GDPR).'
-                )}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                {tr('7. Contact', '7. Contact')}
-              </h2>
-              <p>
-                {tr(
-                  'Pour toute demande relative a la confidentialite, contactez-nous a : bankquest.pro@gmail.com',
-                  'For any privacy request, contact us at: bankquest.pro@gmail.com'
+                  'FinMate applique des controles techniques (authentification, cloisonnement des donnees, journalisation) pour proteger vos informations.',
+                  'FinMate applies technical safeguards (authentication, data isolation, logging) to protect your information.'
                 )}
               </p>
             </div>
@@ -128,3 +128,4 @@ export default function Privacy() {
     </div>
   )
 }
+

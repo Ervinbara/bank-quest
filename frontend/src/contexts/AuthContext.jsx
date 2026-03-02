@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import * as authService from '@/services/authService'
 
 const AuthContext = createContext(null)
+const LEGAL_VERSION = '2026-03-02'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
@@ -51,6 +52,8 @@ export const AuthProvider = ({ children }) => {
       authUser?.user_metadata?.hd ||
       'FinMate Advisor'
 
+    const acceptedAt = new Date().toISOString()
+
     const { data, error } = await supabase
       .from('advisors')
       .insert([
@@ -58,7 +61,12 @@ export const AuthProvider = ({ children }) => {
           email,
           name: fullName,
           company,
-          phone: null
+          phone: null,
+          terms_version: LEGAL_VERSION,
+          privacy_policy_version: LEGAL_VERSION,
+          terms_accepted_at: acceptedAt,
+          privacy_accepted_at: acceptedAt,
+          marketing_opt_in: false
         }
       ])
       .select()

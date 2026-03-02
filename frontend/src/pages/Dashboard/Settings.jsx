@@ -12,6 +12,7 @@ import {
   createStripeCustomerPortalSession,
   syncStripeSubscription
 } from '@/services/billingService'
+import { deleteAdvisorAccount, exportAdvisorDataAsJson } from '@/services/privacyService'
 import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
 
 const PLAN_DETAILS = {
@@ -41,6 +42,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(false)
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState(null)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [message, setMessage] = useState(null)
 
   const [profileData, setProfileData] = useState({
@@ -282,6 +285,54 @@ export default function Settings() {
     }
   }
 
+  const handleDataExport = async () => {
+    try {
+      setExportLoading(true)
+      setMessage(null)
+      await exportAdvisorDataAsJson(advisor)
+      setMessage({
+        type: 'success',
+        text: tr('Export termine. Le fichier JSON a ete telecharge.', 'Export completed. JSON file has been downloaded.')
+      })
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error?.message || tr('Export impossible', 'Export failed')
+      })
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  const handleAccountDeletion = async () => {
+    const confirmed = window.confirm(
+      tr(
+        'Cette action supprimera definitivement votre compte et toutes vos donnees. Confirmer ?',
+        'This action will permanently delete your account and all data. Confirm?'
+      )
+    )
+    if (!confirmed) return
+
+    try {
+      setDeleteLoading(true)
+      setMessage(null)
+      await deleteAdvisorAccount()
+      try {
+        await supabase.auth.signOut()
+      } catch {
+        // user may already be invalidated server-side
+      }
+      window.location.href = '/'
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error?.message || tr('Suppression du compte impossible', 'Account deletion failed')
+      })
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -387,7 +438,8 @@ export default function Settings() {
         )}
 
         {activeTab === 'security' && (
-          <form onSubmit={handleChangePassword} className="space-y-6">
+          <div className="space-y-8">
+            <form onSubmit={handleChangePassword} className="space-y-6">
             <div>
               <h3 className="text-xl font-bold text-gray-800 mb-4">{tr('Changer le mot de passe', 'Change password')}</h3>
               <div className="space-y-4">
@@ -458,7 +510,36 @@ export default function Settings() {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
               {loading ? tr('Modification...', 'Updating...') : tr('Changer le mot de passe', 'Change password')}
             </button>
-          </form>
+            </form>
+
+            <div className="border-t pt-8 space-y-4">
+              <h3 className="text-xl font-bold text-gray-800">{tr('RGPD et donnees personnelles', 'GDPR and personal data')}</h3>
+              <p className="text-sm text-gray-600">
+                {tr(
+                  'Vous pouvez exporter vos donnees ou supprimer votre compte a tout moment.',
+                  'You can export your data or delete your account at any time.'
+                )}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleDataExport}
+                  disabled={exportLoading || deleteLoading}
+                  className="px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  {exportLoading ? tr('Export en cours...', 'Exporting...') : tr('Exporter mes donnees (JSON)', 'Export my data (JSON)')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAccountDeletion}
+                  disabled={deleteLoading || exportLoading}
+                  className="px-4 py-2 rounded-lg border border-red-300 bg-red-50 text-red-700 font-semibold hover:bg-red-100 disabled:opacity-60"
+                >
+                  {deleteLoading ? tr('Suppression en cours...', 'Deleting...') : tr('Supprimer mon compte', 'Delete my account')}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'billing' && (

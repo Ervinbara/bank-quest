@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
 const generateInvitationToken = () => {
@@ -13,6 +14,21 @@ const buildInviteUrl = (clientId, token) => {
   return `${window.location.origin}/quiz/${token}`
 }
 const buildLegacyToken = (clientId) => `legacy-${String(clientId).replaceAll('-', '')}`
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+const createQuizSupabaseClient = (token) =>
+  createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    },
+    global: {
+      headers: {
+        'x-quiz-token': token
+      }
+    }
+  })
 
 const isMissingInvitationsTableError = (error) => {
   const message = String(error?.message || '').toLowerCase()
@@ -592,16 +608,9 @@ export const regenerateInvitationLink = async (clientId) => {
 // Recuperer les informations publiques d'un client pour le quiz avec validation token
 export const getQuizClient = async (clientId, token) => {
   if (!token) throw new Error("Lien d'invitation incomplet")
+  const quizClient = createQuizSupabaseClient(token)
 
-  const { data: client, error: clientError } = await supabase
-    .from('clients')
-    .select('id, name, email, quiz_status, score, completed_at')
-    .eq('id', clientId)
-    .single()
-
-  if (clientError) throw clientError
-
-  let { data: invitation, error: invitationError } = await supabase
+  let { data: invitation, error: invitationError } = await quizClient
     .from('client_invitations')
     .select('token, questionnaire_id, expires_at, revoked_at')
     .eq('client_id', clientId)
@@ -609,7 +618,7 @@ export const getQuizClient = async (clientId, token) => {
     .maybeSingle()
 
   if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
-    const fallback = await supabase
+    const fallback = await quizClient
       .from('client_invitations')
       .select('token, expires_at, revoked_at')
       .eq('client_id', clientId)
@@ -647,6 +656,14 @@ export const getQuizClient = async (clientId, token) => {
     throw new Error("Lien d'invitation expire")
   }
 
+  const { data: client, error: clientError } = await quizClient
+    .from('clients')
+    .select('id, name, email, quiz_status, score, completed_at')
+    .eq('id', clientId)
+    .single()
+
+  if (clientError) throw clientError
+
   const questionnaire = await getQuestionnaireDetails(invitation.questionnaire_id)
 
   return {
@@ -663,15 +680,16 @@ export const getQuizClient = async (clientId, token) => {
 // Recuperer les informations publiques d'un client pour le quiz avec token seul
 export const getQuizClientByToken = async (token) => {
   if (!token) throw new Error("Lien d'invitation incomplet")
+  const quizClient = createQuizSupabaseClient(token)
 
-  let { data: invitation, error: invitationError } = await supabase
+  let { data: invitation, error: invitationError } = await quizClient
     .from('client_invitations')
     .select('client_id, token, questionnaire_id, expires_at, revoked_at')
     .eq('token', token)
     .maybeSingle()
 
   if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
-    const fallback = await supabase
+    const fallback = await quizClient
       .from('client_invitations')
       .select('client_id, token, expires_at, revoked_at')
       .eq('token', token)
@@ -693,7 +711,7 @@ export const getQuizClientByToken = async (token) => {
     throw new Error("Lien d'invitation expire")
   }
 
-  const { data: client, error: clientError } = await supabase
+  const { data: client, error: clientError } = await quizClient
     .from('clients')
     .select('id, name, email, quiz_status, score, completed_at')
     .eq('id', invitation.client_id)
@@ -717,44 +735,26 @@ export const getQuizClientByToken = async (token) => {
 }
 
 // Soumettre un quiz client (score + insights)
-export const submitClientQuizResult = async ({ clientId, score, strengths, weaknesses }) => {
+export const submitClientQuizResult = async ({ clientId, token, score, strengths, weaknesses }) => {
   if (!clientId) throw new Error('Client introuvable')
+  if (!token) throw new Error("Lien d'invitation invalide")
 
-  const { data: updatedClient, error: updateError } = await supabase
-    .from('clients')
-    .update({
-      quiz_status: 'completed',
+  const response = await supabase.functions.invoke('submit-quiz-result', {
+    body: {
+      clientId,
+      token,
       score,
-      completed_at: new Date().toISOString()
-    })
-    .eq('id', clientId)
-    .select('*')
-    .single()
+      strengths: strengths || [],
+      weaknesses: weaknesses || []
+    }
+  })
 
-  if (updateError) throw updateError
-
-  const { error: deleteError } = await supabase.from('client_insights').delete().eq('client_id', clientId)
-  if (deleteError) throw deleteError
-
-  const insightsPayload = [
-    ...(strengths || []).map((concept) => ({
-      client_id: clientId,
-      type: 'strength',
-      concept
-    })),
-    ...(weaknesses || []).map((concept) => ({
-      client_id: clientId,
-      type: 'weakness',
-      concept
-    }))
-  ]
-
-  if (insightsPayload.length > 0) {
-    const { error: insertError } = await supabase.from('client_insights').insert(insightsPayload)
-    if (insertError) throw insertError
+  if (response.error) throw response.error
+  if (!response.data?.success) {
+    throw new Error(response.data?.error || 'Impossible de soumettre le quiz')
   }
 
-  return updatedClient
+  return response.data.client
 }
 
 // S'abonner aux changements clients/insights d'un conseiller

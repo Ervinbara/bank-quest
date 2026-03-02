@@ -422,12 +422,16 @@ export const dashboardGuides = {
           fr: [
             'Renseigner le mot de passe actuel pour verification.',
             'Choisir un nouveau mot de passe robuste.',
-            'Confirmer et valider le changement.'
+            'Confirmer et valider le changement.',
+            'Exporter tes donnees personnelles en JSON (droit d acces RGPD).',
+            'Supprimer ton compte de maniere definitive si necessaire.'
           ],
           en: [
             'Enter current password for verification.',
             'Choose a strong new password.',
-            'Confirm and submit the change.'
+            'Confirm and submit the change.',
+            'Export your personal data as JSON (GDPR right of access).',
+            'Delete your account permanently when needed.'
           ]
         }
       },
