@@ -124,17 +124,52 @@ export default function Clients() {
 
   const setFollowupQuick = async (clientId, followupStatus) => {
     if (!advisor?.id || !clientId) return
+    const optimisticContactDate = followupStatus !== 'a_contacter' ? new Date().toISOString() : null
+    let previousClient = null
+
     try {
+      setError(null)
       setUpdatingFollowupByClient((prev) => ({ ...prev, [clientId]: true }))
-      await updateClientFollowup({
+      setClients((prev) =>
+        prev.map((client) => {
+          if (client.id !== clientId) return client
+          previousClient = client
+          return {
+            ...client,
+            followup_status: followupStatus,
+            last_contacted_at: optimisticContactDate || client.last_contacted_at
+          }
+        })
+      )
+
+      const updatedClient = await updateClientFollowup({
         clientId,
         advisorId: advisor.id,
         followupStatus,
         markContacted: followupStatus !== 'a_contacter'
       })
-      await loadClients()
+
+      if (updatedClient) {
+        setClients((prev) =>
+          prev.map((client) =>
+            client.id === clientId
+              ? {
+                  ...client,
+                  ...updatedClient
+                }
+              : client
+          )
+        )
+      }
+
+      void loadClients()
     } catch (err) {
       console.error('Erreur mise a jour suivi client:', err)
+      if (previousClient) {
+        setClients((prev) =>
+          prev.map((client) => (client.id === clientId ? previousClient : client))
+        )
+      }
       setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
     } finally {
       setUpdatingFollowupByClient((prev) => ({ ...prev, [clientId]: false }))

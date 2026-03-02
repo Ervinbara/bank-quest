@@ -29,6 +29,11 @@ const FOLLOWUP_LABELS = {
   clos: 'Clos'
 }
 const normalizeFollowupStatus = (status) => status || 'a_contacter'
+const toAnalyticsFollowupPatch = (client) => ({
+  followupStatus: client?.followup_status || 'a_contacter',
+  lastContactedAt: client?.last_contacted_at || null,
+  advisorNotes: client?.advisor_notes || ''
+})
 
 const getBarWidth = (value, maxValue) => {
   if (value <= 0 || maxValue <= 0) return 0
@@ -200,17 +205,77 @@ export default function Analytics() {
 
   const setPriorityFollowup = async (clientId, followupStatus) => {
     if (!advisor?.id || !clientId) return
+    const optimisticContactDate = followupStatus !== 'a_contacter' ? new Date().toISOString() : null
+    let previousAnalytics = null
+
     try {
+      setError(null)
       setUpdatingPriorityClientId(clientId)
-      await updateClientFollowup({
+      setAnalytics((prev) => {
+        if (!prev) return prev
+        previousAnalytics = prev
+        return {
+          ...prev,
+          crmRows: (prev.crmRows || []).map((row) =>
+            row.id === clientId
+              ? {
+                  ...row,
+                  followupStatus: followupStatus,
+                  lastContactedAt: optimisticContactDate || row.lastContactedAt
+                }
+              : row
+          ),
+          priorities: (prev.priorities || []).map((row) =>
+            row.id === clientId
+              ? {
+                  ...row,
+                  followupStatus: followupStatus,
+                  lastContactedAt: optimisticContactDate || row.lastContactedAt
+                }
+              : row
+          )
+        }
+      })
+
+      const updatedClient = await updateClientFollowup({
         clientId,
         advisorId: advisor.id,
         followupStatus,
         markContacted: followupStatus !== 'a_contacter'
       })
-      await loadAnalytics()
+
+      if (updatedClient) {
+        const patch = toAnalyticsFollowupPatch(updatedClient)
+        setAnalytics((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            crmRows: (prev.crmRows || []).map((row) =>
+              row.id === clientId
+                ? {
+                    ...row,
+                    ...patch
+                  }
+                : row
+            ),
+            priorities: (prev.priorities || []).map((row) =>
+              row.id === clientId
+                ? {
+                    ...row,
+                    ...patch
+                  }
+                : row
+            )
+          }
+        })
+      }
+
+      void loadAnalytics()
     } catch (err) {
       console.error('Erreur mise a jour priorite:', err)
+      if (previousAnalytics) {
+        setAnalytics(previousAnalytics)
+      }
       setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
     } finally {
       setUpdatingPriorityClientId(null)

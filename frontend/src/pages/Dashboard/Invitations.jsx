@@ -142,8 +142,29 @@ export default function Invitations() {
     try {
       setRegeneratingId(row.id)
       setError(null)
-      await regenerateInvitationLink(row.id)
-      await loadInvitations()
+      const invitation = await regenerateInvitationLink(row.id)
+      setRows((prev) =>
+        prev.map((item) =>
+          item.id === row.id
+            ? {
+                ...item,
+                invitation: {
+                  ...(item.invitation || {}),
+                  token: invitation?.token || item.invitation?.token,
+                  questionnaireId:
+                    invitation?.questionnaireId !== undefined
+                      ? invitation.questionnaireId
+                      : item.invitation?.questionnaireId,
+                  expiresAt: invitation?.expiresAt || null,
+                  updatedAt: invitation?.updatedAt || new Date().toISOString(),
+                  inviteUrl: invitation?.inviteUrl || item.invitation?.inviteUrl || '',
+                  legacyMode: !!invitation?.legacyMode
+                }
+              }
+            : item
+        )
+      )
+      void loadInvitations()
     } catch (err) {
       console.error('Erreur regeneration invitation:', err)
       setError(tr("Impossible de regenerer le lien d'invitation", 'Unable to regenerate invitation link'))

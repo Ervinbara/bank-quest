@@ -96,13 +96,15 @@ export const dashboardGuides = {
             'Filtrer par statut quiz: tous, completes, en attente.',
             'Filtrer par suivi commercial: a contacter, RDV planifie, en cours, clos.',
             'Combiner les deux filtres pour une liste actionnable.',
-            'Les boutons rapides de suivi deviennent pleins et colores quand un statut est selectionne.'
+            'Les boutons rapides de suivi deviennent pleins et colores quand un statut est selectionne.',
+            'Le changement de suivi est applique instantanement sur la carte client.'
           ],
           en: [
             'Filter by quiz status: all, completed, pending.',
             'Filter by sales follow-up: to contact, scheduled, in progress, closed.',
             'Combine both filters for an actionable list.',
-            'Quick follow-up buttons become solid and highlighted when a status is selected.'
+            'Quick follow-up buttons become solid and highlighted when a status is selected.',
+            'Follow-up changes are applied instantly on the client card.'
           ]
         }
       },
@@ -179,12 +181,14 @@ export const dashboardGuides = {
           fr: [
             'Envoyer l email directement depuis la ligne.',
             'Copier puis partager via ton canal habituel.',
-            'Regenerer un lien en cas d expiration ou de perte.'
+            'Regenerer un lien en cas d expiration ou de perte.',
+            'Les actions se mettent a jour instantanement sans recharger la page.'
           ],
           en: [
             'Send email directly from the row.',
             'Copy and share through your usual channel.',
-            'Regenerate links if expired or lost.'
+            'Regenerate links if expired or lost.',
+            'Actions update instantly without reloading the page.'
           ]
         }
       }
@@ -369,6 +373,7 @@ export const dashboardGuides = {
             'Identifier les urgences via le niveau de priorite.',
             'Mettre a jour le suivi directement depuis la ligne avec les quick actions.',
             'Le bouton actif est visuellement mis en evidence pour eviter les erreurs de statut.',
+            'Les changements de statut sont visibles immediatement sans refresh manuel.',
             'Ouvrir directement la fiche client pour aller plus loin.',
             'Exporter le CSV pour partage ou reporting externe.'
           ],
@@ -376,6 +381,7 @@ export const dashboardGuides = {
             'Identify urgent cases by priority level.',
             'Update follow-up directly from each row using quick actions.',
             'The active button is visually highlighted to avoid status mistakes.',
+            'Status changes are visible immediately without manual refresh.',
             'Open client profile directly for deeper actions.',
             'Export CSV for sharing or external reporting.'
           ]

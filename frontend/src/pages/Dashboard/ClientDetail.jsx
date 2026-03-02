@@ -115,7 +115,7 @@ export default function ClientDetail() {
       setSaving(true)
       setError(null)
 
-      await updateClient({
+      const updatedClient = await updateClient({
         clientId: client.id,
         advisorId: advisor.id,
         name: formData.name,
@@ -123,7 +123,20 @@ export default function ClientDetail() {
         avatar: formData.avatar
       })
 
-      await loadClient()
+      setClient((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...updatedClient,
+              client_insights: prev.client_insights || []
+            }
+          : prev
+      )
+      setFormData({
+        name: updatedClient?.name || '',
+        email: updatedClient?.email || '',
+        avatar: updatedClient?.avatar || ''
+      })
       setEditing(false)
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le client')
@@ -138,14 +151,30 @@ export default function ClientDetail() {
     try {
       setUpdatingFollowup(true)
       setError(null)
-      await updateClientFollowup({
+      const updatedClient = await updateClientFollowup({
         clientId: client.id,
         advisorId: advisor.id,
         followupStatus: followupData.followupStatus,
         advisorNotes: followupData.advisorNotes,
         markContacted
       })
-      await loadClient()
+      setClient((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...updatedClient,
+              client_insights: prev.client_insights || []
+            }
+          : prev
+      )
+      setFollowupData((prev) => ({
+        ...prev,
+        followupStatus: updatedClient?.followup_status || prev.followupStatus,
+        advisorNotes:
+          typeof updatedClient?.advisor_notes === 'string'
+            ? updatedClient.advisor_notes
+            : prev.advisorNotes
+      }))
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le suivi')
     } finally {
