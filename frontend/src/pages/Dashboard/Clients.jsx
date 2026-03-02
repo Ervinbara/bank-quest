@@ -11,6 +11,8 @@ import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search, Upload } from 'lucide-react'
 
+const normalizeFollowupStatus = (status) => status || 'a_contacter'
+
 export default function Clients() {
   const { advisor } = useAuth()
   const { tr, language } = useLanguage()
@@ -307,7 +309,9 @@ export default function Clients() {
                 footerAction={
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-gray-600">
-                      {tr('Suivi', 'Follow-up')}: {FOLLOWUP_LABELS[client.followup_status] || tr('A contacter', 'To contact')}
+                      {tr('Suivi', 'Follow-up')}:
+                      {' '}
+                      {FOLLOWUP_LABELS[normalizeFollowupStatus(client.followup_status)] || tr('A contacter', 'To contact')}
                     </div>
                     <div className="grid grid-cols-3 gap-1">
                       <button
@@ -318,7 +322,11 @@ export default function Clients() {
                           event.stopPropagation()
                           void setFollowupQuick(client.id, 'a_contacter')
                         }}
-                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 transition"
+                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
+                          normalizeFollowupStatus(client.followup_status) === 'a_contacter'
+                            ? 'bg-blue-600 text-white ring-2 ring-blue-200 shadow-sm'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        }`}
                       >
                         {tr('A contacter', 'To contact')}
                       </button>
@@ -330,7 +338,11 @@ export default function Clients() {
                           event.stopPropagation()
                           void setFollowupQuick(client.id, 'rdv_planifie')
                         }}
-                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-60 transition"
+                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
+                          normalizeFollowupStatus(client.followup_status) === 'rdv_planifie'
+                            ? 'bg-purple-600 text-white ring-2 ring-purple-200 shadow-sm'
+                            : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                        }`}
                       >
                         {tr('RDV', 'Meeting')}
                       </button>
@@ -342,7 +354,11 @@ export default function Clients() {
                           event.stopPropagation()
                           void setFollowupQuick(client.id, 'clos')
                         }}
-                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 transition"
+                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
+                          normalizeFollowupStatus(client.followup_status) === 'clos'
+                            ? 'bg-emerald-600 text-white ring-2 ring-emerald-200 shadow-sm'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        }`}
                       >
                         {tr('Clore', 'Close')}
                       </button>

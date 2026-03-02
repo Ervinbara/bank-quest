@@ -95,12 +95,14 @@ export const dashboardGuides = {
           fr: [
             'Filtrer par statut quiz: tous, completes, en attente.',
             'Filtrer par suivi commercial: a contacter, RDV planifie, en cours, clos.',
-            'Combiner les deux filtres pour une liste actionnable.'
+            'Combiner les deux filtres pour une liste actionnable.',
+            'Les boutons rapides de suivi deviennent pleins et colores quand un statut est selectionne.'
           ],
           en: [
             'Filter by quiz status: all, completed, pending.',
             'Filter by sales follow-up: to contact, scheduled, in progress, closed.',
-            'Combine both filters for an actionable list.'
+            'Combine both filters for an actionable list.',
+            'Quick follow-up buttons become solid and highlighted when a status is selected.'
           ]
         }
       },
@@ -365,12 +367,16 @@ export const dashboardGuides = {
         bullets: {
           fr: [
             'Identifier les urgences via le niveau de priorite.',
-            'Ouvrir directement la fiche client pour agir.',
+            'Mettre a jour le suivi directement depuis la ligne avec les quick actions.',
+            'Le bouton actif est visuellement mis en evidence pour eviter les erreurs de statut.',
+            'Ouvrir directement la fiche client pour aller plus loin.',
             'Exporter le CSV pour partage ou reporting externe.'
           ],
           en: [
             'Identify urgent cases by priority level.',
-            'Open client profile directly to act.',
+            'Update follow-up directly from each row using quick actions.',
+            'The active button is visually highlighted to avoid status mistakes.',
+            'Open client profile directly for deeper actions.',
             'Export CSV for sharing or external reporting.'
           ]
         }
