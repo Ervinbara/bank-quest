@@ -81,6 +81,7 @@ const translations = {
       questionBank: 'Banque questions',
       analytics: 'Statistiques',
       settings: 'Parametres',
+      admin: 'Super Admin',
       freeVersion: 'Version gratuite',
       daysLeft: '14 jours restants',
       upgrade: 'Passer Pro'
@@ -204,6 +205,7 @@ const translations = {
       questionBank: 'Question bank',
       analytics: 'Analytics',
       settings: 'Settings',
+      admin: 'Super Admin',
       freeVersion: 'Free plan',
       daysLeft: '14 days left',
       upgrade: 'Upgrade to Pro'

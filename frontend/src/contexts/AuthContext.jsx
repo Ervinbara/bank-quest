@@ -261,6 +261,10 @@ export const AuthProvider = ({ children }) => {
     return advisorData || null
   }
 
+  const isSuperAdmin =
+    advisor?.role === 'super_admin' ||
+    user?.email?.toLowerCase() === 'bankquest.pro@gmail.com'
+
   const value = {
     user,
     advisor,
@@ -271,7 +275,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     refreshAdvisor,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    isSuperAdmin
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

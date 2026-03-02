@@ -461,5 +461,68 @@ export const dashboardGuides = {
         }
       }
     ]
+  },
+  admin: {
+    buttonLabel: { fr: 'Notice de cet onglet', en: 'Tab guide' },
+    title: { fr: 'Super Admin - Guide', en: 'Super Admin guide' },
+    slides: [
+      {
+        title: { fr: 'Vue globale plateforme', en: 'Global platform view' },
+        description: {
+          fr: 'Cet onglet donne une vue transversale de tous les conseillers et de leur activite.',
+          en: 'This tab provides a cross-platform view of all advisors and their activity.'
+        },
+        bullets: {
+          fr: [
+            'Suivre le nombre total de conseillers actifs.',
+            'Visualiser les abonnements actifs et le MRR estime.',
+            'Comparer les volumes clients entre conseillers.'
+          ],
+          en: [
+            'Track the total number of active advisors.',
+            'Monitor active subscriptions and estimated MRR.',
+            'Compare client volume across advisors.'
+          ]
+        }
+      },
+      {
+        title: { fr: 'Table conseillers', en: 'Advisors table' },
+        description: {
+          fr: 'La table detaille chaque conseiller, son plan et ses indicateurs de performance.',
+          en: 'The table details each advisor, plan, and performance indicators.'
+        },
+        bullets: {
+          fr: [
+            'Rechercher rapidement par nom, email ou societe.',
+            'Verifier le plan souscrit et le statut de facturation.',
+            'Suivre le taux de completion et le score moyen client.'
+          ],
+          en: [
+            'Search quickly by name, email, or company.',
+            'Check subscribed plan and billing status.',
+            'Track completion rate and average client score.'
+          ]
+        }
+      },
+      {
+        title: { fr: 'Utilisation recommandee', en: 'Recommended usage' },
+        description: {
+          fr: 'Utilise cet onglet chaque semaine pour prioriser les actions business.',
+          en: 'Use this tab weekly to prioritize business actions.'
+        },
+        bullets: {
+          fr: [
+            'Identifier les conseillers sans abonnement actif.',
+            'Detecter les comptes peu actifs pour accompagner leur adoption.',
+            'Piloter la croissance globale via les KPI de revenu et activation.'
+          ],
+          en: [
+            'Identify advisors without an active subscription.',
+            'Detect low-activity accounts to improve adoption.',
+            'Steer overall growth using revenue and activation KPIs.'
+          ]
+        }
+      }
+    ]
   }
 }

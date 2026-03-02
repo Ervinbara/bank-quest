@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X, PanelLeftClose, PanelLeftOpen, Shield } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function Sidebar({
   mobileOpen = false,
   onClose = () => {},
   collapsed = false,
-  onToggleCollapsed = () => {}
+  onToggleCollapsed = () => {},
+  showAdmin = false
 }) {
   const location = useLocation()
   const { t } = useLanguage()
@@ -49,6 +50,14 @@ export default function Sidebar({
       label: t('sidebar.settings', 'Settings')
     }
   ]
+
+  if (showAdmin) {
+    menuItems.push({
+      path: '/dashboard/admin',
+      icon: Shield,
+      label: t('sidebar.admin', 'Super Admin')
+    })
+  }
 
   const isActive = (path, exact) => {
     if (exact) return location.pathname === path

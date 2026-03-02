@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import SuperAdminRoute from '@/components/SuperAdminRoute'
 
 // Pages publiques
 import Home from './pages/Home'
@@ -30,6 +31,7 @@ import Analytics from './pages/Dashboard/Analytics'
 import Questionnaires from './pages/Dashboard/Questionnaires'
 import QuestionBank from './pages/Dashboard/QuestionBank'
 import Settings from './pages/Dashboard/Settings'
+import Admin from './pages/Dashboard/Admin'
 
 function App() {
   return (
@@ -69,6 +71,14 @@ function App() {
             <Route path="question-bank" element={<QuestionBank />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
+            <Route
+              path="admin"
+              element={
+                <SuperAdminRoute>
+                  <Admin />
+                </SuperAdminRoute>
+              }
+            />
             {/* Capture les sous-routes inconnues du dashboard DANS le layout protégé.
                 Sans ce fallback, /dashboard/analytics tomberait sur le * top-level,
                 démonterait ProtectedRoute, et causerait le bug "Chargement..." au retour. */}

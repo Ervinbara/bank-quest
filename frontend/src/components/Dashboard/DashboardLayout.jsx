@@ -9,7 +9,7 @@ import { LogOut, User, Loader2, Menu } from 'lucide-react'
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
 
 export default function DashboardLayout() {
-  const { advisor, logout } = useAuth()
+  const { advisor, logout, isSuperAdmin } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -45,6 +45,7 @@ export default function DashboardLayout() {
         onClose={() => setMobileMenuOpen(false)}
         collapsed={mobileMenuOpen ? false : sidebarCollapsed}
         onToggleCollapsed={toggleSidebarCollapsed}
+        showAdmin={isSuperAdmin}
       />
 
       <div className="flex-1 flex flex-col">
