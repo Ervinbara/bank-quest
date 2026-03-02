@@ -10,6 +10,10 @@ import NotFound from './pages/NotFound'
 import ClientQuiz from './pages/ClientQuiz'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
+import Support from './pages/Support'
+import AccountDeletion from './pages/AccountDeletion'
+import CookieConsentBanner from '@/components/common/CookieConsentBanner'
+import AppTelemetry from '@/components/common/AppTelemetry'
 
 // Pages d'authentification
 import Login from './pages/Auth/Login'
@@ -32,6 +36,7 @@ function App() {
     <LanguageProvider>
       <AuthProvider>
         <Router>
+          <AppTelemetry />
           <Routes>
           {/* Routes publiques */}
           <Route path="/" element={<Home />} />
@@ -39,6 +44,8 @@ function App() {
           <Route path="/quiz/:clientId" element={<ClientQuiz />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/account-deletion" element={<AccountDeletion />} />
           
           {/* Routes d'authentification */}
           <Route path="/auth/login" element={<Login />} />
@@ -71,6 +78,7 @@ function App() {
           {/* 404 — uniquement pour les routes hors /dashboard */}
           <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsentBanner />
         </Router>
       </AuthProvider>
     </LanguageProvider>

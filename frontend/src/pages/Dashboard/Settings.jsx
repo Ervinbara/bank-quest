@@ -6,14 +6,15 @@ import { supabase } from '@/lib/supabase'
 import SettingsTabs from '@/components/Dashboard/SettingsTabs'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import { dashboardGuides } from '@/data/dashboardGuides'
-import { validatePassword } from '@/services/authService'
+import { getMfaStatus, reauthenticateUser, validatePassword } from '@/services/authService'
+import { getAdvisorAuditLogs, logAdvisorEvent } from '@/services/auditService'
 import {
   createStripeCheckoutSession,
   createStripeCustomerPortalSession,
   syncStripeSubscription
 } from '@/services/billingService'
 import { deleteAdvisorAccount, exportAdvisorDataAsJson } from '@/services/privacyService'
-import { Save, Loader2, Check, AlertCircle, Lock } from 'lucide-react'
+import { Save, Loader2, Check, AlertCircle, Lock, ShieldCheck } from 'lucide-react'
 
 const PLAN_DETAILS = {
   solo: { price: '19 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
@@ -33,6 +34,7 @@ const SUBSCRIPTION_STATUS_COLORS = {
   incomplete: 'text-orange-700 bg-orange-100',
   inactive: 'text-gray-700 bg-gray-100'
 }
+const RECENT_AUTH_WINDOW_MS = 10 * 60 * 1000
 
 export default function Settings() {
   const { advisor, updateProfile, refreshAdvisor } = useAuth()
@@ -44,6 +46,13 @@ export default function Settings() {
   const [portalLoading, setPortalLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [consentLoading, setConsentLoading] = useState(false)
+  const [mfaLoading, setMfaLoading] = useState(false)
+  const [securityOverview, setSecurityOverview] = useState({
+    recentAuthAt: null,
+    mfaVerifiedCount: 0
+  })
+  const [auditLogs, setAuditLogs] = useState([])
   const [message, setMessage] = useState(null)
 
   const [profileData, setProfileData] = useState({
@@ -59,12 +68,20 @@ export default function Settings() {
       company: advisor.company || '',
       phone: advisor.phone || ''
     })
+    setConsentData({
+      marketingOptIn: Boolean(advisor.marketing_opt_in),
+      analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled)
+    })
   }, [advisor])
 
   const [securityData, setSecurityData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
+  })
+  const [consentData, setConsentData] = useState({
+    marketingOptIn: Boolean(advisor?.marketing_opt_in),
+    analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled)
   })
 
   const [errors, setErrors] = useState({})
@@ -142,6 +159,58 @@ export default function Settings() {
     setTimeout(() => setMessage(null), 3000)
   }, [searchParams, setSearchParams, refreshAdvisor, tr])
 
+  useEffect(() => {
+    if (activeTab !== 'security') return
+
+    const run = async () => {
+      try {
+        setMfaLoading(true)
+        const { verifiedCount } = await getMfaStatus()
+        setSecurityOverview((prev) => ({ ...prev, mfaVerifiedCount: verifiedCount }))
+      } catch {
+        setSecurityOverview((prev) => ({ ...prev, mfaVerifiedCount: 0 }))
+      } finally {
+        setMfaLoading(false)
+      }
+
+      try {
+        const rows = await getAdvisorAuditLogs(8)
+        setAuditLogs(rows)
+      } catch {
+        setAuditLogs([])
+      }
+    }
+
+    void run()
+  }, [activeTab])
+
+  const hasRecentAuth = () => {
+    if (!securityOverview.recentAuthAt) return false
+    return Date.now() - securityOverview.recentAuthAt < RECENT_AUTH_WINDOW_MS
+  }
+
+  const ensureRecentAuth = async () => {
+    if (hasRecentAuth()) return true
+
+    const password = window.prompt(
+      tr(
+        'Pour des raisons de securite, saisissez votre mot de passe pour confirmer cette action.',
+        'For security reasons, enter your password to confirm this action.'
+      )
+    )
+
+    if (!password) return false
+
+    await reauthenticateUser(advisor.email, password)
+    const now = Date.now()
+    setSecurityOverview((prev) => ({ ...prev, recentAuthAt: now }))
+    await logAdvisorEvent('security_reauthentication', {
+      category: 'security',
+      metadata: { reason: 'sensitive_action' }
+    })
+    return true
+  }
+
   const handleProfileChange = (e) => {
     const { name, value } = e.target
     setProfileData((prev) => ({ ...prev, [name]: value }))
@@ -152,6 +221,11 @@ export default function Settings() {
     const { name, value } = e.target
     setSecurityData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
+  }
+
+  const handleConsentChange = (e) => {
+    const { name, checked } = e.target
+    setConsentData((prev) => ({ ...prev, [name]: checked }))
   }
 
   const validateProfile = () => {
@@ -199,6 +273,10 @@ export default function Settings() {
         company: profileData.company,
         phone: profileData.phone
       })
+      await logAdvisorEvent('profile_updated', {
+        category: 'account',
+        metadata: { fields: ['name', 'company', 'phone'] }
+      })
       setMessage({ type: 'success', text: tr('Profil mis a jour avec succes.', 'Profile updated successfully.') })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -235,6 +313,10 @@ export default function Settings() {
 
       const { error } = await supabase.auth.updateUser({ password: securityData.newPassword })
       if (error) throw error
+
+      await logAdvisorEvent('password_changed', {
+        category: 'security'
+      })
 
       setMessage({ type: 'success', text: tr('Mot de passe modifie avec succes.', 'Password updated successfully.') })
       setSecurityData({
@@ -285,11 +367,69 @@ export default function Settings() {
     }
   }
 
+  const saveConsentSettings = async () => {
+    const now = new Date().toISOString()
+    setConsentLoading(true)
+    setMessage(null)
+
+    try {
+      await updateProfile({
+        marketing_opt_in: Boolean(consentData.marketingOptIn),
+        marketing_opt_in_updated_at: now,
+        analytics_cookies_enabled: Boolean(consentData.analyticsCookiesEnabled),
+        analytics_cookies_updated_at: now
+      })
+
+      await Promise.all([
+        supabase.from('advisor_consent_events').insert([
+          {
+            advisor_id: advisor.id,
+            consent_type: 'marketing',
+            status: Boolean(consentData.marketingOptIn),
+            legal_version: advisor?.terms_version || null,
+            metadata: { source: 'settings' }
+          },
+          {
+            advisor_id: advisor.id,
+            consent_type: 'cookies_analytics',
+            status: Boolean(consentData.analyticsCookiesEnabled),
+            legal_version: advisor?.privacy_policy_version || null,
+            metadata: { source: 'settings' }
+          }
+        ]),
+        logAdvisorEvent('consent_preferences_updated', {
+          category: 'consent',
+          metadata: {
+            marketingOptIn: Boolean(consentData.marketingOptIn),
+            analyticsCookiesEnabled: Boolean(consentData.analyticsCookiesEnabled)
+          }
+        })
+      ])
+
+      setMessage({
+        type: 'success',
+        text: tr('Preferences de consentement enregistrees.', 'Consent preferences saved.')
+      })
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error?.message || tr('Mise a jour des consentements impossible', 'Unable to update consent preferences')
+      })
+    } finally {
+      setConsentLoading(false)
+    }
+  }
+
   const handleDataExport = async () => {
     try {
+      const allowed = await ensureRecentAuth()
+      if (!allowed) return
       setExportLoading(true)
       setMessage(null)
       await exportAdvisorDataAsJson(advisor)
+      await logAdvisorEvent('gdpr_export_requested', {
+        category: 'privacy'
+      })
       setMessage({
         type: 'success',
         text: tr('Export termine. Le fichier JSON a ete telecharge.', 'Export completed. JSON file has been downloaded.')
@@ -314,8 +454,14 @@ export default function Settings() {
     if (!confirmed) return
 
     try {
+      const allowed = await ensureRecentAuth()
+      if (!allowed) return
       setDeleteLoading(true)
       setMessage(null)
+      await logAdvisorEvent('account_deletion_requested', {
+        category: 'privacy',
+        severity: 'warning'
+      })
       await deleteAdvisorAccount()
       try {
         await supabase.auth.signOut()
@@ -512,31 +658,125 @@ export default function Settings() {
             </button>
             </form>
 
-            <div className="border-t pt-8 space-y-4">
-              <h3 className="text-xl font-bold text-gray-800">{tr('RGPD et donnees personnelles', 'GDPR and personal data')}</h3>
-              <p className="text-sm text-gray-600">
-                {tr(
-                  'Vous pouvez exporter vos donnees ou supprimer votre compte a tout moment.',
-                  'You can export your data or delete your account at any time.'
+            <div className="border-t pt-8 space-y-6">
+              <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+                <h3 className="text-xl font-bold text-gray-800">{tr('Consentements', 'Consents')}</h3>
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="marketingOptIn"
+                    checked={consentData.marketingOptIn}
+                    onChange={handleConsentChange}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    {tr(
+                      'Recevoir les communications produit (optionnel).',
+                      'Receive product communications (optional).'
+                    )}
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="analyticsCookiesEnabled"
+                    checked={consentData.analyticsCookiesEnabled}
+                    onChange={handleConsentChange}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    {tr(
+                      "Autoriser les cookies analytiques pour ameliorer l'application.",
+                      'Allow analytics cookies to improve the app.'
+                    )}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={saveConsentSettings}
+                  disabled={consentLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-2 font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {consentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {tr('Enregistrer mes consentements', 'Save my consents')}
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+                <h3 className="text-xl font-bold text-gray-800">{tr('Securite avancee', 'Advanced security')}</h3>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p>
+                    {tr('Re-authentification recente', 'Recent re-authentication')}:{' '}
+                    <span className="font-semibold">
+                      {hasRecentAuth()
+                        ? tr('Oui (moins de 10 min)', 'Yes (less than 10 min)')
+                        : tr('Non', 'No')}
+                    </span>
+                  </p>
+                  <p>
+                    {tr('Facteurs MFA verifies', 'Verified MFA factors')}:{' '}
+                    <span className="font-semibold">
+                      {mfaLoading ? tr('Chargement...', 'Loading...') : securityOverview.mfaVerifiedCount}
+                    </span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('security')}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  {tr('Rafraichir securite', 'Refresh security')}
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+                <h3 className="text-xl font-bold text-gray-800">{tr('RGPD et donnees personnelles', 'GDPR and personal data')}</h3>
+                <p className="text-sm text-gray-600">
+                  {tr(
+                    'Actions sensibles: une re-authentification peut etre demandee.',
+                    'Sensitive actions: re-authentication may be required.'
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDataExport}
+                    disabled={exportLoading || deleteLoading}
+                    className="px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 disabled:opacity-60"
+                  >
+                    {exportLoading ? tr('Export en cours...', 'Exporting...') : tr('Exporter mes donnees (JSON)', 'Export my data (JSON)')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAccountDeletion}
+                    disabled={deleteLoading || exportLoading}
+                    className="px-4 py-2 rounded-lg border border-red-300 bg-red-50 text-red-700 font-semibold hover:bg-red-100 disabled:opacity-60"
+                  >
+                    {deleteLoading ? tr('Suppression en cours...', 'Deleting...') : tr('Supprimer mon compte', 'Delete my account')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="text-lg font-bold text-gray-800 mb-3">{tr('Journal des actions recentes', 'Recent activity log')}</h3>
+                {auditLogs.length === 0 ? (
+                  <p className="text-sm text-gray-500">{tr('Aucun evenement recent.', 'No recent events.')}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {auditLogs.map((event) => (
+                      <li key={event.id} className="text-sm rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-slate-800">{event.action}</span>
+                          <span className="text-xs text-slate-500">{event.category}</span>
+                          <span className="text-xs text-slate-500">
+                            {formatDate(event.created_at)}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleDataExport}
-                  disabled={exportLoading || deleteLoading}
-                  className="px-4 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 disabled:opacity-60"
-                >
-                  {exportLoading ? tr('Export en cours...', 'Exporting...') : tr('Exporter mes donnees (JSON)', 'Export my data (JSON)')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAccountDeletion}
-                  disabled={deleteLoading || exportLoading}
-                  className="px-4 py-2 rounded-lg border border-red-300 bg-red-50 text-red-700 font-semibold hover:bg-red-100 disabled:opacity-60"
-                >
-                  {deleteLoading ? tr('Suppression en cours...', 'Deleting...') : tr('Supprimer mon compte', 'Delete my account')}
-                </button>
               </div>
             </div>
           </div>

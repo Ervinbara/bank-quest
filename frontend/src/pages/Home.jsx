@@ -186,6 +186,10 @@ export default function Home() {
             <Link to="/terms" className="text-emerald-300 hover:text-emerald-200">
               {t('auth.cgu')}
             </Link>
+            <span className="text-gray-500">|</span>
+            <Link to="/support" className="text-emerald-300 hover:text-emerald-200">
+              {t('Support', 'Support')}
+            </Link>
           </div>
         </div>
       </footer>

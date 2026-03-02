@@ -109,6 +109,11 @@ export default function Privacy() {
                   'From Settings > Security, you can export your data (JSON) and delete your account. You can also request rectification, restriction or objection by contacting bankquest.pro@gmail.com.'
                 )}
               </p>
+              <p className="mt-2">
+                <Link to="/account-deletion" className="text-emerald-700 hover:underline font-semibold">
+                  {tr('Procedure de suppression de compte', 'Account deletion procedure')}
+                </Link>
+              </p>
             </div>
 
             <div>
@@ -122,10 +127,21 @@ export default function Privacy() {
                 )}
               </p>
             </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                {tr('8. Contact support', '8. Support contact')}
+              </h2>
+              <p>
+                {tr(
+                  'Pour toute demande de confidentialite, suppression ou support technique: bankquest.pro@gmail.com',
+                  'For any privacy request, deletion request, or technical support: bankquest.pro@gmail.com'
+                )}
+              </p>
+            </div>
           </section>
         </div>
       </main>
     </div>
   )
 }
-

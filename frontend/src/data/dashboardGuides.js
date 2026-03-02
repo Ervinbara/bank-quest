@@ -423,6 +423,9 @@ export const dashboardGuides = {
             'Renseigner le mot de passe actuel pour verification.',
             'Choisir un nouveau mot de passe robuste.',
             'Confirmer et valider le changement.',
+            'Piloter les consentements marketing et cookies analytiques.',
+            'Verifier le statut de re-authentification recente et des facteurs MFA.',
+            "Consulter le journal d'actions recentes pour les operations sensibles.",
             'Exporter tes donnees personnelles en JSON (droit d acces RGPD).',
             'Supprimer ton compte de maniere definitive si necessaire.'
           ],
@@ -430,6 +433,9 @@ export const dashboardGuides = {
             'Enter current password for verification.',
             'Choose a strong new password.',
             'Confirm and submit the change.',
+            'Manage marketing and analytics-cookie consent preferences.',
+            'Review recent re-authentication and verified MFA factors.',
+            'View recent activity logs for sensitive operations.',
             'Export your personal data as JSON (GDPR right of access).',
             'Delete your account permanently when needed.'
           ]

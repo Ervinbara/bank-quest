@@ -121,6 +121,11 @@ export default function Terms() {
                   'For any question about these terms: bankquest.pro@gmail.com'
                 )}
               </p>
+              <p className="mt-2">
+                <Link to="/support" className="text-emerald-700 hover:underline font-semibold">
+                  {tr('Centre de support', 'Support center')}
+                </Link>
+              </p>
             </div>
 
             <div>
@@ -132,6 +137,11 @@ export default function Terms() {
                   "Le traitement des donnees personnelles est detaille dans la Politique de confidentialite. L'utilisateur reste responsable des donnees clients qu'il importe dans FinMate.",
                   'Personal data processing is detailed in the Privacy Policy. The user remains responsible for client data imported into FinMate.'
                 )}
+              </p>
+              <p className="mt-2">
+                <Link to="/account-deletion" className="text-emerald-700 hover:underline font-semibold">
+                  {tr('Supprimer mon compte', 'Delete my account')}
+                </Link>
               </p>
             </div>
           </section>

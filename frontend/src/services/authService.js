@@ -102,6 +102,31 @@ export const refreshSession = async () => {
   return data.session
 }
 
+export const reauthenticateUser = async (email, password) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+  if (error) throw error
+  return data
+}
+
+export const getMfaStatus = async () => {
+  const { data, error } = await supabase.auth.mfa.listFactors()
+  if (error) throw error
+
+  const factors = [
+    ...(data?.all || []),
+    ...(data?.totp || []),
+    ...(data?.phone || [])
+  ]
+
+  return {
+    factors,
+    verifiedCount: factors.filter((factor) => factor.status === 'verified').length
+  }
+}
+
 // Recuperer la session actuelle
 export const getSession = async () => {
   const {
@@ -136,4 +161,3 @@ export const getUserInitials = (name) => {
     .toUpperCase()
     .slice(0, 2)
 }
-

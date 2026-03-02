@@ -47,6 +47,8 @@ bank-quest/
         ClientQuiz.jsx
         Privacy.jsx
         Terms.jsx
+        Support.jsx
+        AccountDeletion.jsx
         Auth/
           Login.jsx
           Register.jsx
@@ -63,6 +65,8 @@ bank-quest/
       components/
         ProtectedRoute.jsx
         LanguageSwitcher.jsx
+        common/AppTelemetry.jsx
+        common/CookieConsentBanner.jsx
         common/PaginationControls.jsx
         Dashboard/
           DashboardLayout.jsx
@@ -81,7 +85,7 @@ bank-quest/
         themes.js
   supabase/
     migrations/
-      001_...sql -> 012_...sql
+      001_...sql -> 013_...sql
     functions/
       delete-account/
       send-invitation-email/
@@ -98,12 +102,20 @@ bank-quest/
 - `contexts/AuthContext.jsx`: session, profil advisor, login/register/logout, OAuth Google.
 - `contexts/LanguageContext.jsx`: i18n FR/EN, helper `tr(fr, en)`.
 - `services/authService.js`: auth Supabase + creation profil advisor + consentement legal.
+- `services/auditService.js`: journalisation des evenements sensibles (audit trail).
 - `services/clientService.js`: CRUD clients, invitations, analytics, quiz public.
 - `services/privacyService.js`: export RGPD JSON et suppression de compte.
 - `pages/Dashboard/Settings.jsx`: profil, securite, abonnement, actions RGPD.
+- `components/common/CookieConsentBanner.jsx`: banner cookies necessaires/analytiques avec sync profil.
+- `components/common/AppTelemetry.jsx`: capture erreurs frontend (`error`, `unhandledrejection`) vers audit logs.
 
 ### Supabase
 - `migrations`: schema SQL versionne + politiques RLS.
+- `migrations/013_audit_and_consent_hardening.sql`:
+  - table `advisor_consent_events`
+  - table `advisor_audit_logs`
+  - RPC `log_advisor_event(...)`
+  - champs advisor `analytics_cookies_enabled`, `analytics_cookies_updated_at`, `marketing_opt_in_updated_at`
 - `functions/stripe-*`: checkout, portail client, webhook, sync abonnement.
 - `functions/send-invitation-email`: envoi email transactionnel.
 - `functions/translate-text`: traduction automatique avec guardrails.
@@ -179,6 +191,8 @@ Depuis la racine:
 - `/quiz/:clientId?token=...` (compat legacy)
 - `/privacy`
 - `/terms`
+- `/support`
+- `/account-deletion`
 
 ### Auth
 - `/auth/login`
@@ -205,10 +219,19 @@ Depuis la racine:
   - `terms_version`
   - `privacy_policy_version`
   - `marketing_opt_in`
+  - `marketing_opt_in_updated_at`
+  - `analytics_cookies_enabled`
+  - `analytics_cookies_updated_at`
+- Journal des consentements:
+  - `advisor_consent_events` (type, statut, version legale, metadata)
+- Journal d'audit:
+  - `advisor_audit_logs` (action, categorie, severite, metadata, horodatage)
 - RLS activee sur tables metier principales (migration `012_rgpd_foundation.sql`).
 - Export des donnees utilisateur en JSON depuis `Parametres > Securite`.
 - Suppression definitive de compte depuis `Parametres > Securite`.
 - Politique de confidentialite detaillee exposee sur `/privacy`.
+- Page support publique exposee sur `/support`.
+- Procedure publique de suppression de compte exposee sur `/account-deletion`.
 
 ## 8) Google OAuth (production)
 1. Creer un client OAuth 2.0 Web dans Google Cloud.
@@ -237,4 +260,3 @@ Scripts utiles:
 - Garder les migrations idempotentes et incrementales.
 - Verifier `npm run build` avant push.
 - Mettre a jour ce README a chaque feature.
-
