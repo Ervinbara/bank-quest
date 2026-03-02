@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { getAdvisorClients, subscribeToAdvisorClients } from '@/services/clientService'
+import { getAdvisorClients, subscribeToAdvisorClients, updateClientFollowup } from '@/services/clientService'
 import ClientCard from '@/components/Dashboard/ClientCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
@@ -46,6 +46,7 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(9)
+  const [updatingFollowupByClient, setUpdatingFollowupByClient] = useState({})
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
@@ -118,6 +119,25 @@ export default function Clients() {
   useEffect(() => {
     setPage(1)
   }, [activeStatusFilter, activeFollowupFilter, searchTerm])
+
+  const setFollowupQuick = async (clientId, followupStatus) => {
+    if (!advisor?.id || !clientId) return
+    try {
+      setUpdatingFollowupByClient((prev) => ({ ...prev, [clientId]: true }))
+      await updateClientFollowup({
+        clientId,
+        advisorId: advisor.id,
+        followupStatus,
+        markContacted: followupStatus !== 'a_contacter'
+      })
+      await loadClients()
+    } catch (err) {
+      console.error('Erreur mise a jour suivi client:', err)
+      setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
+    } finally {
+      setUpdatingFollowupByClient((prev) => ({ ...prev, [clientId]: false }))
+    }
+  }
 
   const paginatedClients = useMemo(() => {
     const start = (page - 1) * pageSize
@@ -288,6 +308,44 @@ export default function Clients() {
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-gray-600">
                       {tr('Suivi', 'Follow-up')}: {FOLLOWUP_LABELS[client.followup_status] || tr('A contacter', 'To contact')}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        disabled={!!updatingFollowupByClient[client.id]}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void setFollowupQuick(client.id, 'a_contacter')
+                        }}
+                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 transition"
+                      >
+                        {tr('A contacter', 'To contact')}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!updatingFollowupByClient[client.id]}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void setFollowupQuick(client.id, 'rdv_planifie')
+                        }}
+                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-60 transition"
+                      >
+                        {tr('RDV', 'Meeting')}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!updatingFollowupByClient[client.id]}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void setFollowupQuick(client.id, 'clos')
+                        }}
+                        className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 transition"
+                      >
+                        {tr('Clore', 'Close')}
+                      </button>
                     </div>
                     <Link
                       to={`/dashboard/clients/${client.id}`}

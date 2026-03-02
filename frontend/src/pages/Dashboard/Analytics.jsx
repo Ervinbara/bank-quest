@@ -5,7 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
-import { getAdvisorAnalytics } from '@/services/clientService'
+import { getAdvisorAnalytics, updateClientFollowup } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import {
   TrendingUp,
@@ -92,6 +92,7 @@ export default function Analytics() {
   const [prioritySearch, setPrioritySearch] = useState('')
   const [priorityPage, setPriorityPage] = useState(1)
   const [priorityPageSize, setPriorityPageSize] = useState(5)
+  const [updatingPriorityClientId, setUpdatingPriorityClientId] = useState(null)
 
   const loadAnalytics = useCallback(async () => {
     if (!advisor?.id) return
@@ -194,6 +195,25 @@ export default function Analytics() {
     setPrioritySearch('')
     setPriorityLimit(10)
     setPriorityPage(1)
+  }
+
+  const setPriorityFollowup = async (clientId, followupStatus) => {
+    if (!advisor?.id || !clientId) return
+    try {
+      setUpdatingPriorityClientId(clientId)
+      await updateClientFollowup({
+        clientId,
+        advisorId: advisor.id,
+        followupStatus,
+        markContacted: followupStatus !== 'a_contacter'
+      })
+      await loadAnalytics()
+    } catch (err) {
+      console.error('Erreur mise a jour priorite:', err)
+      setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
+    } finally {
+      setUpdatingPriorityClientId(null)
+    }
   }
 
   if (loading) {
@@ -464,6 +484,32 @@ export default function Analytics() {
                   >
                     {row.priority.label} ({row.priority.value})
                   </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={updatingPriorityClientId === row.id}
+                      onClick={() => void setPriorityFollowup(row.id, 'a_contacter')}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 transition"
+                    >
+                      {tr('A contacter', 'To contact')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={updatingPriorityClientId === row.id}
+                      onClick={() => void setPriorityFollowup(row.id, 'rdv_planifie')}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-60 transition"
+                    >
+                      {tr('RDV', 'Meeting')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={updatingPriorityClientId === row.id}
+                      onClick={() => void setPriorityFollowup(row.id, 'clos')}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 transition"
+                    >
+                      {tr('Clore', 'Close')}
+                    </button>
+                  </div>
                   <Link
                     to={`/dashboard/clients/${row.id}`}
                     className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
