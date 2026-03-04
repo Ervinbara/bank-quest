@@ -55,10 +55,12 @@ export default function Header() {
               <>
                 <Link
                   to="/dashboard"
-                  className="hidden sm:flex items-center gap-2 text-gray-700 hover:text-emerald-700 font-medium transition"
+                  aria-label={t('common.dashboard', 'Dashboard')}
+                  title={t('common.dashboard', 'Dashboard')}
+                  className="flex items-center gap-2 text-gray-700 hover:text-emerald-700 font-medium transition"
                 >
                   <User className="w-5 h-5" />
-                  <span>{advisor?.name || t('common.dashboard', 'Dashboard')}</span>
+                  <span className="hidden sm:inline">{advisor?.name || t('common.dashboard', 'Dashboard')}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
