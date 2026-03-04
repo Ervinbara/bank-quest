@@ -1,1 +1,11 @@
 supabase/.temp/
+
+# IDE
+.idea/
+
+# Android TWA local and build artifacts
+frontend/android-twa/.gradle/
+frontend/android-twa/app/build/
+frontend/android-twa/local.properties
+frontend/android-twa/*.keystore
+frontend/android-twa/*.jks

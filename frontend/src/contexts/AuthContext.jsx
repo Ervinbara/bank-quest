@@ -261,9 +261,7 @@ export const AuthProvider = ({ children }) => {
     return advisorData || null
   }
 
-  const isSuperAdmin =
-    advisor?.role === 'super_admin' ||
-    user?.email?.toLowerCase() === 'bankquest.pro@gmail.com'
+  const isSuperAdmin = advisor?.role === 'super_admin'
 
   const value = {
     user,

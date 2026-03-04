@@ -8,6 +8,25 @@ const PLAN_MRR = {
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing'])
 
+async function assertSuperAdmin() {
+  const {
+    data: { user },
+    error: sessionError
+  } = await supabase.auth.getUser()
+
+  if (sessionError) throw sessionError
+  if (!user?.email) throw new Error('Unauthorized')
+
+  const { data: advisor, error: advisorError } = await supabase
+    .from('advisors')
+    .select('role')
+    .ilike('email', user.email)
+    .maybeSingle()
+
+  if (advisorError) throw advisorError
+  if (advisor?.role !== 'super_admin') throw new Error('Forbidden')
+}
+
 function groupClientsByAdvisor(clients) {
   return clients.reduce((acc, client) => {
     const key = client.advisor_id
@@ -32,6 +51,8 @@ function groupClientsByAdvisor(clients) {
 }
 
 export async function getAdminOverview() {
+  await assertSuperAdmin()
+
   const [{ data: advisors, error: advisorsError }, { data: clients, error: clientsError }] =
     await Promise.all([
       supabase
