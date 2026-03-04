@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BookOpen, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -17,6 +17,13 @@ export default function DashboardGuide({ guide }) {
   const current = slides[index] || null
 
   if (!guide || slides.length === 0) return null
+
+  useEffect(() => {
+    if (!open) return
+    if (typeof window === 'undefined') return
+    if (window.innerWidth >= 768) return
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [open])
 
   const openGuide = () => {
     setIndex(0)
@@ -38,9 +45,9 @@ export default function DashboardGuide({ guide }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:items-center sm:pt-4">
           <button className="absolute inset-0 bg-black/50" onClick={closeGuide} aria-label={tr('Fermer', 'Close')} />
-          <div className="relative w-full max-w-2xl rounded-2xl border border-emerald-100 bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-2xl max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-emerald-100 bg-white p-6 shadow-2xl sm:max-h-[85vh]">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{pick(guide.title, language)}</h3>
