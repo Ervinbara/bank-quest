@@ -6,9 +6,12 @@ import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import {
+  createAdvisorQuestionnaireTemplate,
   createAdvisorQuestionnaireFromTemplate,
   createCustomAdvisorQuestionnaire,
+  deleteAdvisorQuestionnaireTemplate,
   deleteAdvisorQuestionnaire,
+  getAdvisorQuestionnaireTemplates,
   getAdvisorQuestionnaires,
   getDefaultQuestionnaireTemplates,
   getQuestionBankByTheme,
@@ -56,8 +59,12 @@ export default function Questionnaires() {
   const [items, setItems] = useState([])
   const [selectedId, setSelectedId] = useState('')
   const [draft, setDraft] = useState(null)
-  const [templateKey, setTemplateKey] = useState('starter')
+  const [templateKey, setTemplateKey] = useState('')
   const [templateName, setTemplateName] = useState('')
+  const [templateCreateName, setTemplateCreateName] = useState('')
+  const [templateCreateDescription, setTemplateCreateDescription] = useState('')
+  const [deletingTemplateKey, setDeletingTemplateKey] = useState('')
+  const [customTemplates, setCustomTemplates] = useState([])
   const [customName, setCustomName] = useState('')
   const [bankTheme, setBankTheme] = useState('budget')
   const [bankQuestionIndex, setBankQuestionIndex] = useState(0)
@@ -74,8 +81,28 @@ export default function Questionnaires() {
     questions: true
   })
 
-  const templates = useMemo(() => getDefaultQuestionnaireTemplates(), [])
+  const templates = useMemo(
+    () => [...getDefaultQuestionnaireTemplates(), ...(customTemplates || [])],
+    [customTemplates]
+  )
   const bankThemes = useMemo(() => Object.keys(bankByTheme), [bankByTheme])
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.key === templateKey) || null,
+    [templateKey, templates]
+  )
+
+  useEffect(() => {
+    if (!templateKey && templates.length > 0) {
+      setTemplateKey(templates[0].key)
+    }
+  }, [templateKey, templates])
+
+  useEffect(() => {
+    if (!templateKey) return
+    if (!templates.some((template) => template.key === templateKey)) {
+      setTemplateKey(templates[0]?.key || '')
+    }
+  }, [templateKey, templates])
 
   const selectedQuestionnaire = useMemo(
     () => items.find((item) => item.id === selectedId) || null,
@@ -116,9 +143,13 @@ export default function Questionnaires() {
     try {
       setLoading(true)
       setError(null)
-      const rows = await getAdvisorQuestionnaires(advisor.id)
-      const bank = await getQuestionBankByTheme(advisor.id)
+      const [rows, bank, advisorTemplates] = await Promise.all([
+        getAdvisorQuestionnaires(advisor.id),
+        getQuestionBankByTheme(advisor.id),
+        getAdvisorQuestionnaireTemplates(advisor.id)
+      ])
       setBankByTheme(bank || {})
+      setCustomTemplates(advisorTemplates || [])
       const firstTheme = Object.keys(bank || {})[0]
       if (firstTheme) {
         setBankTheme(firstTheme)
@@ -254,6 +285,56 @@ export default function Questionnaires() {
       }
     }
     setDraft((prev) => ({ ...prev, questions: next }))
+  }
+
+  const createTemplateFromSelectedQuestionnaire = async () => {
+    if (!selectedQuestionnaire || !draft) return
+    try {
+      setSaving(true)
+      setError(null)
+      setSuccess('')
+      await createAdvisorQuestionnaireTemplate({
+        advisorId: advisor.id,
+        name: templateCreateName || `${draft.name} (template)`,
+        description: templateCreateDescription || draft.description || '',
+        questions: draft.questions || []
+      })
+      setTemplateCreateName('')
+      setTemplateCreateDescription('')
+      await loadAll()
+      setSuccess(tr('Template ajoute', 'Template added'))
+    } catch (err) {
+      setError(err.message || tr("Impossible d'ajouter le template", 'Unable to add template'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeTemplate = async (key) => {
+    if (!key) return
+    const confirmed = window.confirm(
+      tr('Supprimer ce template personnalise ?', 'Delete this custom template?')
+    )
+    if (!confirmed) return
+    try {
+      setDeletingTemplateKey(key)
+      setError(null)
+      setSuccess('')
+      await deleteAdvisorQuestionnaireTemplate({
+        advisorId: advisor.id,
+        templateKey: key
+      })
+      if (templateKey === key) {
+        const first = templates.find((item) => item.key !== key)
+        setTemplateKey(first?.key || '')
+      }
+      await loadAll()
+      setSuccess(tr('Template supprime', 'Template deleted'))
+    } catch (err) {
+      setError(err.message || tr('Impossible de supprimer le template', 'Unable to delete template'))
+    } finally {
+      setDeletingTemplateKey('')
+    }
   }
 
   const removeQuestion = (index) => {
@@ -494,6 +575,9 @@ export default function Questionnaires() {
                     </option>
                   ))}
                 </select>
+                {selectedTemplate ? (
+                  <p className="text-xs text-gray-600">{selectedTemplate.description}</p>
+                ) : null}
                 <input
                   type="text"
                   value={templateName}
@@ -509,6 +593,60 @@ export default function Questionnaires() {
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {tr('Ajouter depuis template', 'Add from template')}
                 </button>
+
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-700">
+                    {tr('Creer un template depuis le questionnaire selectionne', 'Create a template from selected questionnaire')}
+                  </p>
+                  <input
+                    type="text"
+                    value={templateCreateName}
+                    onChange={(event) => setTemplateCreateName(event.target.value)}
+                    placeholder={tr('Nom du nouveau template', 'New template name')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <input
+                    type="text"
+                    value={templateCreateDescription}
+                    onChange={(event) => setTemplateCreateDescription(event.target.value)}
+                    placeholder={tr('Description (optionnelle)', 'Description (optional)')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <button
+                    onClick={createTemplateFromSelectedQuestionnaire}
+                    disabled={saving || !selectedQuestionnaire || !draft || (draft.questions || []).length === 0}
+                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-60"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {tr('Enregistrer comme template', 'Save as template')}
+                  </button>
+                </div>
+
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-700">
+                    {tr('Templates personnalises', 'Custom templates')}
+                  </p>
+                  {(customTemplates || []).length === 0 ? (
+                    <p className="text-xs text-gray-500">{tr('Aucun template personnalise.', 'No custom templates yet.')}</p>
+                  ) : (
+                    (customTemplates || []).map((template) => (
+                      <div key={template.key} className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-2 py-1.5">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{template.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{template.description || '-'}</p>
+                        </div>
+                        <button
+                          onClick={() => removeTemplate(template.key)}
+                          disabled={deletingTemplateKey === template.key}
+                          className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          {deletingTemplateKey === template.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          {tr('Supprimer', 'Delete')}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </>
             ) : null}
           </div>

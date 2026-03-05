@@ -5,6 +5,7 @@ import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import {
+  deleteClientInvitationLink,
   getAdvisorInvitationLinks,
   regenerateInvitationLink,
   subscribeToAdvisorClients
@@ -18,7 +19,7 @@ import {
   sendInvitationEmail
 } from '@/services/invitationEmailService'
 import { getPlanAccess } from '@/lib/planAccess'
-import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save, Search } from 'lucide-react'
+import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save, Search, Trash2 } from 'lucide-react'
 
 const formatDate = (dateString) => {
   if (!dateString) return '-'
@@ -41,6 +42,7 @@ export default function Invitations() {
   const [copyState, setCopyState] = useState('')
   const [regeneratingId, setRegeneratingId] = useState('')
   const [sendingId, setSendingId] = useState('')
+  const [deletingId, setDeletingId] = useState('')
   const [templateSaving, setTemplateSaving] = useState(false)
   const [templateMessage, setTemplateMessage] = useState('')
   const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
@@ -228,6 +230,35 @@ export default function Invitations() {
       setError(err.message || tr("Impossible d'envoyer l'email d'invitation", 'Unable to send invitation email'))
     } finally {
       setSendingId('')
+    }
+  }
+
+  const deleteInvitation = async (row) => {
+    if (!advisor?.id || !row?.id || !row?.invitation?.token) return
+    const confirmed = window.confirm(
+      tr(
+        "Supprimer l'invitation de ce client ?",
+        'Delete this client invitation?'
+      )
+    )
+    if (!confirmed) return
+
+    try {
+      setDeletingId(row.id)
+      setError(null)
+      await deleteClientInvitationLink({
+        advisorId: advisor.id,
+        clientId: row.id,
+        token: row.invitation.token
+      })
+      setRows((prev) =>
+        prev.map((item) => (item.id === row.id ? { ...item, invitation: null } : item))
+      )
+      void loadInvitations()
+    } catch (err) {
+      setError(err.message || tr("Impossible de supprimer l'invitation", 'Unable to delete invitation'))
+    } finally {
+      setDeletingId('')
     }
   }
 
@@ -500,6 +531,14 @@ export default function Invitations() {
                     {regeneratingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                     {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer le lien', 'Regenerate link')}
                   </button>
+                  <button
+                    onClick={() => deleteInvitation(row)}
+                    disabled={deletingId === row.id || !row.invitation?.token}
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-700 font-semibold hover:bg-red-50 transition disabled:opacity-50"
+                  >
+                    {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {tr('Supprimer invitation', 'Delete invitation')}
+                  </button>
                 </div>
               </div>
             ))}
@@ -579,6 +618,14 @@ export default function Invitations() {
                               <RefreshCw className="w-4 h-4" />
                             )}
                             {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer', 'Regenerate')}
+                          </button>
+                          <button
+                            onClick={() => deleteInvitation(row)}
+                            disabled={deletingId === row.id || !row.invitation?.token}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-700 font-semibold hover:bg-red-50 transition disabled:opacity-50"
+                          >
+                            {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {tr('Supprimer', 'Delete')}
                           </button>
                         </div>
                       </td>

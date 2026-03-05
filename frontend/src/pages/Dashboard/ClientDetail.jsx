@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   createClientInvitationForExistingClient,
+  deleteClientInvitationLink,
   deleteClient,
   getClientById,
   getClientInvitationLinks,
@@ -17,12 +18,17 @@ import {
   AlertCircle,
   ArrowLeft,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
   Copy,
   History,
   Link2,
   Loader2,
   Mail,
+  MessageSquare,
   Pencil,
+  Phone,
   PhoneCall,
   Save,
   Send,
@@ -36,6 +42,53 @@ const FOLLOWUP_OPTIONS = [
   { key: 'en_cours', label: 'En cours' },
   { key: 'clos', label: 'Clos' }
 ]
+
+const FOLLOWUP_LABELS = {
+  a_contacter: 'A contacter',
+  rdv_planifie: 'RDV planifie',
+  en_cours: 'En cours',
+  clos: 'Clos'
+}
+
+const THEME_LABELS = {
+  budget: 'Budget',
+  fiscalite: 'Fiscalite',
+  epargne: 'Epargne',
+  investissement: 'Investissement',
+  retraite: 'Retraite',
+  protection: 'Protection',
+  general: 'General'
+}
+
+const canonicalThemeKey = (value) => {
+  const text = String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  if (!text) return null
+  if (text.includes('budget') || text.includes('depense')) return 'budget'
+  if (text.includes('fiscal')) return 'fiscalite'
+  if (text.includes('epargne')) return 'epargne'
+  if (
+    text.includes('invest') ||
+    text.includes('risque') ||
+    text.includes('portefeuille') ||
+    text.includes('patrimoine')
+  ) {
+    return 'investissement'
+  }
+  if (text.includes('retraite') || text.includes('projection')) return 'retraite'
+  if (
+    text.includes('protection') ||
+    text.includes('assurance') ||
+    text.includes('prevoyance') ||
+    text.includes('dette')
+  ) {
+    return 'protection'
+  }
+  return 'general'
+}
 
 const formatDate = (value) => {
   if (!value) return 'N/A'
@@ -77,12 +130,15 @@ export default function ClientDetail() {
   const [invitationLinks, setInvitationLinks] = useState([])
   const [invitationLoading, setInvitationLoading] = useState(false)
   const [invitationActionLoading, setInvitationActionLoading] = useState(false)
+  const [deletingInvitationId, setDeletingInvitationId] = useState('')
   const [invitationError, setInvitationError] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
   const [sendingInvitationId, setSendingInvitationId] = useState(null)
   const [emailTemplate, setEmailTemplate] = useState(null)
 
   const [selectedSessionId, setSelectedSessionId] = useState(null)
+  const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(false)
+  const [isRelanceCollapsed, setIsRelanceCollapsed] = useState(false)
 
   const loadClient = useCallback(async () => {
     if (!clientId) return
@@ -181,9 +237,199 @@ export default function ClientDetail() {
     })
   }, [sessions])
 
+  const questionnaireThemeProgress = useMemo(() => {
+    const grouped = new Map()
+
+    const orderedSessions = [...sessions].sort(
+      (a, b) =>
+        new Date(a.completed_at || a.created_at || 0).getTime() -
+        new Date(b.completed_at || b.created_at || 0).getTime()
+    )
+
+    orderedSessions.forEach((session) => {
+      const answers = Array.isArray(session.question_answers) ? session.question_answers : []
+      if (answers.length === 0) return
+
+      const questionnaireName = session.questionnaire_name || 'Questionnaire standard'
+      const byTheme = new Map()
+
+      answers.forEach((answer) => {
+        const points = Number(answer?.points)
+        if (!Number.isFinite(points)) return
+
+        const themeKey =
+          canonicalThemeKey(answer?.theme) ||
+          canonicalThemeKey(answer?.concept) ||
+          canonicalThemeKey(answer?.prompt) ||
+          'general'
+
+        const current = byTheme.get(themeKey) || { points: 0, count: 0 }
+        current.points += points
+        current.count += 1
+        byTheme.set(themeKey, current)
+      })
+
+      if (byTheme.size === 0) return
+
+      const sessionThemeRows = [...byTheme.entries()].map(([themeKey, values]) => ({
+        themeKey,
+        score: Math.round((values.points / (values.count * 5)) * 100)
+      }))
+
+      const rows = grouped.get(questionnaireName) || []
+      rows.push({
+        sessionId: session.id,
+        completedAt: session.completed_at || session.created_at,
+        themes: sessionThemeRows
+      })
+      grouped.set(questionnaireName, rows)
+    })
+
+    return [...grouped.entries()].map(([questionnaireName, sessionsByTheme]) => {
+      const themeMap = new Map()
+
+      sessionsByTheme.forEach((sessionRow) => {
+        sessionRow.themes.forEach((themeRow) => {
+          const list = themeMap.get(themeRow.themeKey) || []
+          list.push({
+            sessionId: sessionRow.sessionId,
+            completedAt: sessionRow.completedAt,
+            score: themeRow.score
+          })
+          themeMap.set(themeRow.themeKey, list)
+        })
+      })
+
+      const themes = [...themeMap.entries()]
+        .map(([themeKey, entries]) => {
+          const baseline = entries[0]?.score ?? null
+          const latest = entries[entries.length - 1]?.score ?? null
+          return {
+            themeKey,
+            label: THEME_LABELS[themeKey] || themeKey,
+            attempts: entries.length,
+            baseline,
+            latest,
+            delta: baseline !== null && latest !== null && entries.length > 1 ? latest - baseline : null,
+            points: entries.map((entry) => entry.score)
+          }
+        })
+        .sort((a, b) => b.attempts - a.attempts)
+
+      return {
+        questionnaireName,
+        sessionsCount: sessionsByTheme.length,
+        themes
+      }
+    })
+  }, [sessions])
+
   const averageScore = sessions.length
     ? Math.round(sessions.map((x) => x.score).filter((x) => typeof x === 'number').reduce((a, b) => a + b, 0) / sessions.length)
     : null
+
+  const sessionDeltaById = useMemo(() => {
+    const byId = new Map()
+    const ordered = [...sessions].sort(
+      (a, b) =>
+        new Date(a.completed_at || a.created_at || 0).getTime() -
+        new Date(b.completed_at || b.created_at || 0).getTime()
+    )
+
+    ordered.forEach((session, index) => {
+      if (index === 0) {
+        byId.set(session.id, null)
+        return
+      }
+      const previous = ordered[index - 1]
+      const delta =
+        typeof session.score === 'number' && typeof previous?.score === 'number'
+          ? session.score - previous.score
+          : null
+      byId.set(session.id, delta)
+    })
+
+    return byId
+  }, [sessions])
+
+  const timelineEvents = useMemo(() => {
+    const events = []
+
+    if (client?.created_at) {
+      events.push({
+        id: `created-${client.id}`,
+        type: 'created',
+        createdAt: client.created_at,
+        title: 'Client cree',
+        detail: `${client.name || 'Client'} a ete ajoute au portefeuille.`
+      })
+    }
+
+    ;(invitationLinks || []).forEach((link, index) => {
+      const createdAt = link.createdAt || link.expiresAt
+      if (!createdAt) return
+      events.push({
+        id: `invite-${link.id || link.token || index}`,
+        type: 'invitation',
+        createdAt,
+        title: 'Invitation envoyee',
+        detail: `${link.questionnaireName || 'Questionnaire standard'}${link.expiresAt ? ` (expire le ${formatDate(link.expiresAt)})` : ''}`
+      })
+    })
+
+    sessions.forEach((session) => {
+      const createdAt = session.completed_at || session.created_at
+      if (!createdAt) return
+      const delta = sessionDeltaById.get(session.id)
+      events.push({
+        id: `quiz-${session.id}`,
+        type: 'quiz',
+        createdAt,
+        title: `Questionnaire complete - ${session.questionnaire_name || 'Questionnaire standard'}`,
+        detail:
+          typeof session.score === 'number'
+            ? `Score ${session.score}/100${typeof delta === 'number' ? ` (${delta >= 0 ? '+' : ''}${delta} pts)` : ''}`
+            : 'Resultat enregistre'
+      })
+    })
+
+    ;(client?.followup_events || []).forEach((event) => {
+      if (!event?.created_at) return
+      const statusLabel = event.followup_status ? FOLLOWUP_LABELS[event.followup_status] || event.followup_status : null
+      const note = typeof event.advisor_notes === 'string' ? event.advisor_notes.trim() : ''
+      events.push({
+        id: `followup-${event.id}`,
+        type: 'followup',
+        createdAt: event.created_at,
+        title: statusLabel ? `Suivi mis a jour - ${statusLabel}` : 'Suivi mis a jour',
+        detail: note ? (note.length > 140 ? `${note.slice(0, 140)}...` : note) : 'Mise a jour du suivi client.'
+      })
+    })
+
+    if ((client?.followup_events || []).length === 0) {
+      if (client?.last_contacted_at) {
+        events.push({
+          id: `fallback-contact-${client.id}`,
+          type: 'followup',
+          createdAt: client.last_contacted_at,
+          title: 'Contact client',
+          detail: 'Dernier contact enregistre.'
+        })
+      }
+      if (client?.advisor_notes) {
+        const note = String(client.advisor_notes || '').trim()
+        events.push({
+          id: `fallback-note-${client.id}`,
+          type: 'followup',
+          createdAt: client.updated_at || client.created_at,
+          title: 'Note conseiller',
+          detail: note.length > 140 ? `${note.slice(0, 140)}...` : note
+        })
+      }
+    }
+
+    return events.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [client, invitationLinks, sessionDeltaById, sessions])
 
   const handleSave = async () => {
     if (!client?.id || !advisor?.id) return
@@ -197,7 +443,8 @@ export default function ClientDetail() {
         ...prev,
         ...updated,
         quiz_sessions: updated?.quiz_sessions || prev?.quiz_sessions || [],
-        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null
+        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null,
+        followup_events: updated?.followup_events || prev?.followup_events || []
       }))
       setEditing(false)
     } catch (err) {
@@ -223,7 +470,8 @@ export default function ClientDetail() {
         ...prev,
         ...updated,
         quiz_sessions: updated?.quiz_sessions || prev?.quiz_sessions || [],
-        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null
+        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null,
+        followup_events: updated?.followup_events || prev?.followup_events || []
       }))
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le suivi')
@@ -293,6 +541,28 @@ export default function ClientDetail() {
     }
   }
 
+  const handleDeleteInvitationLink = async (link) => {
+    if (!advisor?.id || !client?.id) return
+    const confirmed = window.confirm('Supprimer ce lien invitation pour ce client ?')
+    if (!confirmed) return
+
+    try {
+      setDeletingInvitationId(link.id || link.token)
+      setInvitationError(null)
+      await deleteClientInvitationLink({
+        advisorId: advisor.id,
+        clientId: client.id,
+        linkId: link.id || null,
+        token: link.token || null
+      })
+      setInvitationLinks((prev) => (prev || []).filter((item) => (item.id || item.token) !== (link.id || link.token)))
+    } catch (err) {
+      setInvitationError(err.message || 'Impossible de supprimer le lien')
+    } finally {
+      setDeletingInvitationId('')
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-10 h-10 animate-spin text-emerald-700" /></div>
   if (!client) return <div className="text-sm text-red-700">Client introuvable</div>
 
@@ -358,6 +628,58 @@ export default function ClientDetail() {
           </div>
 
           <div className="bg-white border rounded-xl p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-slate-700" />
+                <h4 className="font-bold">Timeline client (RDV, questionnaires, notes, evolution score)</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTimelineCollapsed((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                {isTimelineCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                {isTimelineCollapsed ? 'Deplier' : 'Plier'}
+              </button>
+            </div>
+            {!isTimelineCollapsed && timelineEvents.length === 0 ? (
+              <p className="text-sm text-gray-600">Aucun evenement disponible pour le moment.</p>
+            ) : null}
+            {!isTimelineCollapsed ? (
+              <div className="space-y-2">
+                {timelineEvents.map((event) => {
+                  const isQuiz = event.type === 'quiz'
+                  const isFollowup = event.type === 'followup'
+                  const isInvitation = event.type === 'invitation'
+
+                  return (
+                    <div key={event.id} className="rounded-lg border bg-gray-50 px-3 py-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2 min-w-0">
+                          {isQuiz ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
+                          ) : isFollowup ? (
+                            <Phone className="w-4 h-4 text-blue-700 mt-0.5 shrink-0" />
+                          ) : isInvitation ? (
+                            <Mail className="w-4 h-4 text-indigo-700 mt-0.5 shrink-0" />
+                          ) : (
+                            <MessageSquare className="w-4 h-4 text-slate-700 mt-0.5 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-gray-900">{event.title}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">{event.detail}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">{formatDate(event.createdAt)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="bg-white border rounded-xl p-4">
             <h4 className="font-bold mb-3">Synthese par questionnaire</h4>
             {questionnaireTracking.length === 0 ? <p className="text-sm text-gray-600">Aucun tracking disponible pour le moment.</p> : questionnaireTracking.map((item) => (
               <div key={item.name} className="rounded-lg border bg-gray-50 px-3 py-2 grid grid-cols-1 md:grid-cols-6 gap-2 mb-2">
@@ -372,7 +694,19 @@ export default function ClientDetail() {
           </div>
 
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-            <h4 className="font-bold text-indigo-900 mb-3">Relancer avec un questionnaire</h4>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h4 className="font-bold text-indigo-900">Relancer avec un questionnaire</h4>
+              <button
+                type="button"
+                onClick={() => setIsRelanceCollapsed((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-semibold text-indigo-800 hover:bg-indigo-100"
+              >
+                {isRelanceCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                {isRelanceCollapsed ? 'Deplier' : 'Plier'}
+              </button>
+            </div>
+            {!isRelanceCollapsed ? (
+              <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <select value={selectedQuestionnaireId} onChange={(e) => setSelectedQuestionnaireId(e.target.value)} className="md:col-span-2 px-3 py-2 rounded-lg border bg-white">
                 {questionnaires.length === 0 ? <option value="">Questionnaire standard</option> : null}
@@ -393,10 +727,64 @@ export default function ClientDetail() {
                   <div className="flex gap-2">
                     <button onClick={() => void handleCopyInvitationLink(link)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-semibold"><Copy className="w-4 h-4" />{copySuccessId === (link.id || link.token) ? 'Copie' : 'Copier'}</button>
                     <button onClick={() => void handleSendInvitationEmail(link)} disabled={!planAccess.canSendInvitationEmails || sendingInvitationId === (link.id || link.token)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{sendingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Envoyer</button>
+                    <button
+                      onClick={() => void handleDeleteInvitationLink(link)}
+                      disabled={deletingInvitationId === (link.id || link.token)}
+                      className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50 disabled:opacity-60"
+                    >
+                      {deletingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      Supprimer
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
+              </>
+            ) : null}
+          </div>
+
+          <div className="bg-white border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-5 h-5 text-emerald-700" />
+              <h4 className="font-bold">Comparaison avant/apres par questionnaire</h4>
+            </div>
+            {questionnaireThemeProgress.length === 0 ? (
+              <p className="text-sm text-gray-600">Aucune progression par theme disponible pour le moment.</p>
+            ) : (
+              <div className="space-y-3">
+                {questionnaireThemeProgress.map((item) => (
+                  <div key={item.questionnaireName} className="rounded-lg border bg-gray-50 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <p className="font-semibold text-gray-900">{item.questionnaireName}</p>
+                      <p className="text-xs text-gray-600">{item.sessionsCount} session{item.sessionsCount > 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {item.themes.map((theme) => (
+                        <div key={`${item.questionnaireName}-${theme.themeKey}`} className="rounded-md border bg-white p-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-semibold text-gray-800">{theme.label}</span>
+                            <span className={`font-semibold ${theme.delta === null ? 'text-gray-600' : theme.delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              {theme.baseline ?? 'N/A'}% {'->'} {theme.latest ?? 'N/A'}%
+                              {theme.delta !== null ? ` (${theme.delta >= 0 ? '+' : ''}${theme.delta} pts)` : ''}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-end gap-1 h-10">
+                            {theme.points.map((point, idx) => (
+                              <div
+                                key={`${item.questionnaireName}-${theme.themeKey}-${idx}`}
+                                className="flex-1 rounded-sm bg-emerald-400/70"
+                                style={{ height: `${Math.max(8, point)}%` }}
+                                title={`${point}/100`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-white border rounded-xl p-4">

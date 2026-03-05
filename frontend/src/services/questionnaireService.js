@@ -83,9 +83,9 @@ const DEFAULT_BANK_QUESTIONS = {
 
 const DEFAULT_TEMPLATES = [
   {
-    key: 'starter',
-    name: 'Diagnostic essentiel',
-    description: 'Questionnaire global rapide pour premier entretien',
+    key: 'decouverte',
+    name: 'Decouverte',
+    description: 'Premier rendez-vous: vision globale du client et priorites court terme.',
     isDefault: true,
     questions: clientQuizQuestions.map((question, index) => ({
       questionText: question.prompt,
@@ -96,37 +96,63 @@ const DEFAULT_TEMPLATES = [
     }))
   },
   {
-    key: 'patrimoine',
-    name: 'Bilan patrimonial',
-    description: 'Focus epargne, investissement, fiscalite et retraite',
+    key: 'preparation_retraite',
+    name: 'Preparation retraite',
+    description: 'Evaluation ciblee de la preparation retraite, projection et leviers fiscaux.',
     isDefault: false,
     questions: [
+      ...DEFAULT_BANK_QUESTIONS.retraite,
       ...DEFAULT_BANK_QUESTIONS.epargne,
-      ...DEFAULT_BANK_QUESTIONS.investissement,
       ...DEFAULT_BANK_QUESTIONS.fiscalite,
-      ...DEFAULT_BANK_QUESTIONS.retraite
+      DEFAULT_BANK_QUESTIONS.investissement[1]
     ].map((question, index) => ({
       questionText: question.prompt,
       concept: question.concept,
-      theme: index < 2 ? 'epargne' : index < 4 ? 'investissement' : index < 6 ? 'fiscalite' : 'retraite',
+      theme: index < 2 ? 'retraite' : index < 4 ? 'epargne' : index < 6 ? 'fiscalite' : 'investissement',
       orderIndex: index,
       options: question.options
     }))
   },
   {
-    key: 'suivi',
-    name: 'Suivi relation client',
-    description: 'Questionnaire court pour bilan trimestriel',
+    key: 'patrimoine_famille',
+    name: 'Patrimoine famille',
+    description: 'Approche patrimoine global avec focus protection familiale et transmission.',
+    isDefault: false,
+    questions: [
+      ...DEFAULT_BANK_QUESTIONS.epargne,
+      ...DEFAULT_BANK_QUESTIONS.protection,
+      ...DEFAULT_BANK_QUESTIONS.investissement,
+      DEFAULT_BANK_QUESTIONS.fiscalite[1]
+    ].map((question, index) => ({
+      questionText: question.prompt,
+      concept: question.concept,
+      theme:
+        index < 2
+          ? 'epargne'
+          : index < 4
+            ? 'protection'
+            : index < 6
+              ? 'investissement'
+              : 'fiscalite',
+      orderIndex: index,
+      options: question.options
+    }))
+  },
+  {
+    key: 'suivi_trimestriel',
+    name: 'Suivi trimestriel',
+    description: 'Point de suivi court pour comparer les evolutions trimestre apres trimestre.',
     isDefault: false,
     questions: [
       DEFAULT_BANK_QUESTIONS.budget[0],
       DEFAULT_BANK_QUESTIONS.epargne[0],
-      DEFAULT_BANK_QUESTIONS.protection[0],
-      DEFAULT_BANK_QUESTIONS.investissement[1]
+      DEFAULT_BANK_QUESTIONS.investissement[1],
+      DEFAULT_BANK_QUESTIONS.fiscalite[0],
+      DEFAULT_BANK_QUESTIONS.retraite[0]
     ].map((question, index) => ({
       questionText: question.prompt,
       concept: question.concept,
-      theme: ['budget', 'epargne', 'protection', 'investissement'][index],
+      theme: ['budget', 'epargne', 'investissement', 'fiscalite', 'retraite'][index],
       orderIndex: index,
       options: question.options
     }))
@@ -138,6 +164,14 @@ const isMissingQuestionnaireTableError = (error) => {
   return (
     message.includes("could not find the table 'public.advisor_questionnaires'") ||
     message.includes('relation "public.advisor_questionnaires" does not exist')
+  )
+}
+
+const isMissingQuestionnaireTemplatesTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.advisor_questionnaire_templates'") ||
+    message.includes('relation "public.advisor_questionnaire_templates" does not exist')
   )
 }
 
@@ -180,6 +214,27 @@ const normalizeQuestions = (questions) =>
     .filter((question) => question.questionText.length > 0)
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map((question, index) => ({ ...question, orderIndex: index }))
+
+const slugifyTemplateKey = (value) => {
+  const base = String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return base || `template_${Date.now()}`
+}
+
+const mapTemplateRow = (row) => ({
+  id: row.id,
+  key: row.template_key,
+  name: row.name,
+  description: row.description || '',
+  isDefault: false,
+  isSystem: Boolean(row.is_system),
+  questions: normalizeQuestions(Array.isArray(row.questions) ? row.questions : [])
+})
 
 const insertQuestionnaireWithQuestions = async (advisorId, template) => {
   const { data: questionnaire, error } = await supabase
@@ -596,7 +651,101 @@ export const deleteAdvisorQuestionBankQuestion = async ({ advisorId, questionId 
   return { success: true }
 }
 
-export const getDefaultQuestionnaireTemplates = () => DEFAULT_TEMPLATES
+export const getDefaultQuestionnaireTemplates = () =>
+  DEFAULT_TEMPLATES.map((template) => ({
+    ...template,
+    isSystem: true
+  }))
+
+export const getAdvisorQuestionnaireTemplates = async (advisorId) => {
+  if (!advisorId) return []
+
+  const { data, error } = await supabase
+    .from('advisor_questionnaire_templates')
+    .select('id, advisor_id, template_key, name, description, questions, is_system, created_at')
+    .eq('advisor_id', advisorId)
+    .eq('is_system', false)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    if (isMissingQuestionnaireTemplatesTableError(error)) return []
+    throw error
+  }
+
+  return (data || []).map(mapTemplateRow)
+}
+
+export const createAdvisorQuestionnaireTemplate = async ({
+  advisorId,
+  name,
+  description = '',
+  questions
+}) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  const cleanName = String(name || '').trim()
+  if (!cleanName) throw new Error('Le nom du template est requis')
+
+  const normalized = normalizeQuestions(questions)
+  if (normalized.length === 0) {
+    throw new Error('Le template doit contenir au moins une question')
+  }
+
+  const key = `custom_${slugifyTemplateKey(cleanName)}_${Date.now()}`
+
+  const { data, error } = await supabase
+    .from('advisor_questionnaire_templates')
+    .insert([
+      {
+        advisor_id: advisorId,
+        template_key: key,
+        name: cleanName,
+        description: String(description || '').trim(),
+        questions: normalized,
+        is_system: false
+      }
+    ])
+    .select('id, advisor_id, template_key, name, description, questions, is_system')
+    .single()
+
+  if (error) {
+    if (isMissingQuestionnaireTemplatesTableError(error)) {
+      throw new Error("Migration Supabase requise: table 'advisor_questionnaire_templates' absente")
+    }
+    throw error
+  }
+
+  return mapTemplateRow(data)
+}
+
+export const deleteAdvisorQuestionnaireTemplate = async ({ advisorId, templateKey }) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  if (!templateKey) throw new Error('Template introuvable')
+
+  const { data: target, error: targetError } = await supabase
+    .from('advisor_questionnaire_templates')
+    .select('id, is_system')
+    .eq('advisor_id', advisorId)
+    .eq('template_key', templateKey)
+    .maybeSingle()
+
+  if (targetError) {
+    if (isMissingQuestionnaireTemplatesTableError(targetError)) {
+      throw new Error("Migration Supabase requise: table 'advisor_questionnaire_templates' absente")
+    }
+    throw targetError
+  }
+  if (!target) throw new Error('Template introuvable')
+  if (target.is_system) throw new Error('Ce template systeme ne peut pas etre supprime')
+
+  const { error } = await supabase
+    .from('advisor_questionnaire_templates')
+    .delete()
+    .eq('id', target.id)
+    .eq('advisor_id', advisorId)
+
+  if (error) throw error
+  return { success: true }
+}
 
 export const ensureAdvisorQuestionnaires = async (advisorId) => {
   if (!advisorId) return
@@ -661,7 +810,28 @@ export const getAdvisorQuestionnaires = async (advisorId) => {
 
 export const createAdvisorQuestionnaireFromTemplate = async ({ advisorId, templateKey, customName }) => {
   if (!advisorId) throw new Error('Conseiller introuvable')
-  const template = DEFAULT_TEMPLATES.find((item) => item.key === templateKey)
+  let template = DEFAULT_TEMPLATES.find((item) => item.key === templateKey)
+
+  if (!template) {
+    const { data, error } = await supabase
+      .from('advisor_questionnaire_templates')
+      .select('template_key, name, description, questions, is_system')
+      .eq('advisor_id', advisorId)
+      .eq('template_key', templateKey)
+      .maybeSingle()
+
+    if (error && !isMissingQuestionnaireTemplatesTableError(error)) throw error
+    if (data) {
+      template = {
+        key: data.template_key,
+        name: data.name,
+        description: data.description || '',
+        isDefault: false,
+        questions: normalizeQuestions(Array.isArray(data.questions) ? data.questions : [])
+      }
+    }
+  }
+
   if (!template) throw new Error('Template introuvable')
 
   return insertQuestionnaireWithQuestions(advisorId, {

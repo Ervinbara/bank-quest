@@ -130,6 +130,14 @@ const isMissingSessionAnswersColumnError = (error) => {
   return message.includes("column 'question_answers' does not exist") || message.includes('question_answers')
 }
 
+const isMissingClientFollowupEventsTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_followup_events'") ||
+    message.includes('relation "public.client_followup_events" does not exist')
+  )
+}
+
 const normalizeInsightArray = (value) => {
   if (!Array.isArray(value)) return []
   return value.map((item) => String(item || '').trim()).filter(Boolean)
@@ -146,6 +154,7 @@ const normalizeQuestionAnswers = (value) => {
         questionId: row.questionId || row.id || null,
         prompt: row.prompt || row.questionText || null,
         concept: row.concept || null,
+        theme: row.theme || null,
         answerLabel: row.answerLabel || row.optionLabel || row.answer || null,
         points: Number.isFinite(points) ? points : null
       }
@@ -257,6 +266,22 @@ const enrichClientWithSessions = async (client) => {
       latestCompletedAt: progress.latestCompletedAt
     }
   }
+}
+
+const fetchClientFollowupEvents = async (clientId) => {
+  if (!clientId) return []
+  const { data, error } = await supabase
+    .from('client_followup_events')
+    .select('id, event_type, followup_status, advisor_notes, metadata, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingClientFollowupEventsTableError(error)) return []
+    throw error
+  }
+
+  return data || []
 }
 
 const fetchQuizSessionsByClientIds = async (clientIds) => {
@@ -587,7 +612,12 @@ export const getClientById = async (clientId) => {
     .single()
 
   if (error) throw error
-  return enrichClientWithSessions(data)
+  const enriched = await enrichClientWithSessions(data)
+  const followupEvents = await fetchClientFollowupEvents(clientId)
+  return {
+    ...enriched,
+    followup_events: followupEvents
+  }
 }
 
 // Mettre a jour les informations d'un client
@@ -674,6 +704,26 @@ export const updateClientFollowup = async ({ clientId, advisorId, followupStatus
 
   if (error) throw error
 
+  let eventType = 'followup_saved'
+  if (markContacted) eventType = 'contact_marked'
+  else if (typeof advisorNotes === 'string' && advisorNotes.trim().length > 0) eventType = 'note_updated'
+  else if (followupStatus) eventType = 'status_changed'
+
+  const { error: followupEventError } = await supabase.from('client_followup_events').insert({
+    client_id: clientId,
+    advisor_id: advisorId,
+    event_type: eventType,
+    followup_status: followupStatus || null,
+    advisor_notes: typeof advisorNotes === 'string' ? advisorNotes : null,
+    metadata: {
+      markContacted: Boolean(markContacted)
+    }
+  })
+
+  if (followupEventError && !isMissingClientFollowupEventsTableError(followupEventError)) {
+    throw followupEventError
+  }
+
   const { data: clientWithInsights, error: clientWithInsightsError } = await supabase
     .from('clients')
     .select(
@@ -690,7 +740,12 @@ export const updateClientFollowup = async ({ clientId, advisorId, followupStatus
     .single()
 
   if (clientWithInsightsError) throw clientWithInsightsError
-  return enrichClientWithSessions(clientWithInsights)
+  const enriched = await enrichClientWithSessions(clientWithInsights)
+  const followupEvents = await fetchClientFollowupEvents(clientId)
+  return {
+    ...enriched,
+    followup_events: followupEvents
+  }
 }
 
 // Supprimer un client
@@ -1042,6 +1097,82 @@ export const createClientInvitationForExistingClient = async ({
     updatedAt: invitation.updatedAt,
     legacyMode: invitation.legacyMode
   }
+}
+
+export const deleteClientInvitationLink = async ({
+  advisorId,
+  clientId,
+  linkId = null,
+  token = null
+}) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  if (!clientId) throw new Error('Client introuvable')
+
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, advisor_id')
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (clientError) throw clientError
+  if (!client) throw new Error('Client introuvable')
+
+  let targetToken = token || null
+
+  if (linkId) {
+    const { data: link, error: linkError } = await supabase
+      .from('client_invitation_links')
+      .select('id, token')
+      .eq('id', linkId)
+      .eq('client_id', clientId)
+      .maybeSingle()
+
+    if (linkError && !isMissingInvitationLinksTableError(linkError)) throw linkError
+    if (link?.token) targetToken = link.token
+
+    if (link?.id) {
+      const { error: deleteLinkError } = await supabase
+        .from('client_invitation_links')
+        .delete()
+        .eq('id', link.id)
+        .eq('client_id', clientId)
+      if (deleteLinkError && !isMissingInvitationLinksTableError(deleteLinkError)) throw deleteLinkError
+    }
+  }
+
+  if (targetToken) {
+    const { error: deleteHistoryError } = await supabase
+      .from('client_invitation_links')
+      .delete()
+      .eq('client_id', clientId)
+      .eq('token', targetToken)
+    if (deleteHistoryError && !isMissingInvitationLinksTableError(deleteHistoryError)) throw deleteHistoryError
+
+    const { data: activeInvitation, error: activeInvitationError } = await supabase
+      .from('client_invitations')
+      .select('id')
+      .eq('client_id', clientId)
+      .eq('token', targetToken)
+      .maybeSingle()
+
+    if (activeInvitationError && !isMissingInvitationsTableError(activeInvitationError)) {
+      throw activeInvitationError
+    }
+
+    if (activeInvitation?.id) {
+      const { error: deleteInvitationError } = await supabase
+        .from('client_invitations')
+        .delete()
+        .eq('id', activeInvitation.id)
+        .eq('client_id', clientId)
+      if (deleteInvitationError && !isMissingInvitationsTableError(deleteInvitationError)) {
+        throw deleteInvitationError
+      }
+    }
+  }
+
+  return { success: true }
 }
 
 export const getClientInvitationLinks = async ({ advisorId, clientId }) => {

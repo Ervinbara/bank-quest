@@ -126,6 +126,7 @@ export default function ClientQuiz() {
             invitationQuestionnaire.questions.map((question, index) => ({
               id: question.id || `q-${index}`,
               concept: question.concept || 'General',
+              theme: question.theme || 'general',
               prompt: question.prompt || question.questionText || '',
               options: question.options || []
             }))
@@ -146,6 +147,7 @@ export default function ClientQuiz() {
             invitationQuestionnaire.questions.map((question, index) => ({
               id: question.id || `q-${index}`,
               concept: question.concept || 'General',
+              theme: question.theme || 'general',
               prompt: question.prompt || question.questionText || '',
               options: question.options || []
             }))
@@ -253,6 +255,7 @@ export default function ClientQuiz() {
           questionId: question.id,
           prompt: question.prompt,
           concept: question.concept,
+          theme: question.theme || null,
           answerLabel: selectedOption?.label || null,
           points: selectedPoints
         }
