@@ -15,6 +15,20 @@ const parseProviderOrder = () => {
     .filter(Boolean)
 }
 
+const PLAN_EMAIL_LIMITS: Record<string, number | null> = {
+  none: 0,
+  solo: 100,
+  pro: 500,
+  cabinet: 2000,
+  test: null
+}
+
+const getCurrentMonthStartDate = () => {
+  const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  return monthStart.toISOString().slice(0, 10)
+}
+
 const availableProviders = () => {
   const providers = new Map<string, (payload: any) => Promise<Response>>()
 
@@ -96,7 +110,7 @@ serve(async (req) => {
 
     const { data: advisor, error: advisorError } = await supabase
       .from('advisors')
-      .select('plan')
+      .select('id, plan')
       .ilike('email', userData.user.email)
       .maybeSingle()
 
@@ -105,7 +119,10 @@ serve(async (req) => {
     }
 
     const plan = String(advisor?.plan || 'none').toLowerCase()
-    if (plan === 'none') {
+    const monthlyLimit =
+      PLAN_EMAIL_LIMITS[plan] !== undefined ? PLAN_EMAIL_LIMITS[plan] : PLAN_EMAIL_LIMITS.none
+
+    if (monthlyLimit === 0) {
       return json(
         {
           success: false,
@@ -113,6 +130,32 @@ serve(async (req) => {
         },
         403
       )
+    }
+
+    const usageMonth = getCurrentMonthStartDate()
+    let currentMonthSent = 0
+    if (monthlyLimit !== null) {
+      const { data: usageRow, error: usageError } = await supabase
+        .from('advisor_email_usage')
+        .select('emails_sent')
+        .eq('advisor_id', advisor.id)
+        .eq('usage_month', usageMonth)
+        .maybeSingle()
+
+      if (usageError) {
+        return json({ success: false, error: String(usageError.message || usageError) }, 500)
+      }
+
+      currentMonthSent = Number(usageRow?.emails_sent || 0)
+      if (currentMonthSent >= monthlyLimit) {
+        return json(
+          {
+            success: false,
+            error: `Quota mensuel atteint pour le plan ${plan}: ${monthlyLimit} emails d'invitation/mois.`
+          },
+          403
+        )
+      }
     }
 
     const payload = await req.json()
@@ -163,7 +206,24 @@ serve(async (req) => {
       })
 
       if (response.ok) {
-        return json({ success: true, provider })
+        if (monthlyLimit !== null) {
+          const { error: incrementError } = await supabase.rpc('increment_advisor_email_usage', {
+            p_advisor_id: advisor.id,
+            p_usage_month: usageMonth,
+            p_delta: 1
+          })
+          if (incrementError) {
+            console.error('Failed to increment invitation-email usage:', incrementError)
+          }
+        }
+
+        return json({
+          success: true,
+          provider,
+          usageMonth,
+          monthlyLimit,
+          sentThisMonth: monthlyLimit === null ? null : currentMonthSent + 1
+        })
       }
 
       tried.push({

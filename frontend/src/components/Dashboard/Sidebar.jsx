@@ -35,12 +35,12 @@ export default function Sidebar({
     {
       path: '/dashboard/questionnaires',
       icon: ClipboardList,
-      label: t('sidebar.questionnaires', 'Questionnaires')
+      label: t('sidebar.questionnaires', 'Questionnaires (Etape 2)')
     },
     {
       path: '/dashboard/question-bank',
       icon: Library,
-      label: t('sidebar.questionBank', 'Question bank')
+      label: t('sidebar.questionBank', 'Banque de questions (Etape 1)')
     },
     {
       path: '/dashboard/analytics',

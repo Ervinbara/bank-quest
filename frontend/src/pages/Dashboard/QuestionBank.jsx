@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
@@ -366,10 +367,43 @@ export default function QuestionBank() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{tr('Banque de questions', 'Question bank')}</h2>
-          <p className="text-gray-600">{tr('Gerez ici vos themes et questions reutilisables dans tous vos questionnaires.', 'Manage reusable themes and questions for all your questionnaires.')}</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {tr('Banque de questions (Etape 1)', 'Question bank (Step 1)')}
+          </h2>
+          <p className="text-gray-600">
+            {tr(
+              'Creez ici vos themes et questions reutilisables, avant de les assembler en questionnaire.',
+              'Create reusable topics and questions here, before assembling questionnaires.'
+            )}
+          </p>
         </div>
         <DashboardGuide guide={dashboardGuides.questionBank} />
+      </div>
+
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="text-sm text-emerald-900 space-y-1">
+            <p className="font-semibold">{tr('Parcours recommande:', 'Recommended flow:')}</p>
+            <p>
+              {tr(
+                '1) Creez vos themes et questions ici | 2) Ouvrez "Questionnaires" pour construire un formulaire client.',
+                '1) Create themes and questions here | 2) Open "Questionnaires" to build a client form.'
+              )}
+            </p>
+            <p>
+              {tr(
+                'Cette page sert de bibliotheque source. La diffusion client se fait depuis les Questionnaires.',
+                'This page is your source library. Client delivery happens from Questionnaires.'
+              )}
+            </p>
+          </div>
+          <Link
+            to="/dashboard/questionnaires"
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition"
+          >
+            {tr('Aller aux Questionnaires (Etape 2)', 'Go to Questionnaires (Step 2)')}
+          </Link>
+        </div>
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}

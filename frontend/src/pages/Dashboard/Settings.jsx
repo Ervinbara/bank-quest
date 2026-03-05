@@ -18,10 +18,10 @@ import { deleteAdvisorAccount, exportAdvisorDataAsJson } from '@/services/privac
 import { Save, Loader2, Check, AlertCircle, Lock, ShieldCheck } from 'lucide-react'
 
 const PLAN_DETAILS = {
-  solo: { price: '19.99 EUR/mois', limit: 'Jusqu a 50 clients + emails', icon: 'S' },
-  pro: { price: '49.99 EUR/mois', limit: 'Jusqu a 200 clients + emails', icon: 'P' },
-  cabinet: { price: '99.99 EUR/mois', limit: 'Clients illimites + emails', icon: 'C' },
-  test: { price: '1 EUR/mois', limit: 'Plan interne de validation', icon: 'T' }
+  solo: { price: '19.99 EUR/mois', limit: '50 clients + 100 emails/mois', icon: 'S' },
+  pro: { price: '49.99 EUR/mois', limit: '200 clients + 500 emails/mois', icon: 'P' },
+  cabinet: { price: '99.99 EUR/mois', limit: 'Clients illimites + 2000 emails/mois', icon: 'C' },
+  test: { price: '1 EUR/mois', limit: 'Plan interne (emails illimites)', icon: 'T' }
 }
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
@@ -896,9 +896,10 @@ export default function Settings() {
                     {tr('Limites par plan', 'Limits by plan')}
                   </p>
                   <p>{tr('Gratuit (none): 5 clients, pas d envoi email invitation.', 'Free (none): 5 clients, no invitation email sending.')}</p>
-                  <p>{tr('Solo: 50 clients, envoi email invitation inclus.', 'Solo: 50 clients, invitation email sending included.')}</p>
-                  <p>{tr('Pro: 200 clients, envoi email invitation inclus.', 'Pro: 200 clients, invitation email sending included.')}</p>
-                  <p>{tr('Cabinet/Test: clients illimites, envoi email invitation inclus.', 'Cabinet/Test: unlimited clients, invitation email sending included.')}</p>
+                  <p>{tr('Solo: 50 clients, 100 emails invitation/mois.', 'Solo: 50 clients, 100 invitation emails/month.')}</p>
+                  <p>{tr('Pro: 200 clients, 500 emails invitation/mois.', 'Pro: 200 clients, 500 invitation emails/month.')}</p>
+                  <p>{tr('Cabinet: clients illimites, 2000 emails invitation/mois.', 'Cabinet: unlimited clients, 2000 invitation emails/month.')}</p>
+                  <p>{tr('Test: clients et emails illimites (compte admin test).', 'Test: unlimited clients and emails (test admin account).')}</p>
                 </div>
 
                 {canUseTestPlan ? (

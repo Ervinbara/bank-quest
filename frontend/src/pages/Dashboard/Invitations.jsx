@@ -12,6 +12,7 @@ import {
 import {
   DEFAULT_EMAIL_TEMPLATE,
   INVITE_LINK_PLACEHOLDER,
+  getInvitationEmailQuotaStatus,
   getAdvisorEmailTemplate,
   saveAdvisorEmailTemplate,
   sendInvitationEmail
@@ -43,6 +44,12 @@ export default function Invitations() {
   const [templateSaving, setTemplateSaving] = useState(false)
   const [templateMessage, setTemplateMessage] = useState('')
   const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [emailQuota, setEmailQuota] = useState({
+    sentThisMonth: 0,
+    monthlyLimit: planAccess.monthlyInvitationEmailLimit,
+    remaining: planAccess.monthlyInvitationEmailLimit
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [quizFilter, setQuizFilter] = useState('pending')
   const [linkFilter, setLinkFilter] = useState('all')
@@ -77,10 +84,24 @@ export default function Invitations() {
     }
   }, [advisor?.id])
 
+  const loadEmailQuota = useCallback(async () => {
+    if (!advisor?.id) return
+    try {
+      const quota = await getInvitationEmailQuotaStatus({
+        advisorId: advisor.id,
+        advisorPlan: advisor.plan
+      })
+      setEmailQuota(quota)
+    } catch (err) {
+      console.warn('Quota email indisponible:', err?.message || err)
+    }
+  }, [advisor?.id, advisor?.plan])
+
   useEffect(() => {
     void loadInvitations()
     void loadTemplate()
-  }, [loadInvitations, loadTemplate])
+    void loadEmailQuota()
+  }, [loadInvitations, loadTemplate, loadEmailQuota])
 
   useEffect(() => {
     if (!advisor?.id) return undefined
@@ -192,6 +213,7 @@ export default function Invitations() {
       setTemplateMessage(
         language === 'fr' ? `Email envoye a ${row.email}` : `Email sent to ${row.email}`
       )
+      void loadEmailQuota()
       setTimeout(() => setTemplateMessage(''), 1800)
     } catch (err) {
       setError(err.message || tr("Impossible d'envoyer l'email d'invitation", 'Unable to send invitation email'))
@@ -229,7 +251,7 @@ export default function Invitations() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{tr('Liens invitations', 'Invitation links')}</h2>
           <p className="text-gray-600">
@@ -275,7 +297,29 @@ export default function Invitations() {
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">{tr("Template email d'invitation", 'Invitation email template')}</h3>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">{tr("Template email d'invitation", 'Invitation email template')}</h3>
+          <button
+            type="button"
+            onClick={() => setShowTemplateEditor((prev) => !prev)}
+            className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+          >
+            {showTemplateEditor
+              ? tr('Masquer le template', 'Hide template')
+              : tr('Afficher le template', 'Show template')}
+          </button>
+        </div>
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          {emailQuota.monthlyLimit === null
+            ? tr(
+                `Quota email invitation: illimite (${planAccess.label}).`,
+                `Invitation email quota: unlimited (${planAccess.label}).`
+              )
+            : tr(
+                `Quota email invitation: ${emailQuota.sentThisMonth}/${emailQuota.monthlyLimit} ce mois-ci (${emailQuota.remaining} restant${emailQuota.remaining > 1 ? 's' : ''}).`,
+                `Invitation email quota: ${emailQuota.sentThisMonth}/${emailQuota.monthlyLimit} this month (${emailQuota.remaining} left).`
+              )}
+        </div>
         {!planAccess.canSendInvitationEmails ? (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {tr(
@@ -284,6 +328,7 @@ export default function Invitations() {
             )}
           </div>
         ) : null}
+        {showTemplateEditor ? (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">{tr('Objet', 'Subject')}</label>
@@ -321,6 +366,7 @@ export default function Invitations() {
             {templateMessage ? <p className="text-sm text-green-700 font-semibold">{templateMessage}</p> : null}
           </div>
         </div>
+        ) : null}
       </div>
 
       {error ? (
@@ -337,7 +383,75 @@ export default function Invitations() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="md:hidden space-y-3">
+            {paginatedRows.map((row) => (
+              <div key={row.id} className="bg-white rounded-xl shadow-md border border-gray-100 p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-900">{row.name}</p>
+                  <p className="text-sm text-gray-600 break-all">{row.email}</p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-gray-500">{tr('Questionnaire', 'Questionnaire')}</p>
+                  <p className="font-medium text-gray-800">
+                    {row.invitation?.questionnaireName || tr('Questionnaire standard', 'Standard questionnaire')}
+                  </p>
+                </div>
+                <div className="text-sm">
+                  <p className="text-gray-500">{tr('Lien', 'Link')}</p>
+                  <p className="text-gray-800 break-all">
+                    {row.invitation?.inviteUrl || tr('Lien non genere', 'Link not generated')}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div>
+                    <p className="text-gray-500">{tr('Expire le', 'Expires')}</p>
+                    <p>{row.invitation?.expiresAt ? formatDate(row.invitation.expiresAt) : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">{tr('Maj', 'Updated')}</p>
+                    <p>{row.invitation?.updatedAt ? formatDate(row.invitation.updatedAt) : '-'}</p>
+                  </div>
+                </div>
+                {row.invitation?.legacyMode ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    {tr('Mode compatibilite actif: migration requise pour une regeneration unique.', 'Compatibility mode enabled: migration required for unique regeneration.')}
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => copyLink(row)}
+                    disabled={!row.invitation?.inviteUrl}
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+                  >
+                    {copyState === row.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copyState === row.id ? tr('Copie', 'Copied') : tr('Copier le lien', 'Copy link')}
+                  </button>
+                  <button
+                    onClick={() => sendEmailForRow(row)}
+                    disabled={
+                      sendingId === row.id ||
+                      !row.invitation?.inviteUrl ||
+                      !planAccess.canSendInvitationEmails
+                    }
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-50"
+                  >
+                    {sendingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {tr('Envoyer email', 'Send email')}
+                  </button>
+                  <button
+                    onClick={() => regenerate(row)}
+                    disabled={regeneratingId === row.id || row.invitation?.legacyMode}
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
+                  >
+                    {regeneratingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    {row.invitation?.legacyMode ? tr('Migration requise', 'Migration required') : tr('Regenerer le lien', 'Regenerate link')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-white rounded-xl shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">

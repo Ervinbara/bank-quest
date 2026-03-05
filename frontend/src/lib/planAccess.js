@@ -3,31 +3,36 @@ const PLAN_ACCESS = {
     code: 'none',
     label: 'Gratuit',
     maxClients: 5,
-    canSendInvitationEmails: false
+    canSendInvitationEmails: false,
+    monthlyInvitationEmailLimit: 0
   },
   solo: {
     code: 'solo',
     label: 'Solo',
     maxClients: 50,
-    canSendInvitationEmails: true
+    canSendInvitationEmails: true,
+    monthlyInvitationEmailLimit: 100
   },
   pro: {
     code: 'pro',
     label: 'Pro',
     maxClients: 200,
-    canSendInvitationEmails: true
+    canSendInvitationEmails: true,
+    monthlyInvitationEmailLimit: 500
   },
   cabinet: {
     code: 'cabinet',
     label: 'Cabinet',
     maxClients: null,
-    canSendInvitationEmails: true
+    canSendInvitationEmails: true,
+    monthlyInvitationEmailLimit: 2000
   },
   test: {
     code: 'test',
     label: 'Test',
     maxClients: null,
-    canSendInvitationEmails: true
+    canSendInvitationEmails: true,
+    monthlyInvitationEmailLimit: null
   }
 }
 
@@ -52,3 +57,9 @@ export const isClientLimitReached = ({ plan, clientCount }) => {
   return (Number(clientCount) || 0) >= access.maxClients
 }
 
+export const getRemainingInvitationEmails = ({ plan, sentCount }) => {
+  const access = getPlanAccess(plan)
+  if (!access.canSendInvitationEmails) return 0
+  if (access.monthlyInvitationEmailLimit === null) return null
+  return Math.max(0, access.monthlyInvitationEmailLimit - Math.max(0, Number(sentCount) || 0))
+}

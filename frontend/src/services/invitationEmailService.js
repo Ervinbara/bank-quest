@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getPlanAccess } from '@/lib/planAccess'
+import { getPlanAccess, getRemainingInvitationEmails } from '@/lib/planAccess'
 
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
@@ -208,4 +208,45 @@ export const sendInvitationEmail = async ({
   }
 
   return data
+}
+
+export const getInvitationEmailQuotaStatus = async ({ advisorId, advisorPlan }) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const planAccess = getPlanAccess(advisorPlan || 'none')
+  const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
+    .toISOString()
+    .slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('advisor_email_usage')
+    .select('emails_sent')
+    .eq('advisor_id', advisorId)
+    .eq('usage_month', monthStart)
+    .maybeSingle()
+
+  if (error) {
+    const message = String(error?.message || '').toLowerCase()
+    if (message.includes("could not find the table 'public.advisor_email_usage'")) {
+      return {
+        sentThisMonth: 0,
+        monthlyLimit: planAccess.monthlyInvitationEmailLimit,
+        remaining:
+          planAccess.monthlyInvitationEmailLimit === null
+            ? null
+            : getRemainingInvitationEmails({ plan: planAccess.code, sentCount: 0 })
+      }
+    }
+    throw error
+  }
+
+  const sentThisMonth = Number(data?.emails_sent || 0)
+  return {
+    sentThisMonth,
+    monthlyLimit: planAccess.monthlyInvitationEmailLimit,
+    remaining: getRemainingInvitationEmails({
+      plan: planAccess.code,
+      sentCount: sentThisMonth
+    })
+  }
 }

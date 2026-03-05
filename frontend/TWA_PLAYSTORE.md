@@ -23,7 +23,13 @@
 6. Uploader l'AAB dans Play Console.
 
 ## 3) Config assetlinks (obligatoire)
-Recuperez le SHA-256 de votre cle de signature Android (upload key).
+Recuperez les SHA-256 de:
+- la **Upload key** (votre keystore local)
+- la **App signing key** fournie par Google Play (Play Console > App integrity)
+
+Important:
+- Si vous n'avez que la Upload key dans `assetlinks.json`, la TWA peut tomber en fallback Custom Tabs et afficher la barre d'URL (comme sur votre capture).
+- Pour eviter cette barre, mettez **les 2 empreintes** dans `assetlinks.json`.
 
 Commande utile:
 ```bash
@@ -32,13 +38,13 @@ keytool -list -v -keystore <votre-keystore.jks> -alias <votre-alias>
 
 Puis generez automatiquement `public/.well-known/assetlinks.json`:
 ```bash
-ANDROID_PACKAGE_NAME=com.finmate.app ANDROID_SHA256_FINGERPRINT=AA:BB:...:FF npm run twa:assetlinks
+ANDROID_PACKAGE_NAME=com.finmate.app ANDROID_SHA256_FINGERPRINTS=AA:BB:...:FF,11:22:...:EE npm run twa:assetlinks
 ```
 
 Note Windows PowerShell:
 ```powershell
 $env:ANDROID_PACKAGE_NAME="com.finmate.app"
-$env:ANDROID_SHA256_FINGERPRINT="AA:BB:...:FF"
+$env:ANDROID_SHA256_FINGERPRINTS="AA:BB:...:FF,11:22:...:EE"
 npm run twa:assetlinks
 ```
 

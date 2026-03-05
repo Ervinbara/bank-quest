@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
@@ -377,15 +378,45 @@ export default function Questionnaires() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{tr('Questionnaires', 'Questionnaires')}</h2>
-          <p className="text-gray-600">{tr('Creez vos questionnaires, utilisez des templates et ajoutez des questions par theme.', 'Create questionnaires, use templates, and add topic-based questions.')}</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {tr('Questionnaires (Etape 2)', 'Questionnaires (Step 2)')}
+          </h2>
+          <p className="text-gray-600">
+            {tr(
+              'Assemblez ici vos questionnaires a partir de votre banque de questions.',
+              'Assemble your questionnaires here from your question bank.'
+            )}
+          </p>
         </div>
         <DashboardGuide guide={dashboardGuides.questionnaires} />
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        Le theme sert uniquement a classer les questions (General, Budget, Epargne, etc.).
-        Si aucun questionnaire n'est marque "Par defaut", l'application utilise automatiquement le premier questionnaire cree.
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="text-sm text-indigo-900 space-y-1">
+            <p className="font-semibold">
+              {tr('Parcours recommande:', 'Recommended flow:')}
+            </p>
+            <p>
+              {tr(
+                '1) Preparez vos questions dans "Banque de questions" | 2) Assemblez votre questionnaire ici | 3) Definissez un questionnaire par defaut.',
+                '1) Prepare questions in "Question bank" | 2) Assemble your questionnaire here | 3) Set one as default.'
+              )}
+            </p>
+            <p>
+              {tr(
+                'Le theme sert a classer les questions. Sans questionnaire par defaut, le premier cree est utilise.',
+                'Topic is only for classification. Without a default questionnaire, the first created one is used.'
+              )}
+            </p>
+          </div>
+          <Link
+            to="/dashboard/question-bank"
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          >
+            {tr('Aller a la Banque (Etape 1)', 'Go to Question bank (Step 1)')}
+          </Link>
+        </div>
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}

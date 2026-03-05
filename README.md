@@ -235,10 +235,10 @@ Depuis la racine:
 
 ## 7.1) Plans & droits
 - `none` (gratuit): jusqu'a 5 clients, generation de liens invitation, pas d'envoi email invitation depuis la plateforme.
-- `solo`: 19.99 EUR/mois, jusqu'a 50 clients, envoi email invitation actif.
-- `pro`: 49.99 EUR/mois, jusqu'a 200 clients, envoi email invitation actif.
-- `cabinet`: 99.99 EUR/mois, clients illimites, envoi email invitation actif.
-- `test`: plan interne pour compte(s) autorise(s), usage QA.
+- `solo`: 19.99 EUR/mois, jusqu'a 50 clients, 100 emails invitation / mois.
+- `pro`: 49.99 EUR/mois, jusqu'a 200 clients, 500 emails invitation / mois.
+- `cabinet`: 99.99 EUR/mois, clients illimites, 2000 emails invitation / mois.
+- `test`: plan interne pour compte(s) autorise(s), clients et emails invitation illimites.
 
 ## 8) Google OAuth (production)
 1. Creer un client OAuth 2.0 Web dans Google Cloud.
