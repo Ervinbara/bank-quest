@@ -5,7 +5,11 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
-import { getAdvisorAnalytics, updateClientFollowup } from '@/services/clientService'
+import {
+  getAdvisorAnalytics,
+  getAdvisorAnalyticsPriorities,
+  updateClientFollowup
+} from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import {
   TrendingUp,
@@ -102,6 +106,10 @@ export default function Analytics() {
   const [prioritySearch, setPrioritySearch] = useState('')
   const [priorityPage, setPriorityPage] = useState(1)
   const [priorityPageSize, setPriorityPageSize] = useState(5)
+  const [priorityRows, setPriorityRows] = useState([])
+  const [priorityTotal, setPriorityTotal] = useState(0)
+  const [priorityLoading, setPriorityLoading] = useState(false)
+  const [priorityLoadedOnce, setPriorityLoadedOnce] = useState(false)
   const [updatingPriorityClientId, setUpdatingPriorityClientId] = useState(null)
 
   const loadAnalytics = useCallback(async () => {
@@ -110,7 +118,7 @@ export default function Analytics() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getAdvisorAnalytics(advisor.id)
+      const data = await getAdvisorAnalytics(advisor.id, { includeCrmRows: false })
       setAnalytics(data)
     } catch (err) {
       console.error('Erreur chargement analytics:', err)
@@ -134,12 +142,56 @@ export default function Analytics() {
     return Math.max(...analytics.monthlyEvolution.map((item) => item.averageScore), 0)
   }, [analytics])
 
-  const exportCsv = () => {
-    if (!analytics?.crmRows?.length) return
+  const loadPriorityRows = useCallback(async () => {
+    if (!advisor?.id) return
+    if (!panelOpen.priorities) return
 
     try {
+      setPriorityLoading(true)
+      const result = await getAdvisorAnalyticsPriorities({
+        advisorId: advisor.id,
+        page: priorityPage,
+        pageSize: priorityPageSize,
+        limit: priorityLimit,
+        followupFilter: priorityFollowupFilter,
+        search: prioritySearch
+      })
+      setPriorityRows(result?.rows || [])
+      setPriorityTotal(result?.totalItems || 0)
+      setPriorityLoadedOnce(true)
+    } catch (err) {
+      console.error('Erreur chargement priorites:', err)
+      setError(tr('Impossible de charger les priorites', 'Unable to load priorities'))
+    } finally {
+      setPriorityLoading(false)
+    }
+  }, [
+    advisor?.id,
+    panelOpen.priorities,
+    priorityPage,
+    priorityPageSize,
+    priorityLimit,
+    priorityFollowupFilter,
+    prioritySearch,
+    tr
+  ])
+
+  const exportCsv = async () => {
+    try {
       setExporting(true)
-      const csv = buildCsv(analytics.crmRows)
+      const result = await getAdvisorAnalyticsPriorities({
+        advisorId: advisor?.id,
+        page: 1,
+        pageSize: 100000,
+        limit: null,
+        followupFilter: priorityFollowupFilter,
+        search: prioritySearch
+      })
+
+      const rows = result?.rows || []
+      if (rows.length === 0) return
+
+      const csv = buildCsv(rows)
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -154,43 +206,14 @@ export default function Analytics() {
     }
   }
 
-  const filteredPriorities = useMemo(() => {
-    const rows = analytics?.crmRows || []
-    const normalizedSearch = prioritySearch.trim().toLowerCase()
-
-    return rows.filter((row) => {
-      if (row.followupStatus === 'clos') return false
-      const followupOk =
-        priorityFollowupFilter === 'all' ? true : row.followupStatus === priorityFollowupFilter
-
-      if (!followupOk) return false
-      if (!normalizedSearch) return true
-
-      const name = String(row.name || '').toLowerCase()
-      const email = String(row.email || '').toLowerCase()
-      const reason = String(row.priority?.reason || '').toLowerCase()
-
-      return (
-        name.includes(normalizedSearch) ||
-        email.includes(normalizedSearch) ||
-        reason.includes(normalizedSearch)
-      )
-    })
-  }, [analytics?.crmRows, priorityFollowupFilter, prioritySearch])
-
-  const topPriorityRows = useMemo(
-    () => filteredPriorities.slice(0, priorityLimit),
-    [filteredPriorities, priorityLimit]
-  )
-
   useEffect(() => {
     setPriorityPage(1)
   }, [priorityLimit, priorityFollowupFilter, prioritySearch])
 
-  const paginatedTopPriorityRows = useMemo(() => {
-    const start = (priorityPage - 1) * priorityPageSize
-    return topPriorityRows.slice(start, start + priorityPageSize)
-  }, [topPriorityRows, priorityPage, priorityPageSize])
+  useEffect(() => {
+    if (!panelOpen.priorities && !priorityLoadedOnce) return
+    void loadPriorityRows()
+  }, [panelOpen.priorities, priorityLoadedOnce, loadPriorityRows])
 
   const applyPriorityFilters = () => {
     setPriorityFollowupFilter(priorityFollowupFilterDraft)
@@ -215,31 +238,18 @@ export default function Analytics() {
     try {
       setError(null)
       setUpdatingPriorityClientId(clientId)
-      setAnalytics((prev) => {
-        if (!prev) return prev
-        previousAnalytics = prev
-        return {
-          ...prev,
-          crmRows: (prev.crmRows || []).map((row) =>
-            row.id === clientId
-              ? {
-                  ...row,
-                  followupStatus: followupStatus,
-                  lastContactedAt: optimisticContactDate || row.lastContactedAt
-                }
-              : row
-          ),
-          priorities: (prev.priorities || []).map((row) =>
-            row.id === clientId
-              ? {
-                  ...row,
-                  followupStatus: followupStatus,
-                  lastContactedAt: optimisticContactDate || row.lastContactedAt
-                }
-              : row
-          )
-        }
-      })
+      previousAnalytics = analytics
+      setPriorityRows((prev) =>
+        (prev || []).map((row) =>
+          row.id === clientId
+            ? {
+                ...row,
+                followupStatus: followupStatus,
+                lastContactedAt: optimisticContactDate || row.lastContactedAt
+              }
+            : row
+        )
+      )
 
       const updatedClient = await updateClientFollowup({
         clientId,
@@ -250,36 +260,25 @@ export default function Analytics() {
 
       if (updatedClient) {
         const patch = toAnalyticsFollowupPatch(updatedClient)
-        setAnalytics((prev) => {
-          if (!prev) return prev
-          return {
-            ...prev,
-            crmRows: (prev.crmRows || []).map((row) =>
-              row.id === clientId
-                ? {
-                    ...row,
-                    ...patch
-                  }
-                : row
-            ),
-            priorities: (prev.priorities || []).map((row) =>
-              row.id === clientId
-                ? {
-                    ...row,
-                    ...patch
-                  }
-                : row
-            )
-          }
-        })
+        setPriorityRows((prev) =>
+          (prev || []).map((row) =>
+            row.id === clientId
+              ? {
+                  ...row,
+                  ...patch
+                }
+              : row
+          )
+        )
       }
 
-      void loadAnalytics()
+      void Promise.all([loadAnalytics(), loadPriorityRows()])
     } catch (err) {
       console.error('Erreur mise a jour priorite:', err)
       if (previousAnalytics) {
         setAnalytics(previousAnalytics)
       }
+      void loadPriorityRows()
       setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
     } finally {
       setUpdatingPriorityClientId(null)
@@ -555,11 +554,16 @@ export default function Analytics() {
                 </button>
               </div>
             </div>
-          {topPriorityRows.length === 0 ? (
-          <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
-        ) : (
+          {priorityLoading ? (
+            <div className="rounded-lg border border-gray-200 p-4 text-center text-sm text-gray-600">
+              <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+              {tr('Chargement des priorites...', 'Loading priorities...')}
+            </div>
+          ) : priorityRows.length === 0 ? (
+            <p className="text-sm text-gray-500">{tr('Aucun client a prioriser pour le moment.', 'No clients to prioritize for now.')}</p>
+          ) : (
           <div className="space-y-3">
-            {paginatedTopPriorityRows.map((row) => (
+            {priorityRows.map((row) => (
               <div key={row.id} className="rounded-lg border border-gray-200 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div>
                   <p className="font-semibold text-gray-800">{row.name}</p>
@@ -635,7 +639,7 @@ export default function Analytics() {
             <PaginationControls
               page={priorityPage}
               pageSize={priorityPageSize}
-              totalItems={topPriorityRows.length}
+              totalItems={priorityTotal}
               onPageChange={setPriorityPage}
               onPageSizeChange={(value) => {
                 setPriorityPageSize(value)

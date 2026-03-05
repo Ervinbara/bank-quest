@@ -244,12 +244,12 @@ export default function ImportClientsModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeAndReset}>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={closeAndReset}>
       <div
-        className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden"
+        className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-3xl rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-5 sm:p-6 sticky top-0 z-10">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-xl font-bold">{tr('Importer des clients', 'Import clients')}</h3>
@@ -266,7 +266,7 @@ export default function ImportClientsModal({
           </div>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {remainingClientSlots !== null ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
               {tr(

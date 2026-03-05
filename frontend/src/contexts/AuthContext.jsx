@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase'
 import * as authService from '@/services/authService'
 
 const AuthContext = createContext(null)
-const LEGAL_VERSION = '2026-03-02'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
@@ -18,14 +17,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [advisor, setAdvisor] = useState(null)
   const [loading, setLoading] = useState(true)
+  const isInvalidJwtError = (error) => String(error?.message || '').toLowerCase().includes('invalid jwt')
 
   const fetchAdvisorByEmail = async (email) => {
     if (!email) return null
 
+    const normalizedEmail = String(email).trim().toLowerCase()
     const { data, error } = await supabase
       .from('advisors')
       .select('*')
-      .eq('email', email)
+      .ilike('email', normalizedEmail)
       .maybeSingle()
 
     if (error) {
@@ -35,51 +36,7 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
-  const createAdvisorIfMissing = async (authUser) => {
-    const email = authUser?.email
-    if (!email) return null
-
-    const existing = await fetchAdvisorByEmail(email)
-    if (existing) return existing
-
-    const fullName =
-      authUser?.user_metadata?.full_name ||
-      authUser?.user_metadata?.name ||
-      email.split('@')[0]
-
-    const company =
-      authUser?.user_metadata?.company ||
-      authUser?.user_metadata?.hd ||
-      'FinMate Advisor'
-
-    const acceptedAt = new Date().toISOString()
-
-    const { data, error } = await supabase
-      .from('advisors')
-      .insert([
-        {
-          email,
-          name: fullName,
-          company,
-          phone: null,
-          terms_version: LEGAL_VERSION,
-          privacy_policy_version: LEGAL_VERSION,
-          terms_accepted_at: acceptedAt,
-          privacy_accepted_at: acceptedAt,
-          marketing_opt_in: false,
-          gamification_enabled: true,
-          gamification_updated_at: acceptedAt,
-          smart_alerts_enabled: true,
-          smart_alerts_delay_days: 7,
-          smart_alerts_updated_at: acceptedAt
-        }
-      ])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
+  const createAdvisorIfMissing = async (authUser) => authService.ensureAdvisorProfileForUser(authUser)
 
   useEffect(() => {
     let mounted = true
@@ -111,6 +68,14 @@ export const AuthProvider = ({ children }) => {
         if (mounted) setAdvisor(advisorData || null)
       } catch (err) {
         console.error(`Init ${contextLabel} load error:`, err)
+        if (isInvalidJwtError(err)) {
+          try {
+            await authService.logout()
+          } catch {
+            // no-op
+          }
+          clearAllData()
+        }
         if (mounted) setAdvisor(null)
       }
     }
@@ -136,6 +101,14 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Init auth error:', error)
+        if (isInvalidJwtError(error)) {
+          try {
+            await authService.logout()
+          } catch {
+            // no-op
+          }
+          clearAllData()
+        }
         if (mounted) {
           setUser(null)
           setAdvisor(null)
@@ -199,6 +172,10 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = async () => {
     await authService.loginWithGoogle()
     return { success: true }
+  }
+
+  const resendSignupConfirmation = async (email) => {
+    return authService.resendSignupConfirmation(email)
   }
 
   const clearAllData = () => {
@@ -276,6 +253,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     loginWithGoogle,
+    resendSignupConfirmation,
     logout,
     updateProfile,
     refreshAdvisor,

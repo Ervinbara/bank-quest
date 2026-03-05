@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { getAdvisorClients, subscribeToAdvisorClients, updateClientFollowup } from '@/services/clientService'
+import { getAdvisorClientsPage, subscribeToAdvisorClients, updateClientFollowup } from '@/services/clientService'
 import ClientCard from '@/components/Dashboard/ClientCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
@@ -17,6 +17,7 @@ const normalizeFollowupStatus = (status) => status || 'a_contacter'
 export default function Clients() {
   const { advisor } = useAuth()
   const { tr, language } = useLanguage()
+  const [searchParams, setSearchParams] = useSearchParams()
   const STATUS_FILTERS = [
     { key: 'all', label: tr('Tous', 'All') },
     { key: 'completed', label: tr('Quiz completes', 'Completed quizzes') },
@@ -39,6 +40,16 @@ export default function Clients() {
   }
 
   const [clients, setClients] = useState([])
+  const [totalItems, setTotalItems] = useState(0)
+  const [stats, setStats] = useState({
+    all: 0,
+    completed: 0,
+    pending: 0,
+    a_contacter: 0,
+    rdv_planifie: 0,
+    en_cours: 0,
+    clos: 0
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeStatusFilter, setActiveStatusFilter] = useState('all')
@@ -54,7 +65,7 @@ export default function Clients() {
   const planAccess = getPlanAccess(advisor?.plan)
   const remainingClientSlots = getRemainingClientSlots({
     plan: planAccess.code,
-    clientCount: clients.length
+    clientCount: stats.all
   })
   const clientLimitReached = remainingClientSlots !== null && remainingClientSlots <= 0
 
@@ -64,15 +75,34 @@ export default function Clients() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getAdvisorClients(advisor.id)
-      setClients(data || [])
+      const data = await getAdvisorClientsPage({
+        advisorId: advisor.id,
+        page,
+        pageSize,
+        statusFilter: activeStatusFilter,
+        followupFilter: activeFollowupFilter,
+        searchTerm
+      })
+      setClients(data?.items || [])
+      setTotalItems(data?.totalItems || 0)
+      setStats(
+        data?.stats || {
+          all: 0,
+          completed: 0,
+          pending: 0,
+          a_contacter: 0,
+          rdv_planifie: 0,
+          en_cours: 0,
+          clos: 0
+        }
+      )
     } catch (err) {
       console.error('Erreur chargement clients:', err)
       setError(tr('Impossible de charger les clients', 'Unable to load clients'))
     } finally {
       setLoading(false)
     }
-  }, [advisor?.id, tr])
+  }, [advisor?.id, page, pageSize, activeStatusFilter, activeFollowupFilter, searchTerm, tr])
 
   useEffect(() => {
     void loadClients()
@@ -88,44 +118,6 @@ export default function Clients() {
     return unsubscribe
   }, [advisor?.id, loadClients])
 
-  const stats = useMemo(() => {
-    const completed = clients.filter((client) => client.quiz_status === 'completed').length
-    const pending = clients.length - completed
-
-    return {
-      all: clients.length,
-      completed,
-      pending,
-      a_contacter: clients.filter((client) => client.followup_status === 'a_contacter').length,
-      rdv_planifie: clients.filter((client) => client.followup_status === 'rdv_planifie').length,
-      en_cours: clients.filter((client) => client.followup_status === 'en_cours').length,
-      clos: clients.filter((client) => client.followup_status === 'clos').length
-    }
-  }, [clients])
-
-  const filteredClients = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-
-    return clients.filter((client) => {
-      const statusOk =
-        activeStatusFilter === 'all'
-          ? true
-          : activeStatusFilter === 'completed'
-            ? client.quiz_status === 'completed'
-            : client.quiz_status !== 'completed'
-
-      const followupOk =
-        activeFollowupFilter === 'all' ? true : client.followup_status === activeFollowupFilter
-
-      if (!statusOk || !followupOk) return false
-      if (!normalizedSearch) return true
-
-      const name = String(client.name || '').toLowerCase()
-      const email = String(client.email || '').toLowerCase()
-      return name.includes(normalizedSearch) || email.includes(normalizedSearch)
-    })
-  }, [activeStatusFilter, activeFollowupFilter, clients, searchTerm])
-
   useEffect(() => {
     if (typeof window === 'undefined') return
     const applyMobileState = () => {
@@ -137,6 +129,26 @@ export default function Clients() {
     window.addEventListener('resize', applyMobileState)
     return () => window.removeEventListener('resize', applyMobileState)
   }, [])
+
+  useEffect(() => {
+    const quickAction = searchParams.get('quick')
+    if (quickAction === 'invite') {
+      setInviteModalOpen(true)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('quick')
+        return next
+      }, { replace: true })
+    }
+    if (quickAction === 'import') {
+      setImportModalOpen(true)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('quick')
+        return next
+      }, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     setPage(1)
@@ -196,10 +208,7 @@ export default function Clients() {
     }
   }
 
-  const paginatedClients = useMemo(() => {
-    const start = (page - 1) * pageSize
-    return filteredClients.slice(start, start + pageSize)
-  }, [filteredClients, page, pageSize])
+  const paginatedClients = useMemo(() => clients, [clients])
 
   if (loading) {
     return (
@@ -233,15 +242,15 @@ export default function Clients() {
           <h2 className="text-2xl font-bold text-gray-800">{tr('Mes clients', 'My clients')}</h2>
           <p className="text-gray-600">
             {language === 'fr'
-              ? `${filteredClients.length} client${filteredClients.length !== 1 ? 's' : ''} affiche${filteredClients.length !== 1 ? 's' : ''}`
-              : `${filteredClients.length} client${filteredClients.length !== 1 ? 's' : ''} shown`}
+              ? `${totalItems} client${totalItems !== 1 ? 's' : ''} affiche${totalItems !== 1 ? 's' : ''}`
+              : `${totalItems} client${totalItems !== 1 ? 's' : ''} shown`}
           </p>
           <p className="text-sm font-semibold text-emerald-700 mt-1">
             {remainingClientSlots === null
               ? tr(`Quota clients: illimite (${planAccess.label})`, `Client quota: unlimited (${planAccess.label})`)
               : tr(
-                  `Quota clients: ${clients.length}/${planAccess.maxClients} (${remainingClientSlots} restant${remainingClientSlots > 1 ? 's' : ''})`,
-                  `Client quota: ${clients.length}/${planAccess.maxClients} (${remainingClientSlots} left)`
+                  `Quota clients: ${stats.all}/${planAccess.maxClients} (${remainingClientSlots} restant${remainingClientSlots > 1 ? 's' : ''})`,
+                  `Client quota: ${stats.all}/${planAccess.maxClients} (${remainingClientSlots} left)`
                 )}
           </p>
         </div>
@@ -381,20 +390,20 @@ export default function Clients() {
         ) : null}
       </div>
 
-      {filteredClients.length === 0 ? (
+      {totalItems === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-12 text-center">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {clients.length === 0
+              {stats.all === 0
                 ? tr("Aucun client pour l'instant", 'No clients yet')
                 : tr('Aucun client dans ces filtres', 'No clients in these filters')}
           </h3>
           <p className="text-gray-600 mb-6">
-            {clients.length === 0
+            {stats.all === 0
               ? tr('Commencez a qualifier vos clients en leur envoyant un questionnaire.', 'Start qualifying clients by sending a questionnaire.')
               : tr('Essayez une autre combinaison de filtres.', 'Try another filter combination.')}
           </p>
-          {clients.length === 0 ? (
+          {stats.all === 0 ? (
             <button
               onClick={() => setInviteModalOpen(true)}
               disabled={clientLimitReached}
@@ -483,7 +492,7 @@ export default function Clients() {
           <PaginationControls
             page={page}
             pageSize={pageSize}
-            totalItems={filteredClients.length}
+            totalItems={totalItems}
             onPageChange={setPage}
             onPageSizeChange={(value) => {
               setPageSize(value)
@@ -508,7 +517,7 @@ export default function Clients() {
         advisorName={advisor?.name}
         advisorEmail={advisor?.email}
         advisorPlan={advisor?.plan}
-        currentClientCount={clients.length}
+        currentClientCount={stats.all}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
           void loadClients()
@@ -519,7 +528,7 @@ export default function Clients() {
         isOpen={importModalOpen}
         advisorId={advisor?.id}
         advisorPlan={advisor?.plan}
-        currentClientCount={clients.length}
+        currentClientCount={stats.all}
         tr={tr}
         onClose={() => setImportModalOpen(false)}
         onImported={() => {

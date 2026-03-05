@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { getAdvisorClients, getAdvisorStats, subscribeToAdvisorClients } from '@/services/clientService'
+import { getAdvisorConversionMetrics } from '@/services/auditService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import { dashboardGuides } from '@/data/dashboardGuides'
@@ -36,9 +37,11 @@ export default function Overview() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [funnelMetrics, setFunnelMetrics] = useState(null)
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [gamificationLoading, setGamificationLoading] = useState(false)
   const [alertsLoading, setAlertsLoading] = useState(false)
+  const [instrumentationLoading, setInstrumentationLoading] = useState(false)
   const [isJourneyCollapsed, setIsJourneyCollapsed] = useState(() => {
     try {
       return localStorage.getItem('finmate-overview-journey-collapsed') === '1'
@@ -48,6 +51,7 @@ export default function Overview() {
   })
   const gamificationEnabled = advisor?.gamification_enabled !== false
   const smartAlertsEnabled = advisor?.smart_alerts_enabled !== false
+  const productInstrumentationEnabled = advisor?.product_instrumentation_enabled !== false
   const alertDelayDays = Math.max(1, Number(advisor?.smart_alerts_delay_days || 7))
 
   const loadStats = useCallback(async () => {
@@ -56,12 +60,14 @@ export default function Overview() {
     try {
       setLoading(true)
       setError(null)
-      const [statsData, clientsData] = await Promise.all([
+      const [statsData, clientsData, funnelData] = await Promise.all([
         getAdvisorStats(advisor.id),
-        getAdvisorClients(advisor.id)
+        getAdvisorClients(advisor.id),
+        getAdvisorConversionMetrics(advisor.id)
       ])
       setStats(statsData)
       setClients(clientsData || [])
+      setFunnelMetrics(funnelData)
     } catch (err) {
       console.error('Erreur chargement stats:', err)
       setError(tr('Impossible de charger les statistiques', 'Unable to load statistics'))
@@ -69,6 +75,19 @@ export default function Overview() {
       setLoading(false)
     }
   }, [advisor?.id, tr])
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) return tr('En attente', 'Pending')
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return tr('En attente', 'Pending')
+    return date.toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }, [language, tr])
 
   useEffect(() => {
     void loadStats()
@@ -113,6 +132,22 @@ export default function Overview() {
       console.error('Erreur mise a jour alertes intelligentes:', err)
     } finally {
       setAlertsLoading(false)
+    }
+  }
+
+  const setProductInstrumentationVisibility = async (enabled) => {
+    if (!advisor?.id || instrumentationLoading) return
+    try {
+      setInstrumentationLoading(true)
+      await updateProfile({
+        product_instrumentation_enabled: Boolean(enabled),
+        product_instrumentation_updated_at: new Date().toISOString()
+      })
+      await refreshAdvisor()
+    } catch (err) {
+      console.error('Erreur mise a jour instrumentation produit:', err)
+    } finally {
+      setInstrumentationLoading(false)
     }
   }
 
@@ -451,6 +486,93 @@ export default function Overview() {
         </h2>
         <p className="text-emerald-100 text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
       </div>
+
+      {productInstrumentationEnabled ? (
+      <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-indigo-600" />
+            {tr('Instrumentation produit', 'Product instrumentation')}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+              {tr('Conversion globale', 'Overall conversion')}: {funnelMetrics?.rates?.fullFunnel ?? 0}%
+            </span>
+            <button
+              onClick={() => void setProductInstrumentationVisibility(false)}
+              disabled={instrumentationLoading}
+              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
+            >
+              {instrumentationLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <EyeOff className="w-3.5 h-3.5" />}
+              {tr('Masquer', 'Hide')}
+            </button>
+          </div>
+        </div>
+
+        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mb-4">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400"
+            style={{ width: `${funnelMetrics?.rates?.fullFunnel ?? 0}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={`rounded-lg border p-3 ${funnelMetrics?.completion?.signup ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+            <p className="text-xs uppercase tracking-wide text-gray-500">{tr('Etape 1', 'Step 1')}</p>
+            <p className="font-semibold text-gray-900">{tr('Inscription', 'Sign up')}</p>
+            <p className="text-xs text-gray-600 mt-1">{formatDateTime(funnelMetrics?.signupAt)}</p>
+          </div>
+          <div className={`rounded-lg border p-3 ${funnelMetrics?.completion?.firstClient ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+            <p className="text-xs uppercase tracking-wide text-gray-500">{tr('Etape 2', 'Step 2')}</p>
+            <p className="font-semibold text-gray-900">{tr('1er client cree', 'First client created')}</p>
+            <p className="text-xs text-gray-600 mt-1">{formatDateTime(funnelMetrics?.firstClientAt)}</p>
+          </div>
+          <div className={`rounded-lg border p-3 ${funnelMetrics?.completion?.firstCompletedQuiz ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+            <p className="text-xs uppercase tracking-wide text-gray-500">{tr('Etape 3', 'Step 3')}</p>
+            <p className="font-semibold text-gray-900">{tr('1er questionnaire complete', 'First questionnaire completed')}</p>
+            <p className="text-xs text-gray-600 mt-1">{formatDateTime(funnelMetrics?.firstCompletedQuizAt)}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-gray-500">{tr('Delai inscription -> 1er client', 'Delay sign up -> first client')}</p>
+            <p className="font-semibold text-gray-900">
+              {funnelMetrics?.durationsDays?.signupToFirstClient ?? tr('N/A', 'N/A')} {typeof funnelMetrics?.durationsDays?.signupToFirstClient === 'number' ? tr('jours', 'days') : ''}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-gray-500">{tr('Delai 1er client -> 1er questionnaire', 'Delay first client -> first questionnaire')}</p>
+            <p className="font-semibold text-gray-900">
+              {funnelMetrics?.durationsDays?.firstClientToFirstCompletedQuiz ?? tr('N/A', 'N/A')} {typeof funnelMetrics?.durationsDays?.firstClientToFirstCompletedQuiz === 'number' ? tr('jours', 'days') : ''}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-gray-500">{tr('Delai inscription -> 1er questionnaire', 'Delay sign up -> first questionnaire')}</p>
+            <p className="font-semibold text-gray-900">
+              {funnelMetrics?.durationsDays?.signupToFirstCompletedQuiz ?? tr('N/A', 'N/A')} {typeof funnelMetrics?.durationsDays?.signupToFirstCompletedQuiz === 'number' ? tr('jours', 'days') : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+      ) : (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-800">{tr('Instrumentation produit masquee', 'Product instrumentation hidden')}</p>
+          <p className="text-sm text-slate-600">
+            {tr('Vous pouvez la reactiver ici ou dans Parametres.', 'You can re-enable it here or in Settings.')}
+          </p>
+        </div>
+        <button
+          onClick={() => void setProductInstrumentationVisibility(true)}
+          disabled={instrumentationLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
+        >
+          {instrumentationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+          {tr('Afficher l instrumentation', 'Show instrumentation')}
+        </button>
+      </div>
+      )}
 
       {gamificationEnabled ? (
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 rounded-xl p-5 sm:p-6 text-white shadow-lg">

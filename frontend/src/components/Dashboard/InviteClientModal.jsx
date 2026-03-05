@@ -179,16 +179,16 @@ export default function InviteClientModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4"
       onClick={closeAndReset}
     >
       <div
-        className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden"
+        className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-xl rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         {!createdInvitation ? (
           <>
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-5 sm:p-6 sticky top-0 z-10">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-xl font-bold">Inviter un client</h3>
@@ -206,7 +206,7 @@ export default function InviteClientModal({
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
                   Nom du client
@@ -307,8 +307,8 @@ export default function InviteClientModal({
             </form>
           </>
         ) : (
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-5">
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+            <div className="flex items-start justify-between mb-5 sticky top-0 bg-white py-1 z-10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-full">
                   <CheckCircle2 className="w-6 h-6 text-green-600" />

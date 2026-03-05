@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -7,7 +7,8 @@ import { isValidEmail } from '@/services/authService'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, loginWithGoogle } = useAuth()
+  const [searchParams] = useSearchParams()
+  const { login, loginWithGoogle, resendSignupConfirmation } = useAuth()
   const { t, language } = useLanguage()
 
   const [formData, setFormData] = useState({
@@ -18,7 +19,9 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [alert, setAlert] = useState(null)
+  const checkEmailParam = searchParams.get('checkEmail')
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -83,6 +86,36 @@ export default function Login() {
     }
   }
 
+  const handleResendConfirmation = async () => {
+    const email = formData.email || checkEmailParam
+    if (!isValidEmail(email)) {
+      setAlert({
+        type: 'error',
+        message:
+          language === 'fr'
+            ? "Renseignez un email valide pour renvoyer la confirmation."
+            : 'Provide a valid email to resend confirmation.'
+      })
+      return
+    }
+
+    setResendLoading(true)
+    try {
+      await resendSignupConfirmation(email)
+      setAlert({
+        type: 'success',
+        message:
+          language === 'fr'
+            ? 'Email de confirmation renvoye. Verifiez votre boite de reception.'
+            : 'Confirmation email resent. Please check your inbox.'
+      })
+    } catch (error) {
+      setAlert({ type: 'error', message: error.message })
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-700 flex items-center justify-center p-4">
       <div className="surface-glass p-5 sm:p-8 w-full max-w-md finance-animate-in">
@@ -107,6 +140,14 @@ export default function Login() {
             {alert.message}
           </div>
         )}
+
+        {!alert && checkEmailParam ? (
+          <div className="mb-6 p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+            {language === 'fr'
+              ? `Confirmez votre email (${checkEmailParam}) pour finaliser le compte, puis connectez-vous.`
+              : `Confirm your email (${checkEmailParam}) to complete account setup, then sign in.`}
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <button
@@ -177,6 +218,21 @@ export default function Login() {
               {t('auth.forgot')}
             </Link>
           </div>
+
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            disabled={resendLoading}
+            className="w-full border border-emerald-200 text-emerald-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-emerald-50 transition disabled:opacity-50"
+          >
+            {resendLoading
+              ? language === 'fr'
+                ? 'Renvoi en cours...'
+                : 'Resending...'
+              : language === 'fr'
+                ? 'Renvoyer email de confirmation'
+                : 'Resend confirmation email'}
+          </button>
 
           <button
             type="submit"

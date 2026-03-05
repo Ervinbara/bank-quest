@@ -122,6 +122,26 @@ serve(async (req) => {
       return json({ error: "Lien d'invitation expire" }, 403)
     }
 
+    const { data: clientBeforeUpdate, error: clientBeforeUpdateError } = await admin
+      .from('clients')
+      .select('id, advisor_id, quiz_status')
+      .eq('id', clientId)
+      .maybeSingle()
+    if (clientBeforeUpdateError) return json({ error: clientBeforeUpdateError.message }, 400)
+    if (!clientBeforeUpdate) return json({ error: 'Client introuvable' }, 404)
+
+    const advisorId = clientBeforeUpdate.advisor_id as string | null
+    let completedBeforeCount = 0
+    if (advisorId) {
+      const { count, error: completedBeforeError } = await admin
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('quiz_status', 'completed')
+      if (completedBeforeError) return json({ error: completedBeforeError.message }, 400)
+      completedBeforeCount = count || 0
+    }
+
     const roundedScore = Math.round(score)
     const completionTime = new Date().toISOString()
 
@@ -189,6 +209,34 @@ serve(async (req) => {
     if (insightsPayload.length > 0) {
       const { error: insertInsightsError } = await admin.from('client_insights').insert(insightsPayload)
       if (insertInsightsError) return json({ error: insertInsightsError.message }, 400)
+    }
+
+    if (advisorId && completedBeforeCount === 0 && clientBeforeUpdate.quiz_status !== 'completed') {
+      try {
+        const { data: existingFirstQuizEvent, error: existingFirstQuizEventError } = await admin
+          .from('advisor_audit_logs')
+          .select('id')
+          .eq('advisor_id', advisorId)
+          .eq('action', 'funnel_first_quiz_completed')
+          .limit(1)
+          .maybeSingle()
+
+        if (!existingFirstQuizEventError && !existingFirstQuizEvent?.id) {
+          await admin.from('advisor_audit_logs').insert({
+            advisor_id: advisorId,
+            action: 'funnel_first_quiz_completed',
+            category: 'funnel',
+            severity: 'info',
+            metadata: {
+              source: 'submit_quiz_result',
+              client_id: clientId,
+              session_id: createdSession?.id || null
+            }
+          })
+        }
+      } catch (eventError) {
+        console.warn(`submit-quiz-result: unable to store first quiz funnel event: ${String(eventError)}`)
+      }
     }
 
     return json({ success: true, client: updatedClient, session: createdSession }, 200)

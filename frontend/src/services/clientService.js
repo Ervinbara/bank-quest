@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
+import { FUNNEL_ACTIONS, recordFunnelMilestone } from '@/services/auditService'
 
 const generateInvitationToken = () => {
   const array = new Uint8Array(16)
@@ -567,6 +568,135 @@ export const getAdvisorClients = async (advisorId) => {
   })
 }
 
+const getAdvisorClientsGlobalStats = async (advisorId) => {
+  const countQuery = async (builder) => {
+    const { count, error } = await builder
+    if (error) throw error
+    return count || 0
+  }
+
+  const [all, completed, toContact, rdvPlanifie, enCours, clos] = await Promise.all([
+    countQuery(supabase.from('clients').select('id', { count: 'exact', head: true }).eq('advisor_id', advisorId)),
+    countQuery(
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('quiz_status', 'completed')
+    ),
+    countQuery(
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('followup_status', 'a_contacter')
+    ),
+    countQuery(
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('followup_status', 'rdv_planifie')
+    ),
+    countQuery(
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('followup_status', 'en_cours')
+    ),
+    countQuery(
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('advisor_id', advisorId)
+        .eq('followup_status', 'clos')
+    )
+  ])
+
+  return {
+    all,
+    completed,
+    pending: Math.max(0, all - completed),
+    a_contacter: toContact,
+    rdv_planifie: rdvPlanifie,
+    en_cours: enCours,
+    clos
+  }
+}
+
+export const getAdvisorClientsPage = async ({
+  advisorId,
+  page = 1,
+  pageSize = 9,
+  statusFilter = 'all',
+  followupFilter = 'all',
+  searchTerm = ''
+}) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const normalizedSearch = String(searchTerm || '').trim()
+  const from = Math.max(0, (Math.max(1, page) - 1) * Math.max(1, pageSize))
+  const to = from + Math.max(1, pageSize) - 1
+
+  let query = supabase
+    .from('clients')
+    .select(
+      `
+      *,
+      client_insights (
+        id,
+        type,
+        concept
+      )
+    `,
+      { count: 'exact' }
+    )
+    .eq('advisor_id', advisorId)
+    .order('created_at', { ascending: false })
+
+  if (statusFilter === 'completed') {
+    query = query.eq('quiz_status', 'completed')
+  } else if (statusFilter === 'pending') {
+    query = query.neq('quiz_status', 'completed')
+  }
+
+  if (followupFilter && followupFilter !== 'all') {
+    query = query.eq('followup_status', followupFilter)
+  }
+
+  if (normalizedSearch) {
+    const escaped = normalizedSearch.replace(/[%_]/g, '\\$&')
+    query = query.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`)
+  }
+
+  const { data, count, error } = await query.range(from, to)
+  if (error) throw error
+
+  const clients = data || []
+  const clientIds = clients.map((client) => client.id)
+  const { byClientId } = await fetchQuizSessionsByClientIds(clientIds)
+  const stats = await getAdvisorClientsGlobalStats(advisorId)
+
+  const items = clients.map((client) => {
+    const sessionProgress = buildProgressFromSessions(byClientId.get(client.id) || [])
+    return {
+      ...client,
+      quiz_session_count: sessionProgress.quizSessionCount,
+      quiz_progress_delta: sessionProgress.progressDelta,
+      latest_session_at: sessionProgress.latestCompletedAt,
+      latest_session_score: sessionProgress.latestScore,
+      best_session_score: sessionProgress.bestScore
+    }
+  })
+
+  return {
+    items,
+    totalItems: count || 0,
+    stats
+  }
+}
+
 // Récupérer les statistiques d'un conseiller
 export const getAdvisorStats = async (advisorId) => {
   const { data: clients, error } = await supabase
@@ -834,6 +964,16 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
 
   if (error) throw error
 
+  if (totalClients === 0) {
+    await recordFunnelMilestone(FUNNEL_ACTIONS.FIRST_CLIENT_CREATED, {
+      advisorId,
+      metadata: {
+        source: 'single_invitation',
+        clientId: client.id
+      }
+    })
+  }
+
   const resolvedQuestionnaireId = await resolveQuestionnaireIdForInvitation(advisorId, questionnaireId)
   const invitation = await upsertClientInvitation(client.id, resolvedQuestionnaireId)
   const questionnaire = await getQuestionnaireDetails(resolvedQuestionnaireId)
@@ -937,6 +1077,17 @@ export const importClientsBatch = async ({ advisorId, clients }) => {
 
     if (insertError) throw insertError
     createdRows = inserted || []
+  }
+
+  if (totalClients === 0 && createdRows.length > 0) {
+    await recordFunnelMilestone(FUNNEL_ACTIONS.FIRST_CLIENT_CREATED, {
+      advisorId,
+      metadata: {
+        source: 'batch_import',
+        insertedCount: createdRows.length,
+        firstClientId: createdRows[0]?.id || null
+      }
+    })
   }
 
   return {
@@ -1553,7 +1704,8 @@ const computePriority = (client) => {
 }
 
 // Récupérer les données analytics d'un conseiller
-export const getAdvisorAnalytics = async (advisorId) => {
+export const getAdvisorAnalytics = async (advisorId, options = {}) => {
+  const includeCrmRows = options?.includeCrmRows !== false
   const { data: clients, error } = await supabase
     .from('clients')
     .select(`
@@ -1761,7 +1913,116 @@ export const getAdvisorAnalytics = async (advisorId) => {
     { chaud: 0, tiede: 0, froid: 0 }
   )
 
-  const priorities = clients
+  let priorities = []
+  let topPriorities = []
+  if (includeCrmRows) {
+    priorities = clients
+      .map((client) => {
+        const effectiveScore =
+          typeof latestSessionByClient.get(client.id)?.score === 'number'
+            ? latestSessionByClient.get(client.id).score
+            : typeof client.score === 'number'
+              ? client.score
+              : null
+
+        const priority = computePriority({
+          ...client,
+          score: typeof effectiveScore === 'number' ? effectiveScore : 0
+        })
+
+        return {
+          ...(progressByClient.get(client.id) || {}),
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          quizStatus: client.quiz_status,
+          followupStatus: client.followup_status || 'a_contacter',
+          score: effectiveScore,
+          lastContactedAt: client.last_contacted_at,
+          createdAt: client.created_at,
+          advisorNotes: client.advisor_notes || '',
+          priority
+        }
+      })
+      .sort((a, b) => b.priority.value - a.priority.value)
+
+    topPriorities = priorities.filter((client) => client.followupStatus !== 'clos').slice(0, 10)
+  }
+
+  return {
+    summary,
+    progress,
+    scoreDistribution,
+    monthlyEvolution,
+    pipeline,
+    segmentation,
+    priorities: topPriorities,
+    crmRows: priorities,
+    conceptStats
+  }
+}
+
+export const getAdvisorAnalyticsPriorities = async ({
+  advisorId,
+  page = 1,
+  pageSize = 10,
+  limit = 10,
+  followupFilter = 'all',
+  search = ''
+}) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+
+  const normalizedSearch = String(search || '').trim()
+
+  let query = supabase
+    .from('clients')
+    .select(
+      `
+      id,
+      name,
+      email,
+      quiz_status,
+      followup_status,
+      advisor_notes,
+      score,
+      created_at,
+      completed_at,
+      last_contacted_at
+    `
+    )
+    .eq('advisor_id', advisorId)
+
+  if (followupFilter && followupFilter !== 'all') {
+    query = query.eq('followup_status', followupFilter)
+  }
+
+  if (normalizedSearch) {
+    const escaped = normalizedSearch.replace(/[%_]/g, '\\$&')
+    query = query.or(
+      `name.ilike.%${escaped}%,email.ilike.%${escaped}%,advisor_notes.ilike.%${escaped}%`
+    )
+  }
+
+  const { data: clients, error } = await query
+  if (error) throw error
+
+  const safeClients = clients || []
+  if (safeClients.length === 0) {
+    return { rows: [], totalItems: 0 }
+  }
+
+  const clientIds = safeClients.map((client) => client.id)
+  const { byClientId } = await fetchQuizSessionsByClientIds(clientIds)
+  const latestSessionByClient = new Map()
+  const progressByClient = new Map()
+
+  safeClients.forEach((client) => {
+    const sessions = byClientId.get(client.id) || []
+    if (sessions.length > 0) latestSessionByClient.set(client.id, sessions[0])
+    progressByClient.set(client.id, buildProgressFromSessions(sessions))
+  })
+
+  const priorities = safeClients
     .map((client) => {
       const effectiveScore =
         typeof latestSessionByClient.get(client.id)?.score === 'number'
@@ -1789,21 +2050,14 @@ export const getAdvisorAnalytics = async (advisorId) => {
         priority
       }
     })
+    .filter((row) => row.followupStatus !== 'clos')
     .sort((a, b) => b.priority.value - a.priority.value)
 
-  const topPriorities = priorities
-    .filter((client) => client.followupStatus !== 'clos')
-    .slice(0, 10)
+  const limited = Number.isFinite(limit) && limit > 0 ? priorities.slice(0, limit) : priorities
+  const totalItems = limited.length
+  const from = Math.max(0, (Math.max(1, page) - 1) * Math.max(1, pageSize))
+  const to = from + Math.max(1, pageSize)
+  const rows = limited.slice(from, to)
 
-  return {
-    summary,
-    progress,
-    scoreDistribution,
-    monthlyEvolution,
-    pipeline,
-    segmentation,
-    priorities: topPriorities,
-    crmRows: priorities,
-    conceptStats
-  }
+  return { rows, totalItems }
 }

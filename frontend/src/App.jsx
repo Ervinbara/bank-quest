@@ -20,6 +20,7 @@ import AppTelemetry from '@/components/common/AppTelemetry'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import ForgotPassword from './pages/Auth/ForgotPassword'
+import AuthCallback from './pages/Auth/AuthCallback'
 
 // Dashboard
 import DashboardLayout from './components/Dashboard/DashboardLayout'
@@ -53,6 +54,7 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* Routes Dashboard (protégées) */}
           <Route

@@ -74,7 +74,8 @@ export default function Settings() {
       analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled),
       gamificationEnabled: advisor.gamification_enabled !== false,
       smartAlertsEnabled: advisor.smart_alerts_enabled !== false,
-      smartAlertsDelayDays: Math.max(1, Number(advisor.smart_alerts_delay_days || 7))
+      smartAlertsDelayDays: Math.max(1, Number(advisor.smart_alerts_delay_days || 7)),
+      productInstrumentationEnabled: advisor.product_instrumentation_enabled !== false
     })
   }, [advisor])
 
@@ -88,7 +89,8 @@ export default function Settings() {
     analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled),
     gamificationEnabled: advisor?.gamification_enabled !== false,
     smartAlertsEnabled: advisor?.smart_alerts_enabled !== false,
-    smartAlertsDelayDays: Math.max(1, Number(advisor?.smart_alerts_delay_days || 7))
+    smartAlertsDelayDays: Math.max(1, Number(advisor?.smart_alerts_delay_days || 7)),
+    productInstrumentationEnabled: advisor?.product_instrumentation_enabled !== false
   })
 
   const [errors, setErrors] = useState({})
@@ -431,7 +433,9 @@ export default function Settings() {
         gamification_updated_at: now,
         smart_alerts_enabled: Boolean(consentData.smartAlertsEnabled),
         smart_alerts_delay_days: Math.max(1, Number(consentData.smartAlertsDelayDays || 7)),
-        smart_alerts_updated_at: now
+        smart_alerts_updated_at: now,
+        product_instrumentation_enabled: Boolean(consentData.productInstrumentationEnabled),
+        product_instrumentation_updated_at: now
       })
 
       await Promise.all([
@@ -458,7 +462,8 @@ export default function Settings() {
             analyticsCookiesEnabled: Boolean(consentData.analyticsCookiesEnabled),
             gamificationEnabled: Boolean(consentData.gamificationEnabled),
             smartAlertsEnabled: Boolean(consentData.smartAlertsEnabled),
-            smartAlertsDelayDays: Math.max(1, Number(consentData.smartAlertsDelayDays || 7))
+            smartAlertsDelayDays: Math.max(1, Number(consentData.smartAlertsDelayDays || 7)),
+            productInstrumentationEnabled: Boolean(consentData.productInstrumentationEnabled)
           }
         })
       ])
@@ -652,8 +657,8 @@ export default function Settings() {
               />
               <span>
                 {tr(
-                  'Afficher la gamification (missions, niveaux, badges) sur le tableau de bord.',
-                  'Show gamification (missions, levels, badges) on the dashboard.'
+                  'Afficher la gamification (missions, niveaux, badges) sur le tableau de bord. Interet: visualiser la progression et renforcer la regularite.',
+                  'Show gamification (missions, levels, badges) on the dashboard. Benefit: visualize progress and improve consistency.'
                 )}
               </span>
             </label>
@@ -667,8 +672,23 @@ export default function Settings() {
               />
               <span>
                 {tr(
-                  'Activer les alertes intelligentes (sans reponse et score en baisse).',
-                  'Enable smart alerts (no response and score drop).'
+                  'Activer les alertes intelligentes (sans reponse et score en baisse). Interet: prioriser les relances urgentes et eviter les opportunites perdues.',
+                  'Enable smart alerts (no response and score drop). Benefit: prioritize urgent follow-ups and avoid missed opportunities.'
+                )}
+              </span>
+            </label>
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="productInstrumentationEnabled"
+                checked={consentData.productInstrumentationEnabled}
+                onChange={handleConsentChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr(
+                  'Afficher l instrumentation produit (inscription -> 1er client -> 1er questionnaire). Interet: identifier les blocages du parcours et orienter les evolutions.',
+                  'Show product instrumentation (sign up -> first client -> first questionnaire). Benefit: detect journey blockers and prioritize improvements.'
                 )}
               </span>
             </label>
@@ -822,8 +842,8 @@ export default function Settings() {
                   />
                   <span>
                     {tr(
-                      'Activer le parcours ludique (missions, niveaux, badges) sur le tableau de bord.',
-                      'Enable playful journey (missions, levels, badges) on the dashboard.'
+                      'Activer le parcours ludique (missions, niveaux, badges) sur le tableau de bord. Interet: visualiser la progression et maintenir la motivation.',
+                      'Enable playful journey (missions, levels, badges) on the dashboard. Benefit: track progress and keep motivation high.'
                     )}
                   </span>
                 </label>
@@ -837,8 +857,23 @@ export default function Settings() {
                   />
                   <span>
                     {tr(
-                      'Activer les alertes intelligentes (sans reponse et score en baisse).',
-                      'Enable smart alerts (no response and score drop).'
+                      'Activer les alertes intelligentes (sans reponse et score en baisse). Interet: agir plus vite sur les clients a risque.',
+                      'Enable smart alerts (no response and score drop). Benefit: act faster on at-risk clients.'
+                    )}
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="productInstrumentationEnabled"
+                    checked={consentData.productInstrumentationEnabled}
+                    onChange={handleConsentChange}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    {tr(
+                      'Afficher l instrumentation produit (inscription -> 1er client -> 1er questionnaire). Interet: mesurer le funnel et prioriser les chantiers produit.',
+                      'Show product instrumentation (sign up -> first client -> first questionnaire). Benefit: measure funnel conversion and prioritize product work.'
                     )}
                   </span>
                 </label>

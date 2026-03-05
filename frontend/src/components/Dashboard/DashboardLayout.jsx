@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import Sidebar from './Sidebar'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings } from 'lucide-react'
+import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings, Plus, X, FileText } from 'lucide-react'
 
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
 
@@ -15,6 +15,7 @@ export default function DashboardLayout() {
   const location = useLocation()
   const [loggingOut, setLoggingOut] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1')
 
   const mobileTabs = [
@@ -48,6 +49,27 @@ export default function DashboardLayout() {
       label: t('sidebar.settings', 'Settings'),
       shortLabel: t('Reglages', 'Settings'),
       icon: Settings
+    }
+  ]
+
+  const quickActions = [
+    {
+      key: 'invite',
+      to: '/dashboard/clients?quick=invite',
+      label: t('Inviter', 'Invite'),
+      icon: Link2
+    },
+    {
+      key: 'import',
+      to: '/dashboard/clients?quick=import',
+      label: t('Importer', 'Import'),
+      icon: Users
+    },
+    {
+      key: 'questionnaire',
+      to: '/dashboard/questionnaires',
+      label: t('Questionnaire', 'Questionnaire'),
+      icon: FileText
     }
   ]
 
@@ -140,13 +162,40 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-24 md:pb-6 finance-animate-in">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-28 md:pb-6 finance-animate-in">
           <Outlet />
         </main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-emerald-100 bg-white/95 backdrop-blur-xl overflow-hidden">
-        <div className="grid grid-cols-5 gap-0.5 px-1">
+      <div className="md:hidden fixed bottom-24 right-4 z-30 flex flex-col items-end gap-2">
+        {mobileQuickOpen
+          ? quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <Link
+                  key={action.key}
+                  to={action.to}
+                  onClick={() => setMobileQuickOpen(false)}
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-lg"
+                >
+                  <Icon className="w-4 h-4" />
+                  {action.label}
+                </Link>
+              )
+            })
+          : null}
+        <button
+          type="button"
+          onClick={() => setMobileQuickOpen((prev) => !prev)}
+          className="h-12 w-12 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-xl flex items-center justify-center"
+          aria-label={t('Actions rapides', 'Quick actions')}
+        >
+          {mobileQuickOpen ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-emerald-100 bg-white/95 backdrop-blur-xl overflow-hidden pb-[calc(env(safe-area-inset-bottom)+2px)]">
+        <div className="grid grid-cols-5 gap-0.5 px-1.5 py-1">
           {mobileTabs.map((tab) => {
             const Icon = tab.icon
             const active = isTabActive(tab)
@@ -155,12 +204,12 @@ export default function DashboardLayout() {
                 key={tab.to}
                 to={tab.to}
                 title={tab.label}
-                className={`flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-semibold transition ${
-                  active ? 'text-emerald-700 bg-emerald-50' : 'text-gray-600'
+                className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-semibold transition ${
+                  active ? 'text-emerald-700 bg-emerald-50' : 'text-gray-500'
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                <span className="w-full truncate text-center text-[10px] leading-tight">{tab.shortLabel}</span>
+                <span className="w-full truncate text-center text-[9px] leading-tight">{tab.shortLabel}</span>
               </Link>
             )
           })}

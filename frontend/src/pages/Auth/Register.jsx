@@ -103,7 +103,7 @@ export default function Register() {
             'Account created. Check your email to confirm your registration, then sign in.'
           )
         })
-        setTimeout(() => navigate('/auth/login'), 1400)
+        setTimeout(() => navigate(`/auth/login?checkEmail=${encodeURIComponent(formData.email)}`), 1400)
       } else {
         setAlert({
           type: 'success',
@@ -142,6 +142,7 @@ export default function Register() {
     setGoogleLoading(true)
     setAlert(null)
     try {
+      localStorage.setItem('finmate-google-signup-intent', '1')
       await loginWithGoogle()
     } catch (error) {
       setAlert({ type: 'error', message: error.message })
