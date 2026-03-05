@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
 
 const generateInvitationToken = () => {
   const array = new Uint8Array(16)
@@ -29,6 +30,39 @@ const createQuizSupabaseClient = (token) =>
       }
     }
   })
+
+const getAdvisorPlanInfo = async (advisorId) => {
+  if (!advisorId) {
+    return {
+      plan: 'none',
+      access: getPlanAccess('none')
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('advisors')
+    .select('plan')
+    .eq('id', advisorId)
+    .maybeSingle()
+
+  if (error) throw error
+
+  const plan = data?.plan || 'none'
+  return {
+    plan,
+    access: getPlanAccess(plan)
+  }
+}
+
+const getAdvisorClientCount = async (advisorId) => {
+  const { count, error } = await supabase
+    .from('clients')
+    .select('id', { count: 'exact', head: true })
+    .eq('advisor_id', advisorId)
+
+  if (error) throw error
+  return count || 0
+}
 
 const isMissingInvitationsTableError = (error) => {
   const message = String(error?.message || '').toLowerCase()
@@ -372,6 +406,20 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
     throw new Error("L'email du client est requis")
   }
 
+  const [{ access }, totalClients] = await Promise.all([
+    getAdvisorPlanInfo(advisorId),
+    getAdvisorClientCount(advisorId)
+  ])
+  const remainingSlots = getRemainingClientSlots({
+    plan: access.code,
+    clientCount: totalClients
+  })
+  if (remainingSlots !== null && remainingSlots <= 0) {
+    throw new Error(
+      `Limite atteinte pour le plan ${access.label}: ${access.maxClients} clients maximum. Passez a un plan superieur pour continuer.`
+    )
+  }
+
   const { data: existingClient, error: existingError } = await supabase
     .from('clients')
     .select('id, name, email, quiz_status')
@@ -422,6 +470,20 @@ export const importClientsBatch = async ({ advisorId, clients }) => {
     return { created: 0, skippedExisting: 0, invalid: 0, createdRows: [], skippedRows: [], invalidRows: [] }
   }
 
+  const [{ access }, totalClients] = await Promise.all([
+    getAdvisorPlanInfo(advisorId),
+    getAdvisorClientCount(advisorId)
+  ])
+  const remainingSlots = getRemainingClientSlots({
+    plan: access.code,
+    clientCount: totalClients
+  })
+  if (remainingSlots !== null && remainingSlots <= 0) {
+    throw new Error(
+      `Limite atteinte pour le plan ${access.label}: ${access.maxClients} clients maximum.`
+    )
+  }
+
   const invalidRows = []
   const dedupedByEmail = new Map()
 
@@ -463,6 +525,12 @@ export const importClientsBatch = async ({ advisorId, clients }) => {
   const existingEmails = new Set((existingRows || []).map((item) => normalizeEmail(item.email)))
   const rowsToInsert = normalizedRows.filter((item) => !existingEmails.has(item.email))
   const skippedRows = normalizedRows.filter((item) => existingEmails.has(item.email))
+
+  if (remainingSlots !== null && rowsToInsert.length > remainingSlots) {
+    throw new Error(
+      `Import impossible: il reste ${remainingSlots} place(s) client sur votre plan ${access.label}.`
+    )
+  }
 
   let createdRows = []
   if (rowsToInsert.length > 0) {

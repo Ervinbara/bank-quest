@@ -209,6 +209,8 @@ export default function Overview() {
         advisorId={advisor?.id}
         advisorName={advisor?.name}
         advisorEmail={advisor?.email}
+        advisorPlan={advisor?.plan}
+        currentClientCount={stats?.totalClients || 0}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
           void loadStats()

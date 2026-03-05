@@ -8,12 +8,15 @@ import {
   sendInvitationEmail
 } from '@/services/invitationEmailService'
 import { getAdvisorQuestionnaires } from '@/services/questionnaireService'
+import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
 
 export default function InviteClientModal({
   isOpen,
   advisorId,
   advisorName,
   advisorEmail,
+  advisorPlan,
+  currentClientCount = 0,
   onClose,
   onInvited
 }) {
@@ -31,6 +34,12 @@ export default function InviteClientModal({
   const [template, setTemplate] = useState(DEFAULT_EMAIL_TEMPLATE)
   const [questionnaires, setQuestionnaires] = useState([])
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState('')
+  const planAccess = getPlanAccess(advisorPlan)
+  const remainingClientSlots = getRemainingClientSlots({
+    plan: planAccess.code,
+    clientCount: currentClientCount
+  })
+  const limitReached = remainingClientSlots !== null && remainingClientSlots <= 0
 
   const isFormValid = useMemo(() => {
     return formData.name.trim().length > 1 && isValidEmail(formData.email)
@@ -65,6 +74,13 @@ export default function InviteClientModal({
     void loadTemplate()
     void loadQuestionnaires()
   }, [isOpen, advisorId])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (!planAccess.canSendInvitationEmails) {
+      setAutoSendEmail(false)
+    }
+  }, [isOpen, planAccess.canSendInvitationEmails])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -115,6 +131,12 @@ export default function InviteClientModal({
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (!isFormValid || loading) return
+    if (limitReached) {
+      setError(
+        `Limite atteinte pour le plan ${planAccess.label}: ${planAccess.maxClients} clients maximum.`
+      )
+      return
+    }
 
     try {
       setLoading(true)
@@ -131,7 +153,7 @@ export default function InviteClientModal({
       setCreatedInvitation(invitation)
       if (typeof onInvited === 'function') onInvited(invitation)
 
-      if (autoSendEmail) {
+      if (autoSendEmail && planAccess.canSendInvitationEmails) {
         await sendEmailNow(invitation, true)
       }
     } catch (err) {
@@ -220,10 +242,23 @@ export default function InviteClientModal({
                   type="checkbox"
                   checked={autoSendEmail}
                   onChange={(event) => setAutoSendEmail(event.target.checked)}
+                  disabled={!planAccess.canSendInvitationEmails}
                   className="w-4 h-4 rounded border-gray-300 text-emerald-700"
                 />
                 Envoyer automatiquement un email au client
               </label>
+              {!planAccess.canSendInvitationEmails ? (
+                <p className="text-xs text-amber-700">
+                  En plan gratuit, vous pouvez generer et partager des liens, mais pas envoyer d'email depuis la plateforme.
+                </p>
+              ) : null}
+              {remainingClientSlots !== null ? (
+                <p className="text-xs text-gray-600">
+                  Clients restants sur votre plan: {remainingClientSlots}/{planAccess.maxClients}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-600">Clients illimites sur votre plan.</p>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Questionnaire a envoyer</label>
@@ -262,7 +297,7 @@ export default function InviteClientModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isFormValid || loading}
+                  disabled={!isFormValid || loading || limitReached}
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-lg text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 transition disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

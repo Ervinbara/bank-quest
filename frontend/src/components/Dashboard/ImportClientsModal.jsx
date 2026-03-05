@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { X, Upload, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { importClientsBatch } from '@/services/clientService'
+import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -83,7 +84,15 @@ const parseCsvText = (text) => {
   return { headers, rows }
 }
 
-export default function ImportClientsModal({ isOpen, advisorId, onClose, onImported, tr }) {
+export default function ImportClientsModal({
+  isOpen,
+  advisorId,
+  advisorPlan,
+  currentClientCount = 0,
+  onClose,
+  onImported,
+  tr
+}) {
   const [step, setStep] = useState('upload')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -92,6 +101,12 @@ export default function ImportClientsModal({ isOpen, advisorId, onClose, onImpor
   const [rows, setRows] = useState([])
   const [mapping, setMapping] = useState({ name: '', email: '' })
   const [importResult, setImportResult] = useState(null)
+  const planAccess = getPlanAccess(advisorPlan)
+  const remainingClientSlots = getRemainingClientSlots({
+    plan: planAccess.code,
+    clientCount: currentClientCount
+  })
+  const importLocked = remainingClientSlots !== null && remainingClientSlots <= 0
 
   const resetState = () => {
     setStep('upload')
@@ -198,6 +213,12 @@ export default function ImportClientsModal({ isOpen, advisorId, onClose, onImpor
 
   const handleImport = async () => {
     if (!advisorId) return
+    if (importLocked) {
+      setError(
+        `Limite atteinte pour le plan ${planAccess.label}: ${planAccess.maxClients} clients maximum.`
+      )
+      return
+    }
     if (!mapping.name || !mapping.email) {
       setError(tr('Selectionnez les colonnes nom et email', 'Select name and email columns'))
       return
@@ -246,6 +267,19 @@ export default function ImportClientsModal({ isOpen, advisorId, onClose, onImpor
         </div>
 
         <div className="p-6 space-y-5">
+          {remainingClientSlots !== null ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              {tr(
+                `Plan ${planAccess.label}: ${remainingClientSlots} client(s) restant(s) sur ${planAccess.maxClients}.`,
+                `Plan ${planAccess.label}: ${remainingClientSlots} client slot(s) left of ${planAccess.maxClients}.`
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              {tr(`Plan ${planAccess.label}: clients illimites.`, `Plan ${planAccess.label}: unlimited clients.`)}
+            </div>
+          )}
+
           {step === 'upload' ? (
             <div className="space-y-4">
               <label className="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-emerald-500 transition cursor-pointer">
@@ -256,6 +290,7 @@ export default function ImportClientsModal({ isOpen, advisorId, onClose, onImpor
                   type="file"
                   accept=".csv,.xlsx,.xls"
                   className="hidden"
+                  disabled={importLocked}
                   onChange={(event) => {
                     const file = event.target.files?.[0]
                     void handleFile(file)

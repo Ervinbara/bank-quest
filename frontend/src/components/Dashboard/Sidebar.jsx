@@ -7,10 +7,13 @@ export default function Sidebar({
   onClose = () => {},
   collapsed = false,
   onToggleCollapsed = () => {},
-  showAdmin = false
+  showAdmin = false,
+  currentPlan = 'none'
 }) {
   const location = useLocation()
   const { t } = useLanguage()
+  const normalizedPlan = String(currentPlan || 'none').toLowerCase()
+  const isFreePlan = normalizedPlan === 'none'
 
   const menuItems = [
     {
@@ -113,14 +116,24 @@ export default function Sidebar({
 
       <div className="p-4 border-t">
         <div className={`bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg ${collapsed ? 'p-2' : 'p-4'}`}>
-          {!collapsed ? <p className="text-sm font-semibold text-gray-800 mb-1">{t('sidebar.freeVersion', 'Free plan')}</p> : null}
-          {!collapsed ? <p className="text-xs text-gray-600 mb-3">{t('sidebar.daysLeft', '14 days left')}</p> : null}
+          {!collapsed ? (
+            <p className="text-sm font-semibold text-gray-800 mb-1">
+              {isFreePlan ? t('sidebar.freeVersion', 'Free plan') : `Plan ${normalizedPlan}`}
+            </p>
+          ) : null}
+          {!collapsed ? (
+            <p className="text-xs text-gray-600 mb-3">
+              {isFreePlan
+                ? t('sidebar.daysLeft', '14 days left')
+                : t('sidebar.upgrade', 'Manage in billing settings')}
+            </p>
+          ) : null}
           <Link
             to="/dashboard/settings"
             title={collapsed ? t('sidebar.upgrade', 'Upgrade to Pro') : undefined}
             className={`block w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-center rounded-lg text-sm font-semibold hover:opacity-90 transition ${collapsed ? 'py-2 px-1' : 'py-2'}`}
           >
-            {collapsed ? 'Pro' : t('sidebar.upgrade', 'Upgrade to Pro')}
+            {collapsed ? 'Plan' : isFreePlan ? t('sidebar.upgrade', 'Upgrade to Pro') : t('sidebar.settings', 'Settings')}
           </Link>
         </div>
       </div>

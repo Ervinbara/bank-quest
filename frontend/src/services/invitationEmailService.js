@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getPlanAccess } from '@/lib/planAccess'
 
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
@@ -122,6 +123,27 @@ export const sendInvitationEmail = async ({
 
   if (!session?.access_token) {
     throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
+  }
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  const email = String(user?.email || '').toLowerCase()
+  if (!email) {
+    throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
+  }
+
+  const { data: advisor, error: advisorError } = await supabase
+    .from('advisors')
+    .select('plan')
+    .ilike('email', email)
+    .maybeSingle()
+
+  if (advisorError) throw advisorError
+
+  const planAccess = getPlanAccess(advisor?.plan || 'none')
+  if (!planAccess.canSendInvitationEmails) {
+    throw new Error("L'envoi d'email d'invitation est reserve aux plans payants.")
   }
 
   let data

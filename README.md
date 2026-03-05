@@ -233,6 +233,13 @@ Depuis la racine:
 - Page support publique exposee sur `/support`.
 - Procedure publique de suppression de compte exposee sur `/account-deletion`.
 
+## 7.1) Plans & droits
+- `none` (gratuit): jusqu'a 5 clients, generation de liens invitation, pas d'envoi email invitation depuis la plateforme.
+- `solo`: 19.99 EUR/mois, jusqu'a 50 clients, envoi email invitation actif.
+- `pro`: 49.99 EUR/mois, jusqu'a 200 clients, envoi email invitation actif.
+- `cabinet`: 99.99 EUR/mois, clients illimites, envoi email invitation actif.
+- `test`: plan interne pour compte(s) autorise(s), usage QA.
+
 ## 8) Google OAuth (production)
 1. Creer un client OAuth 2.0 Web dans Google Cloud.
 2. Ajouter callback Supabase:

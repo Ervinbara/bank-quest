@@ -9,6 +9,7 @@ import InviteClientModal from '@/components/Dashboard/InviteClientModal'
 import ImportClientsModal from '@/components/Dashboard/ImportClientsModal'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
+import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
 import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search, Upload } from 'lucide-react'
 
 const normalizeFollowupStatus = (status) => status || 'a_contacter'
@@ -49,6 +50,12 @@ export default function Clients() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(9)
   const [updatingFollowupByClient, setUpdatingFollowupByClient] = useState({})
+  const planAccess = getPlanAccess(advisor?.plan)
+  const remainingClientSlots = getRemainingClientSlots({
+    plan: planAccess.code,
+    clientCount: clients.length
+  })
+  const clientLimitReached = remainingClientSlots !== null && remainingClientSlots <= 0
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
@@ -216,12 +223,21 @@ export default function Clients() {
               ? `${filteredClients.length} client${filteredClients.length !== 1 ? 's' : ''} affiche${filteredClients.length !== 1 ? 's' : ''}`
               : `${filteredClients.length} client${filteredClients.length !== 1 ? 's' : ''} shown`}
           </p>
+          <p className="text-sm font-semibold text-emerald-700 mt-1">
+            {remainingClientSlots === null
+              ? tr(`Quota clients: illimite (${planAccess.label})`, `Client quota: unlimited (${planAccess.label})`)
+              : tr(
+                  `Quota clients: ${clients.length}/${planAccess.maxClients} (${remainingClientSlots} restant${remainingClientSlots > 1 ? 's' : ''})`,
+                  `Client quota: ${clients.length}/${planAccess.maxClients} (${remainingClientSlots} left)`
+                )}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <DashboardGuide guide={dashboardGuides.clients} />
           <button
             onClick={() => setImportModalOpen(true)}
+            disabled={clientLimitReached}
             className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
           >
             <Upload className="w-4 h-4" />
@@ -229,6 +245,7 @@ export default function Clients() {
           </button>
           <button
             onClick={() => setInviteModalOpen(true)}
+            disabled={clientLimitReached}
             className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
           >
             <UserPlus className="w-4 h-4" />
@@ -238,6 +255,24 @@ export default function Clients() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-4">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          {remainingClientSlots === null
+            ? tr(
+                `Plan ${planAccess.label}: clients illimites. Envoi d'email ${planAccess.canSendInvitationEmails ? 'active' : 'desactive'}.`,
+                `Plan ${planAccess.label}: unlimited clients. Invitation email ${planAccess.canSendInvitationEmails ? 'enabled' : 'disabled'}.`
+              )
+            : tr(
+                `Plan ${planAccess.label}: ${remainingClientSlots} client(s) restant(s) sur ${planAccess.maxClients}. ${clientLimitReached ? 'Passez a un plan payant pour ajouter plus de clients.' : ''}`,
+                `Plan ${planAccess.label}: ${remainingClientSlots} client slot(s) left of ${planAccess.maxClients}. ${clientLimitReached ? 'Upgrade to add more clients.' : ''}`
+              )}
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          {tr(
+            'Limites: Gratuit 5 | Solo 50 | Pro 200 | Cabinet/Test illimite.',
+            'Limits: Free 5 | Solo 50 | Pro 200 | Cabinet/Test unlimited.'
+          )}
+        </div>
+
         <button
           onClick={() => setFiltersCollapsed((prev) => !prev)}
           className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 transition"
@@ -328,6 +363,7 @@ export default function Clients() {
           {clients.length === 0 ? (
             <button
               onClick={() => setInviteModalOpen(true)}
+              disabled={clientLimitReached}
               className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition"
             >
               {tr('Inviter mon premier client', 'Invite my first client')}
@@ -437,6 +473,8 @@ export default function Clients() {
         advisorId={advisor?.id}
         advisorName={advisor?.name}
         advisorEmail={advisor?.email}
+        advisorPlan={advisor?.plan}
+        currentClientCount={clients.length}
         onClose={() => setInviteModalOpen(false)}
         onInvited={() => {
           void loadClients()
@@ -446,6 +484,8 @@ export default function Clients() {
       <ImportClientsModal
         isOpen={importModalOpen}
         advisorId={advisor?.id}
+        advisorPlan={advisor?.plan}
+        currentClientCount={clients.length}
         tr={tr}
         onClose={() => setImportModalOpen(false)}
         onImported={() => {

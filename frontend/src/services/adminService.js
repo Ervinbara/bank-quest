@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase'
 
 const PLAN_MRR = {
-  solo: 19,
-  pro: 49,
-  cabinet: 99
+  solo: 19.99,
+  pro: 49.99,
+  cabinet: 99.99
 }
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing'])

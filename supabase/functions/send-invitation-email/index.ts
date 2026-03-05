@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,6 +76,45 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '').trim()
+    if (!token) {
+      return json({ success: false, error: 'Token utilisateur manquant' }, 401)
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey) {
+      return json({ success: false, error: 'Configuration Supabase incomplete' }, 500)
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const { data: userData, error: userError } = await supabase.auth.getUser(token)
+    if (userError || !userData?.user?.email) {
+      return json({ success: false, error: 'Session invalide' }, 401)
+    }
+
+    const { data: advisor, error: advisorError } = await supabase
+      .from('advisors')
+      .select('plan')
+      .ilike('email', userData.user.email)
+      .maybeSingle()
+
+    if (advisorError) {
+      return json({ success: false, error: String(advisorError.message || advisorError) }, 500)
+    }
+
+    const plan = String(advisor?.plan || 'none').toLowerCase()
+    if (plan === 'none') {
+      return json(
+        {
+          success: false,
+          error: "L'envoi d'email d'invitation est reserve aux plans payants."
+        },
+        403
+      )
+    }
+
     const payload = await req.json()
     const toEmail = String(payload.toEmail || '').trim()
     const subject = String(payload.subject || '').trim()

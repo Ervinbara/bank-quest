@@ -46,6 +46,7 @@ export default function DashboardLayout() {
         collapsed={mobileMenuOpen ? false : sidebarCollapsed}
         onToggleCollapsed={toggleSidebarCollapsed}
         showAdmin={isSuperAdmin}
+        currentPlan={advisor?.plan}
       />
 
       <div className="flex-1 flex flex-col">

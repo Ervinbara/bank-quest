@@ -16,6 +16,7 @@ import {
   saveAdvisorEmailTemplate,
   sendInvitationEmail
 } from '@/services/invitationEmailService'
+import { getPlanAccess } from '@/lib/planAccess'
 import { Loader2, Copy, RefreshCw, CheckCircle2, Link2, Send, Save, Search } from 'lucide-react'
 
 const formatDate = (dateString) => {
@@ -32,6 +33,7 @@ const formatDate = (dateString) => {
 export default function Invitations() {
   const { advisor } = useAuth()
   const { tr, language } = useLanguage()
+  const planAccess = getPlanAccess(advisor?.plan)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -274,6 +276,14 @@ export default function Invitations() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">{tr("Template email d'invitation", 'Invitation email template')}</h3>
+        {!planAccess.canSendInvitationEmails ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {tr(
+              "Votre plan gratuit ne permet pas l'envoi d'email d'invitation. Vous pouvez toujours copier les liens.",
+              'Your free plan does not include invitation email sending. You can still copy invitation links.'
+            )}
+          </div>
+        ) : null}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">{tr('Objet', 'Subject')}</label>
@@ -281,6 +291,7 @@ export default function Invitations() {
               type="text"
               value={template.subject}
               onChange={(event) => setTemplate((prev) => ({ ...prev, subject: event.target.value }))}
+              disabled={!planAccess.canSendInvitationEmails}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -290,6 +301,7 @@ export default function Invitations() {
               rows={8}
               value={template.body}
               onChange={(event) => setTemplate((prev) => ({ ...prev, body: event.target.value }))}
+              disabled={!planAccess.canSendInvitationEmails}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500"
             />
             <p className="text-xs text-gray-600 mt-2">
@@ -300,7 +312,7 @@ export default function Invitations() {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={saveTemplate}
-              disabled={templateSaving}
+              disabled={templateSaving || !planAccess.canSendInvitationEmails}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
             >
               {templateSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -374,7 +386,11 @@ export default function Invitations() {
                           </button>
                           <button
                             onClick={() => sendEmailForRow(row)}
-                            disabled={sendingId === row.id || !row.invitation?.inviteUrl}
+                            disabled={
+                              sendingId === row.id ||
+                              !row.invitation?.inviteUrl ||
+                              !planAccess.canSendInvitationEmails
+                            }
                             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-50"
                           >
                             {sendingId === row.id ? (

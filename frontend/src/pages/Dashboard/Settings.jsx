@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { supabase } from '@/lib/supabase'
+import { TEST_PLAN_ALLOWED_EMAILS, getPlanAccess } from '@/lib/planAccess'
 import SettingsTabs from '@/components/Dashboard/SettingsTabs'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import { dashboardGuides } from '@/data/dashboardGuides'
@@ -17,13 +18,11 @@ import { deleteAdvisorAccount, exportAdvisorDataAsJson } from '@/services/privac
 import { Save, Loader2, Check, AlertCircle, Lock, ShieldCheck } from 'lucide-react'
 
 const PLAN_DETAILS = {
-  solo: { price: '19 EUR/mois', limit: 'Jusqu a 50 clients', icon: 'S' },
-  pro: { price: '49 EUR/mois', limit: 'Jusqu a 200 clients', icon: 'P' },
-  cabinet: { price: '99 EUR/mois', limit: 'Clients illimites', icon: 'C' },
+  solo: { price: '19.99 EUR/mois', limit: 'Jusqu a 50 clients + emails', icon: 'S' },
+  pro: { price: '49.99 EUR/mois', limit: 'Jusqu a 200 clients + emails', icon: 'P' },
+  cabinet: { price: '99.99 EUR/mois', limit: 'Clients illimites + emails', icon: 'C' },
   test: { price: '1 EUR/mois', limit: 'Plan interne de validation', icon: 'T' }
 }
-
-const TEST_PLAN_ALLOWED_EMAILS = new Set(['bankquest.pro@gmail.com'])
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 const SUBSCRIPTION_STATUS_COLORS = {
@@ -37,7 +36,7 @@ const SUBSCRIPTION_STATUS_COLORS = {
 const RECENT_AUTH_WINDOW_MS = 10 * 60 * 1000
 
 export default function Settings() {
-  const { advisor, updateProfile, refreshAdvisor } = useAuth()
+  const { user, advisor, updateProfile, refreshAdvisor } = useAuth()
   const { tr, language } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
@@ -48,6 +47,7 @@ export default function Settings() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [consentLoading, setConsentLoading] = useState(false)
   const [mfaLoading, setMfaLoading] = useState(false)
+  const [testPlanTarget, setTestPlanTarget] = useState('none')
   const [securityOverview, setSecurityOverview] = useState({
     recentAuthAt: null,
     mfaVerifiedCount: 0
@@ -68,6 +68,7 @@ export default function Settings() {
       company: advisor.company || '',
       phone: advisor.phone || ''
     })
+    setTestPlanTarget(String(advisor.plan || 'none').toLowerCase())
     setConsentData({
       marketingOptIn: Boolean(advisor.marketing_opt_in),
       analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled)
@@ -93,6 +94,7 @@ export default function Settings() {
   }
 
   const currentPlan = advisor?.plan || 'none'
+  const planAccess = getPlanAccess(currentPlan)
   const subscriptionStatus = String(advisor?.subscription_status || 'inactive').toLowerCase()
   const hasActiveSubscription = ACTIVE_SUBSCRIPTION_STATUSES.has(subscriptionStatus)
   const hasStripeCustomer = Boolean(advisor?.stripe_customer_id)
@@ -111,9 +113,10 @@ export default function Settings() {
     inactive: tr('Inactif', 'Inactive')
   }[subscriptionStatus] || subscriptionStatus
   const planTitle = currentPlan === 'none' ? tr('Aucun plan payant', 'No paid plan') : `Plan ${currentPlan}`
-  const canUseTestPlan = TEST_PLAN_ALLOWED_EMAILS.has(String(advisor?.email || '').toLowerCase())
+  const currentUserEmail = String(user?.email || advisor?.email || '').toLowerCase()
+  const canUseTestPlan = TEST_PLAN_ALLOWED_EMAILS.has(currentUserEmail)
   const availablePlans = canUseTestPlan
-    ? ['solo', 'pro', 'cabinet', 'test']
+    ? ['none', 'solo', 'pro', 'cabinet', 'test']
     : ['solo', 'pro', 'cabinet']
 
   useEffect(() => {
@@ -364,6 +367,46 @@ export default function Settings() {
       setMessage({ type: 'error', text: error.message || tr('Erreur portail Stripe', 'Stripe portal error') })
     } finally {
       setPortalLoading(false)
+    }
+  }
+
+  const switchPlanForTestAdmin = async (plan) => {
+    if (!canUseTestPlan) return
+    const normalized = String(plan || 'none').trim().toLowerCase()
+    const now = new Date().toISOString()
+    const isFree = normalized === 'none'
+
+    const updates = {
+      plan: normalized,
+      subscription_status: isFree ? 'inactive' : 'active',
+      subscription_started_at: isFree ? null : now,
+      current_period_start: isFree ? null : now,
+      current_period_end: isFree ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      cancel_at_period_end: false,
+      cancel_at: null,
+      canceled_at: null,
+      subscription_ended_at: isFree ? now : null,
+      subscription_updated_at: now
+    }
+
+    try {
+      setCheckoutLoadingPlan(normalized)
+      setMessage(null)
+      const { error } = await supabase.from('advisors').update(updates).eq('id', advisor.id)
+      if (error) throw error
+      await refreshAdvisor()
+      setMessage({
+        type: 'success',
+        text: tr(`Plan bascule en mode test: ${normalized}`, `Plan switched in test mode: ${normalized}`)
+      })
+      setTestPlanTarget(normalized)
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error?.message || tr('Bascule test impossible', 'Unable to switch plan in test mode')
+      })
+    } finally {
+      setCheckoutLoadingPlan(null)
     }
   }
 
@@ -826,6 +869,18 @@ export default function Settings() {
                   <p>{tr('Resilie le', 'Canceled on')}: <span className="font-semibold">{canceledAt || tr('Non', 'No')}</span></p>
                 </div>
 
+                <div className="mt-4 rounded-lg border border-emerald-200 bg-white/80 px-4 py-3 text-sm text-gray-700">
+                  <p className="font-semibold text-gray-900 mb-1">{tr('Droits inclus dans votre plan', 'Rights included in your plan')}</p>
+                  <p>
+                    {planAccess.maxClients === null
+                      ? tr('Clients: illimites', 'Clients: unlimited')
+                      : tr(`Clients: jusqu a ${planAccess.maxClients}`, `Clients: up to ${planAccess.maxClients}`)}
+                  </p>
+                  <p>
+                    {tr('Envoi email invitation', 'Invitation email sending')}: {planAccess.canSendInvitationEmails ? tr('Autorise', 'Allowed') : tr('Non inclus', 'Not included')}
+                  </p>
+                </div>
+
                 {!hasActiveSubscription ? (
                   <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
                     <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -836,6 +891,47 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <h4 className="font-bold text-gray-800">{tr('Changer de plan', 'Change plan')}</h4>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <p className="font-semibold text-slate-900 mb-2">
+                    {tr('Limites par plan', 'Limits by plan')}
+                  </p>
+                  <p>{tr('Gratuit (none): 5 clients, pas d envoi email invitation.', 'Free (none): 5 clients, no invitation email sending.')}</p>
+                  <p>{tr('Solo: 50 clients, envoi email invitation inclus.', 'Solo: 50 clients, invitation email sending included.')}</p>
+                  <p>{tr('Pro: 200 clients, envoi email invitation inclus.', 'Pro: 200 clients, invitation email sending included.')}</p>
+                  <p>{tr('Cabinet/Test: clients illimites, envoi email invitation inclus.', 'Cabinet/Test: unlimited clients, invitation email sending included.')}</p>
+                </div>
+
+                {canUseTestPlan ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-3">
+                    <p className="font-semibold">
+                      {tr(
+                        'Mode test admin actif: bascule de plan sans Stripe ni paiement.',
+                        'Admin test mode active: switch plans without Stripe or payment.'
+                      )}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        value={testPlanTarget}
+                        onChange={(event) => setTestPlanTarget(event.target.value)}
+                        className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="none">{tr('Gratuit (none)', 'Free (none)')}</option>
+                        <option value="solo">Solo</option>
+                        <option value="pro">Pro</option>
+                        <option value="cabinet">Cabinet</option>
+                        <option value="test">Test</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void switchPlanForTestAdmin(testPlanTarget)}
+                        disabled={Boolean(checkoutLoadingPlan)}
+                        className="rounded-lg bg-amber-600 text-white px-4 py-2 font-semibold hover:bg-amber-700 disabled:opacity-60"
+                      >
+                        {tr('Appliquer sans paiement', 'Apply without payment')}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="grid md:grid-cols-3 gap-4">
                   {availablePlans.map((plan) => (
@@ -847,19 +943,27 @@ export default function Settings() {
                           : 'border-gray-200 hover:border-emerald-300'
                       }`}
                     >
-                      <h5 className="font-bold text-lg mb-1 capitalize">{plan}</h5>
-                      <p className="text-2xl font-bold text-gray-800 mb-2">{PLAN_DETAILS[plan].price}</p>
-                      <p className="text-sm text-gray-600 mb-4">{PLAN_DETAILS[plan].limit}</p>
+                      <h5 className="font-bold text-lg mb-1 capitalize">{plan === 'none' ? 'Gratuit' : plan}</h5>
+                      <p className="text-2xl font-bold text-gray-800 mb-2">{PLAN_DETAILS[plan]?.price || tr('0 EUR/mois', '0 EUR/month')}</p>
+                      <p className="text-sm text-gray-600 mb-4">{PLAN_DETAILS[plan]?.limit || tr('Jusqu a 5 clients, sans envoi email', 'Up to 5 clients, no invitation email')}</p>
 
                       {!(hasActiveSubscription && currentPlan === plan) ? (
                         <button
                           disabled={Boolean(checkoutLoadingPlan) || portalLoading}
-                          onClick={() => goToCheckout(plan)}
+                          onClick={() => {
+                            if (canUseTestPlan) {
+                              void switchPlanForTestAdmin(plan)
+                              return
+                            }
+                            void goToCheckout(plan)
+                          }}
                           className="w-full py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
                         >
                           {checkoutLoadingPlan === plan
                             ? tr('Ouverture...', 'Opening...')
-                            : hasActiveSubscription
+                            : canUseTestPlan
+                              ? tr('Activer ce plan (mode test)', 'Activate this plan (test mode)')
+                              : hasActiveSubscription
                               ? tr('Basculer vers ce plan', 'Switch to this plan')
                               : tr('Souscrire a ce plan', 'Subscribe to this plan')}
                         </button>
