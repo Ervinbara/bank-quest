@@ -311,21 +311,21 @@ export default function Analytics() {
   const segmentation = analytics?.segmentation || { chaud: 0, tiede: 0, froid: 0 }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       <div className="flex justify-end">
         <DashboardGuide guide={dashboardGuides.analytics} />
       </div>
 
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-700 rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-700 rounded-xl p-5 sm:p-6 md:p-7 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold mb-2">{tr('Analytics avancees', 'Advanced analytics')}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">{tr('Analytics avancees', 'Advanced analytics')}</h2>
             <p className="text-indigo-100">{tr('Pilotage commercial et priorisation des relances.', 'Sales tracking and follow-up prioritization.')}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button
               onClick={loadAnalytics}
-              className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition"
+              className="inline-flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition w-full sm:w-auto"
             >
               <RefreshCw className="w-4 h-4" />
               {tr('Actualiser', 'Refresh')}
@@ -333,7 +333,7 @@ export default function Analytics() {
             <button
               onClick={exportCsv}
               disabled={exporting}
-              className="inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-2 rounded-lg font-semibold transition disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-2 rounded-lg font-semibold transition disabled:opacity-60 w-full sm:w-auto"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {tr('Export CSV', 'Export CSV')}
@@ -349,7 +349,7 @@ export default function Analytics() {
         <StatsCard title={tr('Score moyen', 'Average score')} value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
         <button
           onClick={() => setPanelOpen((prev) => ({ ...prev, overview: !prev.overview }))}
           className="w-full flex items-center justify-between mb-4"
@@ -358,7 +358,7 @@ export default function Analytics() {
           {panelOpen.overview ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
         </button>
         {panelOpen.overview ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <h4 className="text-lg font-bold text-gray-800 mb-4">{tr('Pipeline conseiller', 'Advisor pipeline')}</h4>
               <div className="space-y-3">
@@ -401,7 +401,7 @@ export default function Analytics() {
         ) : null}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
         <button
           onClick={() => setPanelOpen((prev) => ({ ...prev, distribution: !prev.distribution }))}
           className="w-full flex items-center justify-between mb-4"
@@ -410,7 +410,7 @@ export default function Analytics() {
           {panelOpen.distribution ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
         </button>
         {panelOpen.distribution ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <h4 className="text-lg font-bold text-gray-800 mb-1">Repartition des scores</h4>
               <p className="text-sm text-gray-500 mb-5">Nombre de clients par tranche</p>
@@ -457,7 +457,7 @@ export default function Analytics() {
         ) : null}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
         <button
           onClick={() => setPanelOpen((prev) => ({ ...prev, priorities: !prev.priorities }))}
           className="w-full flex items-center justify-between mb-4"
@@ -470,7 +470,7 @@ export default function Analytics() {
         </button>
         {!panelOpen.priorities ? null : (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <select
                 value={priorityLimit}
                 onChange={(event) => setPriorityLimit(Number(event.target.value))}
@@ -503,7 +503,7 @@ export default function Analytics() {
                   className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={applyPriorityFilters}
@@ -527,7 +527,7 @@ export default function Analytics() {
         ) : (
           <div className="space-y-3">
             {paginatedTopPriorityRows.map((row) => (
-              <div key={row.id} className="rounded-lg border border-gray-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div key={row.id} className="rounded-lg border border-gray-200 p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div>
                   <p className="font-semibold text-gray-800">{row.name}</p>
                   <p className="text-sm text-gray-500">
@@ -538,7 +538,7 @@ export default function Analytics() {
                     Dernier contact: {formatDate(row.lastContactedAt || row.createdAt)} - {row.priority.reason}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap lg:justify-end">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
                       row.priority.label === 'Urgent'
@@ -590,7 +590,7 @@ export default function Analytics() {
                   </div>
                   <Link
                     to={`/dashboard/clients/${row.id}`}
-                    className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
+                    className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition w-full sm:w-auto text-center"
                   >
                     Ouvrir
                   </Link>

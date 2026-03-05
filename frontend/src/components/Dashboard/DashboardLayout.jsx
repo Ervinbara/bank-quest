@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import Sidebar from './Sidebar'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { LogOut, User, Loader2, Menu } from 'lucide-react'
+import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings } from 'lucide-react'
 
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
 
@@ -12,9 +12,47 @@ export default function DashboardLayout() {
   const { advisor, logout, isSuperAdmin } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
+  const location = useLocation()
   const [loggingOut, setLoggingOut] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1')
+
+  const mobileTabs = [
+    {
+      to: '/dashboard',
+      label: t('sidebar.overview', 'Overview'),
+      shortLabel: t('Apercu', 'Home'),
+      icon: LayoutDashboard,
+      exact: true
+    },
+    {
+      to: '/dashboard/clients',
+      label: t('sidebar.clients', 'Clients'),
+      shortLabel: t('Clients', 'Clients'),
+      icon: Users
+    },
+    {
+      to: '/dashboard/invitations',
+      label: t('sidebar.invitations', 'Invitations'),
+      shortLabel: t('Invites', 'Invites'),
+      icon: Link2
+    },
+    {
+      to: '/dashboard/analytics',
+      label: t('sidebar.analytics', 'Analytics'),
+      shortLabel: t('Stats', 'Stats'),
+      icon: BarChart3
+    },
+    {
+      to: '/dashboard/settings',
+      label: t('sidebar.settings', 'Settings'),
+      shortLabel: t('Reglages', 'Settings'),
+      icon: Settings
+    }
+  ]
+
+  const isTabActive = (tab) =>
+    tab.exact ? location.pathname === tab.to : location.pathname.startsWith(tab.to)
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -39,7 +77,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex overflow-x-clip">
       <Sidebar
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -102,10 +140,32 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 finance-animate-in">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-24 md:pb-6 finance-animate-in">
           <Outlet />
         </main>
       </div>
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-emerald-100 bg-white/95 backdrop-blur-xl overflow-hidden">
+        <div className="grid grid-cols-5 gap-0.5 px-1">
+          {mobileTabs.map((tab) => {
+            const Icon = tab.icon
+            const active = isTabActive(tab)
+            return (
+              <Link
+                key={tab.to}
+                to={tab.to}
+                title={tab.label}
+                className={`flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-semibold transition ${
+                  active ? 'text-emerald-700 bg-emerald-50' : 'text-gray-600'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="w-full truncate text-center text-[10px] leading-tight">{tab.shortLabel}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
