@@ -68,7 +68,10 @@ export const AuthProvider = ({ children }) => {
           privacy_accepted_at: acceptedAt,
           marketing_opt_in: false,
           gamification_enabled: true,
-          gamification_updated_at: acceptedAt
+          gamification_updated_at: acceptedAt,
+          smart_alerts_enabled: true,
+          smart_alerts_delay_days: 7,
+          smart_alerts_updated_at: acceptedAt
         }
       ])
       .select()

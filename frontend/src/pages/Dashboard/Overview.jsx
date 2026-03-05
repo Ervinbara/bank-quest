@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { getAdvisorStats, subscribeToAdvisorClients } from '@/services/clientService'
+import { getAdvisorClients, getAdvisorStats, subscribeToAdvisorClients } from '@/services/clientService'
 import StatsCard from '@/components/Dashboard/StatsCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import { dashboardGuides } from '@/data/dashboardGuides'
@@ -20,6 +20,7 @@ import {
   Flame,
   Gift,
   Loader2,
+  BellRing,
   Rocket,
   Sparkles,
   Target,
@@ -32,10 +33,12 @@ export default function Overview() {
   const { advisor, updateProfile, refreshAdvisor } = useAuth()
   const { tr, language } = useLanguage()
   const [stats, setStats] = useState(null)
+  const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [gamificationLoading, setGamificationLoading] = useState(false)
+  const [alertsLoading, setAlertsLoading] = useState(false)
   const [isJourneyCollapsed, setIsJourneyCollapsed] = useState(() => {
     try {
       return localStorage.getItem('finmate-overview-journey-collapsed') === '1'
@@ -44,6 +47,8 @@ export default function Overview() {
     }
   })
   const gamificationEnabled = advisor?.gamification_enabled !== false
+  const smartAlertsEnabled = advisor?.smart_alerts_enabled !== false
+  const alertDelayDays = Math.max(1, Number(advisor?.smart_alerts_delay_days || 7))
 
   const loadStats = useCallback(async () => {
     if (!advisor?.id) return
@@ -51,8 +56,12 @@ export default function Overview() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getAdvisorStats(advisor.id)
-      setStats(data)
+      const [statsData, clientsData] = await Promise.all([
+        getAdvisorStats(advisor.id),
+        getAdvisorClients(advisor.id)
+      ])
+      setStats(statsData)
+      setClients(clientsData || [])
     } catch (err) {
       console.error('Erreur chargement stats:', err)
       setError(tr('Impossible de charger les statistiques', 'Unable to load statistics'))
@@ -88,6 +97,22 @@ export default function Overview() {
       console.error('Erreur mise a jour gamification:', err)
     } finally {
       setGamificationLoading(false)
+    }
+  }
+
+  const setSmartAlertsVisibility = async (enabled) => {
+    if (!advisor?.id || alertsLoading) return
+    try {
+      setAlertsLoading(true)
+      await updateProfile({
+        smart_alerts_enabled: Boolean(enabled),
+        smart_alerts_updated_at: new Date().toISOString()
+      })
+      await refreshAdvisor()
+    } catch (err) {
+      console.error('Erreur mise a jour alertes intelligentes:', err)
+    } finally {
+      setAlertsLoading(false)
     }
   }
 
@@ -362,6 +387,33 @@ export default function Overview() {
     }
   }, [phaseProgress, stats?.avgScore, stats?.closed, stats?.completed, stats?.inProgress, stats?.totalClients, tr])
 
+  const smartAlerts = useMemo(() => {
+    const safeClients = Array.isArray(clients) ? clients : []
+    const now = Date.now()
+    const msPerDay = 1000 * 60 * 60 * 24
+
+    const noResponse = safeClients
+      .filter((client) => client.quiz_status !== 'completed')
+      .map((client) => {
+        const refDateRaw = client.last_contacted_at || client.created_at
+        const refDate = refDateRaw ? new Date(refDateRaw).getTime() : now
+        const daysSince = Math.max(0, Math.floor((now - refDate) / msPerDay))
+        return { ...client, daysSince }
+      })
+      .filter((client) => client.daysSince >= alertDelayDays)
+      .sort((a, b) => b.daysSince - a.daysSince)
+
+    const scoreDown = safeClients
+      .filter((client) => typeof client.quiz_progress_delta === 'number' && client.quiz_progress_delta < 0)
+      .sort((a, b) => a.quiz_progress_delta - b.quiz_progress_delta)
+
+    return {
+      noResponse,
+      scoreDown,
+      total: noResponse.length + scoreDown.length
+    }
+  }, [clients, alertDelayDays])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -567,6 +619,105 @@ export default function Overview() {
         ) : null}
       </div>
       ) : null}
+
+      {smartAlertsEnabled ? (
+      <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <BellRing className="w-5 h-5 text-amber-600" />
+            {tr('Alertes intelligentes de relance', 'Smart follow-up alerts')}
+          </h3>
+          <button
+            onClick={() => void setSmartAlertsVisibility(false)}
+            disabled={alertsLoading}
+            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+          >
+            {alertsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <EyeOff className="w-4 h-4" />}
+            {tr('Masquer les alertes', 'Hide alerts')}
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          {tr('Seuil sans reponse', 'No-response threshold')}: {alertDelayDays} {tr('jours', 'days')}
+          {' - '}
+          {tr('Alertes detectees', 'Detected alerts')}: {smartAlerts.total}
+        </p>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <p className="font-semibold text-orange-900 mb-2">
+              {tr('Clients sans reponse depuis X jours', 'Clients without response for X days')} ({smartAlerts.noResponse.length})
+            </p>
+            {smartAlerts.noResponse.length === 0 ? (
+              <p className="text-sm text-orange-800">{tr('Aucune alerte pour le moment.', 'No alert for now.')}</p>
+            ) : (
+              <div className="space-y-2">
+                {smartAlerts.noResponse.slice(0, 5).map((client) => (
+                  <div key={`nr-${client.id}`} className="rounded-lg border border-orange-200 bg-white px-3 py-2">
+                    <p className="font-semibold text-sm text-gray-900">{client.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {client.daysSince} {tr('jours sans reponse', 'days without response')}
+                    </p>
+                    <Link
+                      to={`/dashboard/clients/${client.id}`}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-orange-700 hover:text-orange-800 hover:underline"
+                    >
+                      {tr('Ouvrir la fiche client', 'Open client profile')}
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+            <p className="font-semibold text-rose-900 mb-2">
+              {tr('Clients avec score en baisse', 'Clients with declining score')} ({smartAlerts.scoreDown.length})
+            </p>
+            {smartAlerts.scoreDown.length === 0 ? (
+              <p className="text-sm text-rose-800">{tr('Aucune baisse detectee.', 'No decline detected.')}</p>
+            ) : (
+              <div className="space-y-2">
+                {smartAlerts.scoreDown.slice(0, 5).map((client) => (
+                  <div key={`sd-${client.id}`} className="rounded-lg border border-rose-200 bg-white px-3 py-2">
+                    <p className="font-semibold text-sm text-gray-900">{client.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {tr('Variation', 'Variation')}: {client.quiz_progress_delta} pts
+                      {typeof client.latest_session_score === 'number' ? ` - ${tr('Dernier score', 'Latest score')}: ${client.latest_session_score}/100` : ''}
+                    </p>
+                    <Link
+                      to={`/dashboard/clients/${client.id}`}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-rose-700 hover:text-rose-800 hover:underline"
+                    >
+                      {tr('Ouvrir la fiche client', 'Open client profile')}
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      ) : (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-800">{tr('Alertes intelligentes masquees', 'Smart alerts hidden')}</p>
+          <p className="text-sm text-slate-600">
+            {tr('Vous pouvez les reactiver ici ou dans Parametres.', 'You can re-enable them here or in Settings.')}
+          </p>
+        </div>
+        <button
+          onClick={() => void setSmartAlertsVisibility(true)}
+          disabled={alertsLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+        >
+          {alertsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+          {tr('Afficher les alertes', 'Show alerts')}
+        </button>
+      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard title={tr('Total clients', 'Total clients')} value={stats?.totalClients || 0} icon={Users} color="purple" />

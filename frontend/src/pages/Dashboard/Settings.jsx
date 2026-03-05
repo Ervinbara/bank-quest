@@ -72,7 +72,9 @@ export default function Settings() {
     setConsentData({
       marketingOptIn: Boolean(advisor.marketing_opt_in),
       analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled),
-      gamificationEnabled: advisor.gamification_enabled !== false
+      gamificationEnabled: advisor.gamification_enabled !== false,
+      smartAlertsEnabled: advisor.smart_alerts_enabled !== false,
+      smartAlertsDelayDays: Math.max(1, Number(advisor.smart_alerts_delay_days || 7))
     })
   }, [advisor])
 
@@ -84,7 +86,9 @@ export default function Settings() {
   const [consentData, setConsentData] = useState({
     marketingOptIn: Boolean(advisor?.marketing_opt_in),
     analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled),
-    gamificationEnabled: advisor?.gamification_enabled !== false
+    gamificationEnabled: advisor?.gamification_enabled !== false,
+    smartAlertsEnabled: advisor?.smart_alerts_enabled !== false,
+    smartAlertsDelayDays: Math.max(1, Number(advisor?.smart_alerts_delay_days || 7))
   })
 
   const [errors, setErrors] = useState({})
@@ -424,7 +428,10 @@ export default function Settings() {
         analytics_cookies_enabled: Boolean(consentData.analyticsCookiesEnabled),
         analytics_cookies_updated_at: now,
         gamification_enabled: Boolean(consentData.gamificationEnabled),
-        gamification_updated_at: now
+        gamification_updated_at: now,
+        smart_alerts_enabled: Boolean(consentData.smartAlertsEnabled),
+        smart_alerts_delay_days: Math.max(1, Number(consentData.smartAlertsDelayDays || 7)),
+        smart_alerts_updated_at: now
       })
 
       await Promise.all([
@@ -449,7 +456,9 @@ export default function Settings() {
           metadata: {
             marketingOptIn: Boolean(consentData.marketingOptIn),
             analyticsCookiesEnabled: Boolean(consentData.analyticsCookiesEnabled),
-            gamificationEnabled: Boolean(consentData.gamificationEnabled)
+            gamificationEnabled: Boolean(consentData.gamificationEnabled),
+            smartAlertsEnabled: Boolean(consentData.smartAlertsEnabled),
+            smartAlertsDelayDays: Math.max(1, Number(consentData.smartAlertsDelayDays || 7))
           }
         })
       ])
@@ -648,6 +657,40 @@ export default function Settings() {
                 )}
               </span>
             </label>
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="smartAlertsEnabled"
+                checked={consentData.smartAlertsEnabled}
+                onChange={handleConsentChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr(
+                  'Activer les alertes intelligentes (sans reponse et score en baisse).',
+                  'Enable smart alerts (no response and score drop).'
+                )}
+              </span>
+            </label>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {tr('Delai alerte sans reponse (jours)', 'No-response alert delay (days)')}
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={consentData.smartAlertsDelayDays}
+                onChange={(e) =>
+                  setConsentData((prev) => ({
+                    ...prev,
+                    smartAlertsDelayDays: Math.min(60, Math.max(1, Number(e.target.value || 7)))
+                  }))
+                }
+                disabled={!consentData.smartAlertsEnabled}
+                className="w-32 px-3 py-2 rounded-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+              />
+            </div>
             <button
               type="button"
               onClick={saveConsentSettings}
@@ -784,6 +827,40 @@ export default function Settings() {
                     )}
                   </span>
                 </label>
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="smartAlertsEnabled"
+                    checked={consentData.smartAlertsEnabled}
+                    onChange={handleConsentChange}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    {tr(
+                      'Activer les alertes intelligentes (sans reponse et score en baisse).',
+                      'Enable smart alerts (no response and score drop).'
+                    )}
+                  </span>
+                </label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    {tr('Delai alerte sans reponse (jours)', 'No-response alert delay (days)')}
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={consentData.smartAlertsDelayDays}
+                    onChange={(e) =>
+                      setConsentData((prev) => ({
+                        ...prev,
+                        smartAlertsDelayDays: Math.min(60, Math.max(1, Number(e.target.value || 7)))
+                      }))
+                    }
+                    disabled={!consentData.smartAlertsEnabled}
+                    className="w-32 px-3 py-2 rounded-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={saveConsentSettings}
