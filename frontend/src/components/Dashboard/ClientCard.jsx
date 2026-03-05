@@ -6,6 +6,8 @@ export default function ClientCard({ client, onClick, footerAction }) {
   const isCompleted = client.quiz_status === 'completed'
   const strengths = client.client_insights?.filter((i) => i.type === 'strength') || []
   const weaknesses = client.client_insights?.filter((i) => i.type === 'weakness') || []
+  const quizSessionCount = client.quiz_session_count || 0
+  const progressDelta = client.quiz_progress_delta
 
   const getScoreColor = (score) => {
     if (score >= 75) return 'text-green-600 bg-green-100'
@@ -78,6 +80,18 @@ export default function ClientCard({ client, onClick, footerAction }) {
             </div>
           </div>
         )}
+
+        {quizSessionCount > 0 ? (
+          <div className="text-xs text-gray-600">
+            {quizSessionCount} questionnaire{quizSessionCount > 1 ? 's' : ''} passe{quizSessionCount > 1 ? 's' : ''}
+            {typeof progressDelta === 'number' ? (
+              <span className={progressDelta >= 0 ? 'text-emerald-700 font-semibold ml-2' : 'text-red-700 font-semibold ml-2'}>
+                {progressDelta >= 0 ? '+' : ''}
+                {progressDelta} pts
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {footerAction || (

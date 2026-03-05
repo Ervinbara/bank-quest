@@ -56,7 +56,9 @@ const buildCsv = (rows) => {
     'NiveauPriorite',
     'DernierContact',
     'DateCreation',
-    'Notes'
+    'Notes',
+    'SessionsQuiz',
+    'ProgressionDelta'
   ]
   const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
   const body = rows.map((row) =>
@@ -70,7 +72,9 @@ const buildCsv = (rows) => {
       row.priority.label,
       row.lastContactedAt || '',
       row.createdAt || '',
-      row.advisorNotes || ''
+      row.advisorNotes || '',
+      row.quizSessionCount || 0,
+      typeof row.progressDelta === 'number' ? row.progressDelta : ''
     ]
       .map(escape)
       .join(',')
@@ -309,6 +313,13 @@ export default function Analytics() {
 
   const pipeline = analytics?.pipeline || { invited: 0, completed: 0, rdvPlanifie: 0, clos: 0 }
   const segmentation = analytics?.segmentation || { chaud: 0, tiede: 0, froid: 0 }
+  const progress = analytics?.progress || {
+    totalSessions: 0,
+    trackedClients: 0,
+    avgDelta: 0,
+    improvedClients: 0,
+    regressedClients: 0
+  }
 
   return (
     <div className="space-y-6 overflow-x-hidden">
@@ -342,11 +353,33 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         <StatsCard title={tr('Total clients', 'Total clients')} value={analytics?.summary?.totalClients ?? 0} icon={Users} color="blue" />
         <StatsCard title={tr('Quiz completes', 'Completed quizzes')} value={analytics?.summary?.completed ?? 0} icon={CheckCircle} color="green" />
         <StatsCard title={tr('En attente', 'Pending')} value={analytics?.summary?.pending ?? 0} icon={Clock3} color="orange" />
         <StatsCard title={tr('Score moyen', 'Average score')} value={`${analytics?.summary?.avgScore ?? 0}/100`} icon={TrendingUp} color="purple" />
+        <StatsCard title={tr('Sessions quiz', 'Quiz sessions')} value={progress.totalSessions} icon={Target} color="teal" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-xs uppercase tracking-wide text-emerald-800 font-semibold">Progression moyenne</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-1">
+            {progress.avgDelta >= 0 ? '+' : ''}
+            {progress.avgDelta} pts
+          </p>
+          <p className="text-xs text-emerald-800 mt-1">{progress.trackedClients} client(s) compares</p>
+        </div>
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-xs uppercase tracking-wide text-blue-800 font-semibold">Clients en progression</p>
+          <p className="text-2xl font-bold text-blue-700 mt-1">{progress.improvedClients}</p>
+          <p className="text-xs text-blue-800 mt-1">delta positif entre premier et dernier quiz</p>
+        </div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <p className="text-xs uppercase tracking-wide text-rose-800 font-semibold">Clients en recul</p>
+          <p className="text-2xl font-bold text-rose-700 mt-1">{progress.regressedClients}</p>
+          <p className="text-xs text-rose-800 mt-1">delta negatif entre premier et dernier quiz</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">

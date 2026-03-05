@@ -78,6 +78,7 @@ export default function Login() {
       await loginWithGoogle()
     } catch (error) {
       setAlert({ type: 'error', message: error.message })
+    } finally {
       setGoogleLoading(false)
     }
   }

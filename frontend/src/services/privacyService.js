@@ -34,6 +34,22 @@ const getAuthenticatedSession = async () => {
   return session
 }
 
+const isMissingQuizSessionsTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_quiz_sessions'") ||
+    message.includes('relation "public.client_quiz_sessions" does not exist')
+  )
+}
+
+const isMissingInvitationLinksTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_invitation_links'") ||
+    message.includes('relation "public.client_invitation_links" does not exist')
+  )
+}
+
 const downloadJsonFile = (filename, data) => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -51,7 +67,18 @@ export const exportAdvisorDataAsJson = async (advisor) => {
 
   const advisorId = advisor.id
 
-  const [advisorResult, clientsResult, insightsResult, invitationsResult, questionnairesResult, questionnaireQuestionsResult, themesResult, questionBankResult] =
+  const [
+    advisorResult,
+    clientsResult,
+    insightsResult,
+    invitationsResult,
+    questionnairesResult,
+    questionnaireQuestionsResult,
+    themesResult,
+    questionBankResult,
+    quizSessionsResult,
+    invitationLinksResult
+  ] =
     await Promise.all([
       supabase.from('advisors').select('*').eq('id', advisorId).single(),
       supabase.from('clients').select('*').eq('advisor_id', advisorId),
@@ -72,7 +99,15 @@ export const exportAdvisorDataAsJson = async (advisor) => {
       supabase
         .from('advisor_question_bank_questions')
         .select('*, advisor_question_bank_themes!inner(advisor_id)')
-        .eq('advisor_question_bank_themes.advisor_id', advisorId)
+        .eq('advisor_question_bank_themes.advisor_id', advisorId),
+      supabase
+        .from('client_quiz_sessions')
+        .select('*, clients!inner(advisor_id)')
+        .eq('clients.advisor_id', advisorId),
+      supabase
+        .from('client_invitation_links')
+        .select('*, clients!inner(advisor_id)')
+        .eq('clients.advisor_id', advisorId)
     ])
 
   const errors = [
@@ -83,7 +118,9 @@ export const exportAdvisorDataAsJson = async (advisor) => {
     questionnairesResult.error,
     questionnaireQuestionsResult.error,
     themesResult.error,
-    questionBankResult.error
+    questionBankResult.error,
+    isMissingQuizSessionsTableError(quizSessionsResult.error) ? null : quizSessionsResult.error,
+    isMissingInvitationLinksTableError(invitationLinksResult.error) ? null : invitationLinksResult.error
   ].filter(Boolean)
 
   if (errors.length > 0) {
@@ -114,6 +151,16 @@ export const exportAdvisorDataAsJson = async (advisor) => {
     questionBankQuestions: (questionBankResult.data || []).map((item) => {
       const cleaned = { ...item }
       delete cleaned.advisor_question_bank_themes
+      return cleaned
+    }),
+    clientQuizSessions: (quizSessionsResult.data || []).map((item) => {
+      const cleaned = { ...item }
+      delete cleaned.clients
+      return cleaned
+    }),
+    clientInvitationLinks: (invitationLinksResult.data || []).map((item) => {
+      const cleaned = { ...item }
+      delete cleaned.clients
       return cleaned
     })
   }

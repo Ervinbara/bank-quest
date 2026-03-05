@@ -1,20 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { deleteClient, getClientById, updateClient, updateClientFollowup } from '@/services/clientService'
+import {
+  createClientInvitationForExistingClient,
+  deleteClient,
+  getClientById,
+  getClientInvitationLinks,
+  updateClient,
+  updateClientFollowup
+} from '@/services/clientService'
+import { getAdvisorQuestionnaires } from '@/services/questionnaireService'
+import { getAdvisorEmailTemplate, sendInvitationEmail } from '@/services/invitationEmailService'
+import { getPlanAccess } from '@/lib/planAccess'
 import { isValidEmail } from '@/services/authService'
 import {
-  ArrowLeft,
-  Award,
   AlertCircle,
-  Mail,
+  ArrowLeft,
   Calendar,
-  TrendingUp,
+  Copy,
+  History,
+  Link2,
   Loader2,
-  Save,
-  Trash2,
+  Mail,
   Pencil,
-  PhoneCall
+  PhoneCall,
+  Save,
+  Send,
+  Trash2,
+  TrendingUp
 } from 'lucide-react'
 
 const FOLLOWUP_OPTIONS = [
@@ -24,10 +37,9 @@ const FOLLOWUP_OPTIONS = [
   { key: 'clos', label: 'Clos' }
 ]
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
+const formatDate = (value) => {
+  if (!value) return 'N/A'
+  return new Date(value).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -36,7 +48,7 @@ const formatDate = (dateString) => {
   })
 }
 
-const getScoreColor = (score) => {
+const scoreClass = (score) => {
   if (score >= 75) return 'text-green-600'
   if (score >= 50) return 'text-orange-600'
   return 'text-red-600'
@@ -46,27 +58,34 @@ export default function ClientDetail() {
   const { advisor } = useAuth()
   const { clientId } = useParams()
   const navigate = useNavigate()
+  const planAccess = getPlanAccess(advisor?.plan)
 
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [updatingFollowup, setUpdatingFollowup] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    avatar: ''
-  })
-  const [followupData, setFollowupData] = useState({
-    followupStatus: 'a_contacter',
-    advisorNotes: ''
-  })
+
+  const [formData, setFormData] = useState({ name: '', email: '', avatar: '' })
+  const [followupData, setFollowupData] = useState({ followupStatus: 'a_contacter', advisorNotes: '' })
+
+  const [questionnaires, setQuestionnaires] = useState([])
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState('')
+  const [invitationLinks, setInvitationLinks] = useState([])
+  const [invitationLoading, setInvitationLoading] = useState(false)
+  const [invitationActionLoading, setInvitationActionLoading] = useState(false)
+  const [invitationError, setInvitationError] = useState(null)
+  const [copySuccessId, setCopySuccessId] = useState(null)
+  const [sendingInvitationId, setSendingInvitationId] = useState(null)
+  const [emailTemplate, setEmailTemplate] = useState(null)
+
+  const [selectedSessionId, setSelectedSessionId] = useState(null)
 
   const loadClient = useCallback(async () => {
     if (!clientId) return
-
     try {
       setLoading(true)
       setError(null)
@@ -82,61 +101,104 @@ export default function ClientDetail() {
         advisorNotes: data?.advisor_notes || ''
       })
     } catch (err) {
-      console.error('Erreur chargement client:', err)
-      setError('Impossible de charger le detail du client')
+      setError(err.message || 'Impossible de charger le detail du client')
     } finally {
       setLoading(false)
     }
   }, [clientId])
 
+  const loadInvitationContext = useCallback(async () => {
+    if (!advisor?.id || !clientId) return
+    try {
+      setInvitationLoading(true)
+      setInvitationError(null)
+      const [links, list, template] = await Promise.all([
+        getClientInvitationLinks({ advisorId: advisor.id, clientId }),
+        getAdvisorQuestionnaires(advisor.id),
+        getAdvisorEmailTemplate(advisor.id)
+      ])
+      setInvitationLinks(links || [])
+      setQuestionnaires(list || [])
+      const defaultId = (list || []).find((x) => x.is_default)?.id || list?.[0]?.id || ''
+      setSelectedQuestionnaireId(defaultId)
+      setEmailTemplate(template)
+    } catch (err) {
+      setInvitationError(err.message || 'Impossible de charger les liens')
+    } finally {
+      setInvitationLoading(false)
+    }
+  }, [advisor?.id, clientId])
+
   useEffect(() => {
     void loadClient()
   }, [loadClient])
 
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    if (error) setError(null)
-  }
+  useEffect(() => {
+    void loadInvitationContext()
+  }, [loadInvitationContext])
+
+  const sessions = useMemo(() => {
+    const list = client?.quiz_sessions || []
+    return [...list].sort(
+      (a, b) =>
+        new Date(b.completed_at || b.created_at || 0).getTime() -
+        new Date(a.completed_at || a.created_at || 0).getTime()
+    )
+  }, [client?.quiz_sessions])
+
+  const activeSessionId = selectedSessionId || sessions[0]?.id || null
+  const selectedSession = sessions.find((s) => s.id === activeSessionId) || null
+  const latestSession = sessions[0] || null
+
+  const latestScore = typeof latestSession?.score === 'number' ? latestSession.score : typeof client?.score === 'number' ? client.score : null
+  const progress = client?.quiz_progress || { sessionCount: sessions.length, bestScore: latestScore, progressDelta: null }
+
+  const questionnaireTracking = useMemo(() => {
+    const map = new Map()
+    sessions.forEach((s) => {
+      const key = s.questionnaire_name || 'Questionnaire standard'
+      const arr = map.get(key) || []
+      arr.push(s)
+      map.set(key, arr)
+    })
+    return [...map.entries()].map(([name, arr]) => {
+      const ordered = [...arr].sort(
+        (a, b) =>
+          new Date(a.completed_at || a.created_at || 0).getTime() -
+          new Date(b.completed_at || b.created_at || 0).getTime()
+      )
+      const scores = ordered.map((x) => x.score).filter((x) => typeof x === 'number')
+      const first = scores[0] ?? null
+      const last = scores[scores.length - 1] ?? null
+      return {
+        name,
+        count: ordered.length,
+        latest: last,
+        best: scores.length ? Math.max(...scores) : null,
+        avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+        delta: first !== null && last !== null && ordered.length > 1 ? last - first : null
+      }
+    })
+  }, [sessions])
+
+  const averageScore = sessions.length
+    ? Math.round(sessions.map((x) => x.score).filter((x) => typeof x === 'number').reduce((a, b) => a + b, 0) / sessions.length)
+    : null
 
   const handleSave = async () => {
     if (!client?.id || !advisor?.id) return
-
-    if (!formData.name.trim()) {
-      setError('Le nom est requis')
-      return
-    }
-    if (!isValidEmail(formData.email)) {
-      setError('Email invalide')
-      return
-    }
-
+    if (!formData.name.trim()) return setError('Le nom est requis')
+    if (!isValidEmail(formData.email)) return setError('Email invalide')
     try {
       setSaving(true)
       setError(null)
-
-      const updatedClient = await updateClient({
-        clientId: client.id,
-        advisorId: advisor.id,
-        name: formData.name,
-        email: formData.email,
-        avatar: formData.avatar
-      })
-
-      setClient((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...updatedClient,
-              client_insights: prev.client_insights || []
-            }
-          : prev
-      )
-      setFormData({
-        name: updatedClient?.name || '',
-        email: updatedClient?.email || '',
-        avatar: updatedClient?.avatar || ''
-      })
+      const updated = await updateClient({ clientId: client.id, advisorId: advisor.id, name: formData.name, email: formData.email, avatar: formData.avatar })
+      setClient((prev) => ({
+        ...prev,
+        ...updated,
+        quiz_sessions: updated?.quiz_sessions || prev?.quiz_sessions || [],
+        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null
+      }))
       setEditing(false)
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le client')
@@ -147,33 +209,21 @@ export default function ClientDetail() {
 
   const handleSaveFollowup = async (markContacted = false) => {
     if (!client?.id || !advisor?.id) return
-
     try {
       setUpdatingFollowup(true)
       setError(null)
-      const updatedClient = await updateClientFollowup({
+      const updated = await updateClientFollowup({
         clientId: client.id,
         advisorId: advisor.id,
         followupStatus: followupData.followupStatus,
         advisorNotes: followupData.advisorNotes,
         markContacted
       })
-      setClient((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...updatedClient,
-              client_insights: prev.client_insights || []
-            }
-          : prev
-      )
-      setFollowupData((prev) => ({
+      setClient((prev) => ({
         ...prev,
-        followupStatus: updatedClient?.followup_status || prev.followupStatus,
-        advisorNotes:
-          typeof updatedClient?.advisor_notes === 'string'
-            ? updatedClient.advisor_notes
-            : prev.advisorNotes
+        ...updated,
+        quiz_sessions: updated?.quiz_sessions || prev?.quiz_sessions || [],
+        quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null
       }))
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le suivi')
@@ -184,15 +234,9 @@ export default function ClientDetail() {
 
   const handleDelete = async () => {
     if (!client?.id || !advisor?.id) return
-
-    const confirmed = window.confirm(
-      `Supprimer definitivement le client "${client.name}" ? Cette action est irreversible.`
-    )
-    if (!confirmed) return
-
+    if (!window.confirm(`Supprimer definitivement le client "${client.name}" ?`)) return
     try {
       setDeleting(true)
-      setError(null)
       await deleteClient({ clientId: client.id, advisorId: advisor.id })
       navigate('/dashboard/clients', { replace: true })
     } catch (err) {
@@ -202,280 +246,214 @@ export default function ClientDetail() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-emerald-700 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement du client...</p>
-        </div>
-      </div>
-    )
+  const handleGenerateInvitation = async () => {
+    if (!advisor?.id || !client?.id) return
+    try {
+      setInvitationActionLoading(true)
+      setInvitationError(null)
+      const generated = await createClientInvitationForExistingClient({
+        advisorId: advisor.id,
+        clientId: client.id,
+        questionnaireId: selectedQuestionnaireId || null
+      })
+      setInvitationLinks((prev) => [generated, ...(prev || []).filter((x) => x.token !== generated.token)])
+    } catch (err) {
+      setInvitationError(err.message || 'Impossible de generer le lien')
+    } finally {
+      setInvitationActionLoading(false)
+    }
   }
 
-  if (error && !client) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <p className="text-red-800 font-semibold mb-3">❌ {error}</p>
-        <button
-          onClick={loadClient}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
-        >
-          Reessayer
-        </button>
-      </div>
-    )
+  const handleCopyInvitationLink = async (link) => {
+    try {
+      await navigator.clipboard.writeText(link.inviteUrl)
+      setCopySuccessId(link.id || link.token)
+      setTimeout(() => setCopySuccessId(null), 1500)
+    } catch {
+      setInvitationError('Impossible de copier le lien')
+    }
   }
 
-  if (!client) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-        <p className="text-yellow-800 font-semibold mb-3">Client introuvable.</p>
-        <Link
-          to="/dashboard/clients"
-          className="inline-flex items-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-700 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Retour a la liste
-        </Link>
-      </div>
-    )
+  const handleSendInvitationEmail = async (link) => {
+    if (!planAccess.canSendInvitationEmails) return
+    try {
+      setSendingInvitationId(link.id || link.token)
+      await sendInvitationEmail({
+        toEmail: client.email,
+        clientName: client.name,
+        advisorName: advisor?.name || 'Votre conseiller',
+        advisorEmail: advisor?.email || '',
+        inviteLink: link.inviteUrl,
+        template: emailTemplate || undefined
+      })
+    } catch (err) {
+      setInvitationError(err.message || "Impossible d'envoyer l'email")
+    } finally {
+      setSendingInvitationId(null)
+    }
   }
 
-  const isCompleted = client.quiz_status === 'completed'
-  const strengths = client.client_insights?.filter((i) => i.type === 'strength') || []
-  const weaknesses = client.client_insights?.filter((i) => i.type === 'weakness') || []
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-10 h-10 animate-spin text-emerald-700" /></div>
+  if (!client) return <div className="text-sm text-red-700">Client introuvable</div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Link
-            to="/dashboard/clients"
-            className="inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-900 mb-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour aux clients
-          </Link>
+          <Link to="/dashboard/clients" className="inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-900 mb-2"><ArrowLeft className="w-4 h-4" />Retour aux clients</Link>
           <h2 className="text-2xl font-bold text-gray-800">{client.name}</h2>
           <p className="text-gray-600">Fiche detail client</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditing((prev) => !prev)}
-            disabled={saving || deleting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition disabled:opacity-60"
-          >
-            <Pencil className="w-4 h-4" />
-            {editing ? 'Annuler' : 'Modifier'}
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
-          >
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Supprimer
-          </button>
+          <button onClick={() => setEditing((x) => !x)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"><Pencil className="w-4 h-4" />{editing ? 'Annuler' : 'Modifier'}</button>
+          <button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">{deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}Supprimer</button>
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
-              {editing ? formData.avatar || '👤' : client.avatar || client.name?.charAt(0)}
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold">{editing ? formData.name : client.name}</h3>
-              <div className="flex items-center gap-2 text-emerald-100">
-                <Mail className="w-4 h-4" />
-                <span>{editing ? formData.email : client.email}</span>
-              </div>
-            </div>
-          </div>
+          <h3 className="text-2xl font-bold">{client.name}</h3>
+          <div className="flex items-center gap-2 text-emerald-100"><Mail className="w-4 h-4" /><span>{client.email}</span></div>
         </div>
 
         <div className="p-6 space-y-6">
           {editing ? (
-            <div className="bg-gray-50 rounded-xl p-5 space-y-4">
-              <h3 className="font-bold text-gray-800">Modifier les informations</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nom</label>
-                  <input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                  <input
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Avatar</label>
-                  <input
-                    name="avatar"
-                    value={formData.avatar}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-emerald-500"
-                    placeholder="Ex: 👤"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-semibold hover:opacity-90 transition disabled:opacity-60"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Enregistrer
-                </button>
-              </div>
+            <div className="bg-gray-50 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input name="name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="px-3 py-2 border rounded-lg" />
+              <input name="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} className="px-3 py-2 border rounded-lg" />
+              <div className="flex justify-end"><button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Enregistrer</button></div>
             </div>
           ) : null}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
-            <h3 className="font-bold text-blue-900">Suivi commercial</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-blue-900 mb-2">Statut</label>
-                <select
-                  value={followupData.followupStatus}
-                  onChange={(event) =>
-                    setFollowupData((prev) => ({ ...prev, followupStatus: event.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-500"
-                >
-                  {FOLLOWUP_OPTIONS.map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="text-sm text-blue-900">
-                <p className="font-semibold mb-2">Dernier contact</p>
-                <p>{client.last_contacted_at ? formatDate(client.last_contacted_at) : 'Aucun contact enregistre'}</p>
-              </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <select value={followupData.followupStatus} onChange={(e) => setFollowupData((p) => ({ ...p, followupStatus: e.target.value }))} className="px-3 py-2 rounded-lg border">
+                {FOLLOWUP_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+              </select>
+              <p className="text-sm text-blue-900">{client.last_contacted_at ? `Dernier contact: ${formatDate(client.last_contacted_at)}` : 'Aucun contact enregistre'}</p>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-blue-900 mb-2">Notes conseiller</label>
-              <textarea
-                rows={4}
-                value={followupData.advisorNotes}
-                onChange={(event) =>
-                  setFollowupData((prev) => ({ ...prev, advisorNotes: event.target.value }))
-                }
-                placeholder="Ajoutez un contexte, une relance, un compte-rendu de rendez-vous..."
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                onClick={() => void handleSaveFollowup(false)}
-                disabled={updatingFollowup}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-300 text-blue-800 font-semibold hover:bg-blue-100 transition disabled:opacity-60"
-              >
-                {updatingFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Sauvegarder suivi
-              </button>
-              <button
-                onClick={() => void handleSaveFollowup(true)}
-                disabled={updatingFollowup}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
-              >
-                {updatingFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <PhoneCall className="w-4 h-4" />}
-                Marquer comme contacte
-              </button>
+            <textarea rows={3} value={followupData.advisorNotes} onChange={(e) => setFollowupData((p) => ({ ...p, advisorNotes: e.target.value }))} className="mt-3 w-full px-3 py-2 rounded-lg border" placeholder="Notes conseiller" />
+            <div className="mt-3 flex justify-end gap-2">
+              <button onClick={() => void handleSaveFollowup(false)} disabled={updatingFollowup} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-blue-800"><Save className="w-4 h-4" />Sauvegarder suivi</button>
+              <button onClick={() => void handleSaveFollowup(true)} disabled={updatingFollowup} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"><PhoneCall className="w-4 h-4" />Marquer comme contacte</button>
             </div>
           </div>
 
-          {isCompleted ? (
-            <div className="bg-gray-50 rounded-xl p-6 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="w-6 h-6 text-emerald-700" />
-                <h3 className="text-lg font-bold text-gray-800">Score global</h3>
-              </div>
-              <div className={`text-5xl font-bold ${getScoreColor(client.score)} mb-2`}>
-                {client.score}/100
-              </div>
-              <p className="text-sm text-gray-600">Complete le {formatDate(client.completed_at)}</p>
+          <div className="bg-gray-50 rounded-xl p-5">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-1">Score global</p>
+              <p className={`text-5xl font-bold ${latestScore !== null ? scoreClass(latestScore) : 'text-gray-400'}`}>{latestScore !== null ? `${latestScore}/100` : 'N/A'}</p>
+              {latestSession?.questionnaire_name ? (
+                <p className="text-xs text-gray-600 mt-1">Questionnaire: {latestSession.questionnaire_name}</p>
+              ) : null}
             </div>
-          ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-              <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Questionnaire en attente</h3>
-              <p className="text-sm text-gray-600 mb-1">Invite le {formatDate(client.created_at)}</p>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="rounded-lg border bg-white px-3 py-2"><p className="text-xs text-gray-500">Questionnaires completes</p><p className="font-bold">{progress.sessionCount || 0}</p></div>
+              <div className="rounded-lg border bg-white px-3 py-2"><p className="text-xs text-gray-500">Score moyen global</p><p className="font-bold">{averageScore !== null ? `${averageScore}/100` : 'N/A'}</p></div>
+              <div className="rounded-lg border bg-white px-3 py-2"><p className="text-xs text-gray-500">Meilleur score global</p><p className="font-bold">{typeof progress.bestScore === 'number' ? `${progress.bestScore}/100` : 'N/A'}</p></div>
+              <div className="rounded-lg border bg-white px-3 py-2"><p className="text-xs text-gray-500">Progression globale</p><p className={`font-bold ${typeof progress.progressDelta === 'number' ? (progress.progressDelta >= 0 ? 'text-green-700' : 'text-red-700') : ''}`}>{typeof progress.progressDelta === 'number' ? `${progress.progressDelta >= 0 ? '+' : ''}${progress.progressDelta} pts` : 'N/A'}</p></div>
             </div>
-          )}
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Award className="w-5 h-5 text-green-700" />
-                <h4 className="font-bold text-green-900">Points forts ({strengths.length})</h4>
+          <div className="bg-white border rounded-xl p-4">
+            <h4 className="font-bold mb-3">Synthese par questionnaire</h4>
+            {questionnaireTracking.length === 0 ? <p className="text-sm text-gray-600">Aucun tracking disponible pour le moment.</p> : questionnaireTracking.map((item) => (
+              <div key={item.name} className="rounded-lg border bg-gray-50 px-3 py-2 grid grid-cols-1 md:grid-cols-6 gap-2 mb-2">
+                <p className="font-semibold">{item.name}</p>
+                <p className="text-sm">Nb: {item.count}</p>
+                <p className="text-sm">Dernier: {item.latest !== null ? `${item.latest}/100` : 'N/A'}</p>
+                <p className="text-sm">Meilleur: {item.best !== null ? `${item.best}/100` : 'N/A'}</p>
+                <p className="text-sm">Moyenne: {item.avg !== null ? `${item.avg}/100` : 'N/A'}</p>
+                <p className={`text-sm font-semibold ${item.delta === null ? '' : item.delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>Delta: {item.delta === null ? 'N/A' : `${item.delta >= 0 ? '+' : ''}${item.delta} pts`}</p>
               </div>
-              {strengths.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {strengths.map((item) => (
-                    <span
-                      key={item.id}
-                      className="px-3 py-1 bg-white text-green-800 border border-green-200 rounded-full text-sm font-medium"
-                    >
-                      {item.concept}
-                    </span>
-                  ))}
+            ))}
+          </div>
+
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+            <h4 className="font-bold text-indigo-900 mb-3">Relancer avec un questionnaire</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select value={selectedQuestionnaireId} onChange={(e) => setSelectedQuestionnaireId(e.target.value)} className="md:col-span-2 px-3 py-2 rounded-lg border bg-white">
+                {questionnaires.length === 0 ? <option value="">Questionnaire standard</option> : null}
+                {questionnaires.map((q) => <option key={q.id} value={q.id}>{q.name}{q.is_default ? ' (Par defaut)' : ''}</option>)}
+              </select>
+              <button onClick={() => void handleGenerateInvitation()} disabled={invitationActionLoading} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold">{invitationActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}Generer un lien</button>
+            </div>
+            {invitationError ? <p className="text-sm text-red-700 mt-2">{invitationError}</p> : null}
+            {invitationLoading ? <p className="text-sm text-indigo-900 mt-2">Chargement des liens...</p> : null}
+            <div className="mt-3 space-y-2">
+              {invitationLinks.map((link) => (
+                <div key={link.id || link.token} className="rounded-lg border border-indigo-200 bg-white px-3 py-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{link.questionnaireName || 'Questionnaire standard'}</p>
+                    <p className="text-xs text-gray-600">{link.createdAt ? formatDate(link.createdAt) : 'Date inconnue'}{link.expiresAt ? ` • expire le ${formatDate(link.expiresAt)}` : ''}</p>
+                    <p className="text-xs text-gray-600 break-all">{link.inviteUrl}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => void handleCopyInvitationLink(link)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-semibold"><Copy className="w-4 h-4" />{copySuccessId === (link.id || link.token) ? 'Copie' : 'Copier'}</button>
+                    <button onClick={() => void handleSendInvitationEmail(link)} disabled={!planAccess.canSendInvitationEmails || sendingInvitationId === (link.id || link.token)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{sendingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Envoyer</button>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-green-900">Aucune force renseignee.</p>
-              )}
+              ))}
             </div>
+          </div>
 
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-5 h-5 text-rose-700" />
-                <h4 className="font-bold text-rose-900">Points a ameliorer ({weaknesses.length})</h4>
+          <div className="bg-white border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3"><History className="w-5 h-5 text-indigo-700" /><h4 className="font-bold">Parcours questionnaires remplis</h4></div>
+            {sessions.length === 0 ? <p className="text-sm text-gray-600">Aucun historique de questionnaire disponible.</p> : (
+              <div className="space-y-2">
+                {sessions.map((s, index) => {
+                  const prev = typeof sessions[index + 1]?.score === 'number' ? sessions[index + 1].score : null
+                  const delta = prev !== null && typeof s.score === 'number' ? s.score - prev : null
+                  return (
+                    <button key={s.id} onClick={() => setSelectedSessionId(s.id)} className={`w-full text-left rounded-lg border px-3 py-2 flex items-center justify-between ${activeSessionId === s.id ? 'border-indigo-400 bg-indigo-50' : 'bg-gray-50 border-gray-200'}`}>
+                      <div>
+                        <p className="font-semibold">{s.questionnaire_name || 'Questionnaire standard'}</p>
+                        <p className="text-xs text-gray-600">{formatDate(s.completed_at || s.created_at)}</p>
+                      </div>
+                      <div className="text-sm flex items-center gap-2">
+                        <span className={`font-bold ${scoreClass(s.score || 0)}`}>{s.score}/100</span>
+                        {delta !== null ? <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${delta >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{delta >= 0 ? '+' : ''}{delta} pts</span> : null}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
-              {weaknesses.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {weaknesses.map((item) => (
-                    <span
-                      key={item.id}
-                      className="px-3 py-1 bg-white text-rose-800 border border-rose-200 rounded-full text-sm font-medium"
-                    >
-                      {item.concept}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-rose-900">Aucun point faible renseigne.</p>
-              )}
-            </div>
+            )}
           </div>
 
-          <div className="text-sm text-gray-600 flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Cree le {formatDate(client.created_at)}
+          <div className="bg-white border rounded-xl p-4">
+            <h4 className="font-bold mb-3">Reponses du questionnaire selectionne</h4>
+            {!selectedSession ? <p className="text-sm text-gray-600">Aucune tentative selectionnee.</p> : (
+              <>
+                <div className="rounded-lg border bg-gray-50 px-3 py-2 mb-3">
+                  <p className="font-semibold">{selectedSession.questionnaire_name || 'Questionnaire standard'}</p>
+                  <p className="text-xs text-gray-600">{formatDate(selectedSession.completed_at || selectedSession.created_at)} • {selectedSession.score}/100</p>
+                </div>
+                {Array.isArray(selectedSession.question_answers) && selectedSession.question_answers.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedSession.question_answers.map((answer, index) => (
+                      <div key={`${selectedSession.id}-${index}`} className="rounded-lg border bg-gray-50 p-3">
+                        <p className="font-semibold text-sm">{index + 1}. {answer.prompt || answer.concept || 'Question'}</p>
+                        <p className="text-xs text-gray-600 mt-1">{answer.concept || 'General'}</p>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <span>{answer.answerLabel || 'Reponse non disponible'}</span>
+                          <span className="font-semibold text-indigo-700">{typeof answer.points === 'number' ? `${answer.points}/5` : 'N/A'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">Le detail question par question n est pas disponible pour cette tentative (ancienne version).</p>
+                )}
+              </>
+            )}
           </div>
+
+          <div className="text-sm text-gray-600 flex items-center gap-2"><Calendar className="w-4 h-4" />Cree le {formatDate(client.created_at)}</div>
         </div>
       </div>
     </div>
   )
 }
-
-

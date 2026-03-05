@@ -160,15 +160,6 @@ export default function ClientQuiz() {
       setClient(resolvedClient)
       setResolvedClientId(clientId)
       setResolvedToken(token)
-
-      if (resolvedClient?.quiz_status === 'completed' && typeof resolvedClient.score === 'number') {
-        setCompletedResult({
-          score: resolvedClient.score,
-          strengths: [],
-          weaknesses: [],
-          recommendations: []
-        })
-      }
     } catch (err) {
       console.error('Erreur chargement quiz client:', err)
       setError(getAccessErrorMessage(err))
@@ -182,7 +173,7 @@ export default function ClientQuiz() {
   }, [loadClient])
 
   useEffect(() => {
-    if (!client || !resolvedClientId || !resolvedToken || client.quiz_status === 'completed') return
+    if (!client || !resolvedClientId || !resolvedToken) return
 
     const storageKey = getProgressStorageKey(resolvedClientId, resolvedToken)
     const raw = localStorage.getItem(storageKey)
@@ -255,13 +246,25 @@ export default function ClientQuiz() {
       const totalPoints = Object.values(answers).reduce((sum, value) => sum + value, 0)
       const score = Math.round((totalPoints / (totalQuestions * 5)) * 100)
       const insights = buildInsights(quizQuestions, answers)
+      const questionResponses = quizQuestions.map((question) => {
+        const selectedPoints = Number(answers[question.id] || 0)
+        const selectedOption = (question.options || []).find((option) => Number(option.points) === selectedPoints)
+        return {
+          questionId: question.id,
+          prompt: question.prompt,
+          concept: question.concept,
+          answerLabel: selectedOption?.label || null,
+          points: selectedPoints
+        }
+      })
 
       await submitClientQuizResult({
         clientId: resolvedClientId,
         token: resolvedToken,
         score,
         strengths: insights.strengths,
-        weaknesses: insights.weaknesses
+        weaknesses: insights.weaknesses,
+        questionResponses
       })
 
       if (resolvedClientId && resolvedToken) {
@@ -276,7 +279,7 @@ export default function ClientQuiz() {
       })
     } catch (err) {
       console.error('Erreur soumission quiz:', err)
-      setError("Impossible d'enregistrer le quiz, veuillez reessayer")
+      setError(err.message || "Impossible d'enregistrer le quiz, veuillez reessayer")
     } finally {
       setSaving(false)
     }
@@ -387,6 +390,17 @@ export default function ClientQuiz() {
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
               <p className="font-semibold text-gray-800">Aucune bonne ou mauvaise reponse absolue</p>
             </div>
+            {client?.quiz_status === 'completed' && typeof client?.score === 'number' ? (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                <p className="font-semibold text-emerald-900">
+                  Dernier resultat enregistre: {client.score}/100
+                  {client.completed_at ? ` (${new Date(client.completed_at).toLocaleDateString('fr-FR')})` : ''}
+                </p>
+                <p className="text-sm text-emerald-800 mt-1">
+                  Vous pouvez refaire ce questionnaire pour mesurer votre progression.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <p className="text-xs text-gray-500 mb-4">Invitation verifiee.</p>

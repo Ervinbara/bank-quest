@@ -31,6 +31,30 @@ const createQuizSupabaseClient = (token) =>
     }
   })
 
+const extractFunctionErrorMessage = async (fnError, fallbackMessage) => {
+  const context = fnError?.context
+  if (!context) return fnError?.message || fallbackMessage
+
+  try {
+    const clone = context.clone ? context.clone() : context
+    const asJson = await clone.json()
+    return asJson?.error || asJson?.message || fnError?.message || fallbackMessage
+  } catch {
+    try {
+      const asText = await context.text()
+      if (!asText) return fnError?.message || fallbackMessage
+      try {
+        const parsed = JSON.parse(asText)
+        return parsed?.error || parsed?.message || fnError?.message || fallbackMessage
+      } catch {
+        return asText
+      }
+    } catch {
+      return fnError?.message || fallbackMessage
+    }
+  }
+}
+
 const getAdvisorPlanInfo = async (advisorId) => {
   if (!advisorId) {
     return {
@@ -83,6 +107,243 @@ const isMissingQuestionnairesTableError = (error) => {
     message.includes("could not find the table 'public.advisor_questionnaires'") ||
     message.includes('relation "public.advisor_questionnaires" does not exist')
   )
+}
+
+const isMissingInvitationLinksTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_invitation_links'") ||
+    message.includes('relation "public.client_invitation_links" does not exist')
+  )
+}
+
+const isMissingQuizSessionsTableError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes("could not find the table 'public.client_quiz_sessions'") ||
+    message.includes('relation "public.client_quiz_sessions" does not exist')
+  )
+}
+
+const isMissingSessionAnswersColumnError = (error) => {
+  const message = String(error?.message || '').toLowerCase()
+  return message.includes("column 'question_answers' does not exist") || message.includes('question_answers')
+}
+
+const normalizeInsightArray = (value) => {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => String(item || '').trim()).filter(Boolean)
+}
+
+const normalizeQuestionAnswers = (value) => {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const row = item
+      const points = Number(row.points)
+      return {
+        questionId: row.questionId || row.id || null,
+        prompt: row.prompt || row.questionText || null,
+        concept: row.concept || null,
+        answerLabel: row.answerLabel || row.optionLabel || row.answer || null,
+        points: Number.isFinite(points) ? points : null
+      }
+    })
+    .filter(Boolean)
+}
+
+const buildProgressFromSessions = (sessions) => {
+  const safeSessions = Array.isArray(sessions) ? sessions : []
+  if (safeSessions.length === 0) {
+    return {
+      quizSessionCount: 0,
+      latestScore: null,
+      firstScore: null,
+      bestScore: null,
+      latestCompletedAt: null,
+      progressDelta: null
+    }
+  }
+
+  const newestFirst = [...safeSessions].sort(
+    (a, b) => new Date(b.completed_at || b.created_at || 0).getTime() - new Date(a.completed_at || a.created_at || 0).getTime()
+  )
+  const scores = newestFirst.map((item) => (typeof item.score === 'number' ? item.score : null)).filter((item) => item !== null)
+  const latestScore = scores.length > 0 ? scores[0] : null
+  const firstScore = scores.length > 0 ? scores[scores.length - 1] : null
+  const bestScore = scores.length > 0 ? Math.max(...scores) : null
+
+  return {
+    quizSessionCount: newestFirst.length,
+    latestScore,
+    firstScore,
+    bestScore,
+    latestCompletedAt: newestFirst[0]?.completed_at || newestFirst[0]?.created_at || null,
+    progressDelta:
+      newestFirst.length >= 2 && latestScore !== null && firstScore !== null ? latestScore - firstScore : null,
+    sessions: newestFirst
+  }
+}
+
+const enrichClientWithSessions = async (client) => {
+  if (!client?.id) return client
+
+  const { byClientId } = await fetchQuizSessionsByClientIds([client.id])
+  let sessions = byClientId.get(client.id) || []
+
+  if (sessions.length === 0 && typeof client?.score === 'number') {
+    let latestQuestionnaireName = 'Questionnaire standard'
+    let snapshotDate = client.completed_at || client.updated_at || client.created_at
+
+    let { data: invitation, error: invitationError } = await supabase
+      .from('client_invitations')
+      .select('questionnaire_id, updated_at, created_at')
+      .eq('client_id', client.id)
+      .maybeSingle()
+
+    if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
+      const fallback = await supabase
+        .from('client_invitations')
+        .select('updated_at, created_at')
+        .eq('client_id', client.id)
+        .maybeSingle()
+      invitation = fallback.data
+      invitationError = fallback.error
+    }
+
+    if (!invitationError && invitation) {
+      snapshotDate = invitation.updated_at || invitation.created_at || snapshotDate
+      if (invitation.questionnaire_id) {
+        const { data: questionnaire } = await supabase
+          .from('advisor_questionnaires')
+          .select('name')
+          .eq('id', invitation.questionnaire_id)
+          .maybeSingle()
+        if (questionnaire?.name) latestQuestionnaireName = questionnaire.name
+      }
+    }
+
+    sessions = [
+      {
+        id: `legacy-${client.id}`,
+        client_id: client.id,
+        questionnaire_id: null,
+        questionnaire_name: latestQuestionnaireName,
+        score: client.score,
+        strengths: (client.client_insights || [])
+          .filter((item) => item.type === 'strength')
+          .map((item) => item.concept),
+        weaknesses: (client.client_insights || [])
+          .filter((item) => item.type === 'weakness')
+          .map((item) => item.concept),
+        question_answers: [],
+        completed_at: snapshotDate,
+        created_at: snapshotDate
+      }
+    ]
+  }
+
+  const progress = buildProgressFromSessions(sessions)
+  return {
+    ...client,
+    quiz_sessions: progress.sessions || [],
+    quiz_progress: {
+      sessionCount: progress.quizSessionCount,
+      latestScore: progress.latestScore,
+      firstScore: progress.firstScore,
+      bestScore: progress.bestScore,
+      progressDelta: progress.progressDelta,
+      latestCompletedAt: progress.latestCompletedAt
+    }
+  }
+}
+
+const fetchQuizSessionsByClientIds = async (clientIds) => {
+  if (!Array.isArray(clientIds) || clientIds.length === 0) {
+    return { byClientId: new Map(), questionnaireNameById: new Map() }
+  }
+
+  let { data: sessions, error } = await supabase
+    .from('client_quiz_sessions')
+    .select('id, client_id, questionnaire_id, score, strengths, weaknesses, question_answers, completed_at, created_at')
+    .in('client_id', clientIds)
+    .order('completed_at', { ascending: false })
+
+  if (error && isMissingSessionAnswersColumnError(error)) {
+    const fallback = await supabase
+      .from('client_quiz_sessions')
+      .select('id, client_id, questionnaire_id, score, strengths, weaknesses, completed_at, created_at')
+      .in('client_id', clientIds)
+      .order('completed_at', { ascending: false })
+    sessions = fallback.data
+    error = fallback.error
+  }
+
+  if (error) {
+    if (isMissingQuizSessionsTableError(error)) {
+      return { byClientId: new Map(), questionnaireNameById: new Map() }
+    }
+    throw error
+  }
+
+  const safeSessions = sessions || []
+  const questionnaireIds = [...new Set(safeSessions.map((item) => item.questionnaire_id).filter(Boolean))]
+  const questionnaireNameById = new Map()
+
+  if (questionnaireIds.length > 0) {
+    const { data: questionnaires, error: questionnaireError } = await supabase
+      .from('advisor_questionnaires')
+      .select('id, name')
+      .in('id', questionnaireIds)
+
+    if (!questionnaireError) {
+      ;(questionnaires || []).forEach((item) => {
+        questionnaireNameById.set(item.id, item.name)
+      })
+    }
+  }
+
+  const byClientId = safeSessions.reduce((acc, session) => {
+    const existing = acc.get(session.client_id) || []
+    existing.push({
+      ...session,
+      strengths: normalizeInsightArray(session.strengths),
+      weaknesses: normalizeInsightArray(session.weaknesses),
+      question_answers: normalizeQuestionAnswers(session.question_answers),
+      questionnaire_name: session.questionnaire_id
+        ? questionnaireNameById.get(session.questionnaire_id) || 'Questionnaire personnalise'
+        : 'Questionnaire standard'
+    })
+    acc.set(session.client_id, existing)
+    return acc
+  }, new Map())
+
+  return { byClientId, questionnaireNameById }
+}
+
+const recordInvitationLinkHistory = async ({
+  clientId,
+  invitationId = null,
+  token,
+  questionnaireId = null,
+  expiresAt = null,
+  createdAt = null
+}) => {
+  if (!clientId || !token) return
+
+  const { error } = await supabase.from('client_invitation_links').insert({
+    client_id: clientId,
+    invitation_id: invitationId,
+    questionnaire_id: questionnaireId,
+    token,
+    expires_at: expiresAt,
+    created_at: createdAt || new Date().toISOString()
+  })
+
+  if (error && !isMissingInvitationLinksTableError(error)) {
+    throw error
+  }
 }
 
 const resolveQuestionnaireIdForInvitation = async (advisorId, questionnaireId) => {
@@ -227,7 +488,17 @@ const upsertClientInvitation = async (clientId, questionnaireId = null) => {
     throw error
   }
 
+  await recordInvitationLinkHistory({
+    clientId,
+    invitationId: data.id || null,
+    token: data.token,
+    questionnaireId: data.questionnaire_id || null,
+    expiresAt: data.expires_at || null,
+    createdAt: data.updated_at || data.created_at || null
+  })
+
   return {
+    invitationId: data.id || null,
     token: data.token,
     questionnaireId: data.questionnaire_id || null,
     expiresAt: data.expires_at,
@@ -253,7 +524,22 @@ export const getAdvisorClients = async (advisorId) => {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+
+  const clients = data || []
+  const clientIds = clients.map((client) => client.id)
+  const { byClientId } = await fetchQuizSessionsByClientIds(clientIds)
+
+  return clients.map((client) => {
+    const sessionProgress = buildProgressFromSessions(byClientId.get(client.id) || [])
+    return {
+      ...client,
+      quiz_session_count: sessionProgress.quizSessionCount,
+      quiz_progress_delta: sessionProgress.progressDelta,
+      latest_session_at: sessionProgress.latestCompletedAt,
+      latest_session_score: sessionProgress.latestScore,
+      best_session_score: sessionProgress.bestScore
+    }
+  })
 }
 
 // Récupérer les statistiques d'un conseiller
@@ -301,7 +587,7 @@ export const getClientById = async (clientId) => {
     .single()
 
   if (error) throw error
-  return data
+  return enrichClientWithSessions(data)
 }
 
 // Mettre a jour les informations d'un client
@@ -327,7 +613,7 @@ export const updateClient = async ({ clientId, advisorId, name, email, avatar })
   if (duplicateError) throw duplicateError
   if (duplicate) throw new Error('Un autre client utilise deja cet email')
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('clients')
     .update({
       name: cleanedName,
@@ -340,7 +626,23 @@ export const updateClient = async ({ clientId, advisorId, name, email, avatar })
     .single()
 
   if (error) throw error
-  return data
+  const { data: clientWithInsights, error: clientWithInsightsError } = await supabase
+    .from('clients')
+    .select(
+      `
+      *,
+      client_insights (
+        id,
+        type,
+        concept
+      )
+    `
+    )
+    .eq('id', clientId)
+    .single()
+
+  if (clientWithInsightsError) throw clientWithInsightsError
+  return enrichClientWithSessions(clientWithInsights)
 }
 
 // Mettre a jour le suivi commercial du client
@@ -362,7 +664,7 @@ export const updateClientFollowup = async ({ clientId, advisorId, followupStatus
     payload.last_contacted_at = new Date().toISOString()
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('clients')
     .update(payload)
     .eq('id', clientId)
@@ -371,7 +673,24 @@ export const updateClientFollowup = async ({ clientId, advisorId, followupStatus
     .single()
 
   if (error) throw error
-  return data
+
+  const { data: clientWithInsights, error: clientWithInsightsError } = await supabase
+    .from('clients')
+    .select(
+      `
+      *,
+      client_insights (
+        id,
+        type,
+        concept
+      )
+    `
+    )
+    .eq('id', clientId)
+    .single()
+
+  if (clientWithInsightsError) throw clientWithInsightsError
+  return enrichClientWithSessions(clientWithInsights)
 }
 
 // Supprimer un client
@@ -406,6 +725,31 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
     throw new Error("L'email du client est requis")
   }
 
+  const { data: existingClient, error: existingError } = await supabase
+    .from('clients')
+    .select('id, name, email, quiz_status')
+    .eq('advisor_id', advisorId)
+    .eq('email', cleanedEmail)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (existingClient) {
+    const resolvedQuestionnaireId = await resolveQuestionnaireIdForInvitation(advisorId, questionnaireId)
+    const invitation = await upsertClientInvitation(existingClient.id, resolvedQuestionnaireId)
+    const questionnaire = await getQuestionnaireDetails(resolvedQuestionnaireId)
+    return {
+      client: existingClient,
+      existingClient: true,
+      token: invitation.token,
+      questionnaireId: invitation.questionnaireId,
+      questionnaireName: questionnaire?.name || 'Questionnaire standard',
+      inviteUrl: invitation.inviteUrl,
+      expiresAt: invitation.expiresAt,
+      updatedAt: invitation.updatedAt,
+      legacyMode: invitation.legacyMode
+    }
+  }
+
   const [{ access }, totalClients] = await Promise.all([
     getAdvisorPlanInfo(advisorId),
     getAdvisorClientCount(advisorId)
@@ -418,18 +762,6 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
     throw new Error(
       `Limite atteinte pour le plan ${access.label}: ${access.maxClients} clients maximum. Passez a un plan superieur pour continuer.`
     )
-  }
-
-  const { data: existingClient, error: existingError } = await supabase
-    .from('clients')
-    .select('id, name, email, quiz_status')
-    .eq('advisor_id', advisorId)
-    .eq('email', cleanedEmail)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-  if (existingClient) {
-    throw new Error('Un client avec cet email existe deja')
   }
 
   const { data: client, error } = await supabase
@@ -453,11 +785,13 @@ export const createClientInvitation = async ({ advisorId, name, email, questionn
 
   return {
     client,
+    invitationId: invitation.invitationId || null,
     token: invitation.token,
     questionnaireId: invitation.questionnaireId,
     questionnaireName: questionnaire?.name || 'Questionnaire standard',
     inviteUrl: invitation.inviteUrl,
     expiresAt: invitation.expiresAt,
+    createdAt: invitation.updatedAt,
     updatedAt: invitation.updatedAt,
     legacyMode: invitation.legacyMode
   }
@@ -673,6 +1007,130 @@ export const regenerateInvitationLink = async (clientId) => {
   return upsertClientInvitation(clientId, existing?.questionnaire_id || null)
 }
 
+export const createClientInvitationForExistingClient = async ({
+  advisorId,
+  clientId,
+  questionnaireId = null
+}) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  if (!clientId) throw new Error('Client introuvable')
+
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, advisor_id, name, email')
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (clientError) throw clientError
+  if (!client) throw new Error('Client introuvable')
+
+  const resolvedQuestionnaireId = await resolveQuestionnaireIdForInvitation(advisorId, questionnaireId)
+  const invitation = await upsertClientInvitation(client.id, resolvedQuestionnaireId)
+  const questionnaire = await getQuestionnaireDetails(resolvedQuestionnaireId)
+
+  return {
+    client,
+    existingClient: true,
+    invitationId: invitation.invitationId || null,
+    token: invitation.token,
+    questionnaireId: invitation.questionnaireId,
+    questionnaireName: questionnaire?.name || 'Questionnaire standard',
+    inviteUrl: invitation.inviteUrl,
+    expiresAt: invitation.expiresAt,
+    createdAt: invitation.updatedAt,
+    updatedAt: invitation.updatedAt,
+    legacyMode: invitation.legacyMode
+  }
+}
+
+export const getClientInvitationLinks = async ({ advisorId, clientId }) => {
+  if (!advisorId) throw new Error('Conseiller introuvable')
+  if (!clientId) throw new Error('Client introuvable')
+
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, advisor_id')
+    .eq('id', clientId)
+    .eq('advisor_id', advisorId)
+    .maybeSingle()
+
+  if (clientError) throw clientError
+  if (!client) throw new Error('Client introuvable')
+
+  let { data: links, error: linksError } = await supabase
+    .from('client_invitation_links')
+    .select('id, invitation_id, token, questionnaire_id, expires_at, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+
+  if (linksError && !isMissingInvitationLinksTableError(linksError)) throw linksError
+
+  if (linksError && isMissingInvitationLinksTableError(linksError)) {
+    let { data: invitation, error: invitationError } = await supabase
+      .from('client_invitations')
+      .select('id, token, questionnaire_id, expires_at, updated_at, created_at')
+      .eq('client_id', clientId)
+      .maybeSingle()
+
+    if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
+      const fallback = await supabase
+        .from('client_invitations')
+        .select('id, token, expires_at, updated_at, created_at')
+        .eq('client_id', clientId)
+        .maybeSingle()
+      invitation = fallback.data
+      invitationError = fallback.error
+    }
+
+    if (invitationError && !isMissingInvitationsTableError(invitationError)) throw invitationError
+
+    links =
+      invitation && invitation.token
+        ? [
+            {
+              id: invitation.id,
+              invitation_id: invitation.id,
+              token: invitation.token,
+              questionnaire_id: invitation.questionnaire_id || null,
+              expires_at: invitation.expires_at || null,
+              created_at: invitation.updated_at || invitation.created_at || null
+            }
+          ]
+        : []
+  }
+
+  const safeLinks = links || []
+  const questionnaireIds = [...new Set(safeLinks.map((item) => item.questionnaire_id).filter(Boolean))]
+  const questionnaireNameById = new Map()
+
+  if (questionnaireIds.length > 0) {
+    const { data: questionnaires, error: questionnairesError } = await supabase
+      .from('advisor_questionnaires')
+      .select('id, name')
+      .in('id', questionnaireIds)
+
+    if (!questionnairesError) {
+      ;(questionnaires || []).forEach((item) => {
+        questionnaireNameById.set(item.id, item.name)
+      })
+    }
+  }
+
+  return safeLinks.map((item) => ({
+    id: item.id,
+    invitationId: item.invitation_id || null,
+    token: item.token,
+    questionnaireId: item.questionnaire_id || null,
+    questionnaireName: item.questionnaire_id
+      ? questionnaireNameById.get(item.questionnaire_id) || 'Questionnaire personnalise'
+      : 'Questionnaire standard',
+    expiresAt: item.expires_at || null,
+    createdAt: item.created_at || null,
+    inviteUrl: buildInviteUrl(clientId, item.token)
+  }))
+}
+
 // Recuperer les informations publiques d'un client pour le quiz avec validation token
 export const getQuizClient = async (clientId, token) => {
   if (!token) throw new Error("Lien d'invitation incomplet")
@@ -803,21 +1261,33 @@ export const getQuizClientByToken = async (token) => {
 }
 
 // Soumettre un quiz client (score + insights)
-export const submitClientQuizResult = async ({ clientId, token, score, strengths, weaknesses }) => {
+export const submitClientQuizResult = async ({
+  clientId,
+  token,
+  score,
+  strengths,
+  weaknesses,
+  questionResponses
+}) => {
   if (!clientId) throw new Error('Client introuvable')
   if (!token) throw new Error("Lien d'invitation invalide")
 
-  const response = await supabase.functions.invoke('submit-quiz-result', {
+  const quizClient = createQuizSupabaseClient(token)
+  const response = await quizClient.functions.invoke('submit-quiz-result', {
     body: {
       clientId,
       token,
       score,
       strengths: strengths || [],
-      weaknesses: weaknesses || []
+      weaknesses: weaknesses || [],
+      questionResponses: Array.isArray(questionResponses) ? questionResponses : []
     }
   })
 
-  if (response.error) throw response.error
+  if (response.error) {
+    const details = await extractFunctionErrorMessage(response.error, 'Impossible de soumettre le quiz')
+    throw new Error(details)
+  }
   if (!response.data?.success) {
     throw new Error(response.data?.error || 'Impossible de soumettre le quiz')
   }
@@ -848,6 +1318,11 @@ export const subscribeToAdvisorClients = (advisorId, onChange) => {
       { event: '*', schema: 'public', table: 'client_invitations' },
       () => onChange()
     )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'client_quiz_sessions' },
+      () => onChange()
+    )
     .subscribe()
 
   return () => {
@@ -874,6 +1349,13 @@ const emptyAnalytics = () => ({
     pending: 0,
     avgScore: 0,
     completionRate: 0
+  },
+  progress: {
+    totalSessions: 0,
+    trackedClients: 0,
+    avgDelta: 0,
+    improvedClients: 0,
+    regressedClients: 0
   },
   scoreDistribution: [
     { label: '0-49', min: 0, max: 49, count: 0 },
@@ -964,24 +1446,55 @@ export const getAdvisorAnalytics = async (advisorId) => {
   if (error) throw error
   if (!clients || clients.length === 0) return emptyAnalytics()
 
-  const completedClients = clients.filter(
-    (client) => client.quiz_status === 'completed' && typeof client.score === 'number'
-  )
+  const clientIds = clients.map((client) => client.id)
+  const { byClientId } = await fetchQuizSessionsByClientIds(clientIds)
+
+  const latestSessionByClient = new Map()
+  const progressByClient = new Map()
+  let allSessions = []
+
+  clients.forEach((client) => {
+    const sessions = byClientId.get(client.id) || []
+    if (sessions.length > 0) {
+      latestSessionByClient.set(client.id, sessions[0])
+      allSessions = allSessions.concat(sessions)
+    }
+    progressByClient.set(client.id, buildProgressFromSessions(sessions))
+  })
+
+  const clientsWithEffectiveScore = clients
+    .map((client) => {
+      const latestSession = latestSessionByClient.get(client.id)
+      const effectiveScore =
+        typeof latestSession?.score === 'number'
+          ? latestSession.score
+          : typeof client.score === 'number'
+            ? client.score
+            : null
+      const effectiveCompletedAt = latestSession?.completed_at || client.completed_at || null
+      return {
+        ...client,
+        effectiveScore,
+        effectiveCompletedAt
+      }
+    })
+    .filter((client) => typeof client.effectiveScore === 'number')
 
   const avgScore =
-    completedClients.length > 0
+    clientsWithEffectiveScore.length > 0
       ? Math.round(
-          completedClients.reduce((sum, client) => sum + client.score, 0) / completedClients.length
+          clientsWithEffectiveScore.reduce((sum, client) => sum + client.effectiveScore, 0) /
+            clientsWithEffectiveScore.length
         )
       : 0
 
   const summary = {
     totalClients: clients.length,
-    completed: completedClients.length,
-    pending: clients.filter((client) => client.quiz_status !== 'completed').length,
+    completed: clientsWithEffectiveScore.length,
+    pending: clients.length - clientsWithEffectiveScore.length,
     avgScore,
     completionRate:
-      clients.length > 0 ? Math.round((completedClients.length / clients.length) * 100) : 0
+      clients.length > 0 ? Math.round((clientsWithEffectiveScore.length / clients.length) * 100) : 0
   }
 
   const scoreDistribution = [
@@ -989,19 +1502,21 @@ export const getAdvisorAnalytics = async (advisorId) => {
       label: '0-49',
       min: 0,
       max: 49,
-      count: completedClients.filter((client) => client.score <= 49).length
+      count: clientsWithEffectiveScore.filter((client) => client.effectiveScore <= 49).length
     },
     {
       label: '50-74',
       min: 50,
       max: 74,
-      count: completedClients.filter((client) => client.score >= 50 && client.score <= 74).length
+      count: clientsWithEffectiveScore.filter(
+        (client) => client.effectiveScore >= 50 && client.effectiveScore <= 74
+      ).length
     },
     {
       label: '75-100',
       min: 75,
       max: 100,
-      count: completedClients.filter((client) => client.score >= 75).length
+      count: clientsWithEffectiveScore.filter((client) => client.effectiveScore >= 75).length
     }
   ]
 
@@ -1012,26 +1527,31 @@ export const getAdvisorAnalytics = async (advisorId) => {
     monthBuckets.push(formatMonthKey(d))
   }
 
-  const scoreByMonth = new Map(
-    monthBuckets.map((monthKey) => [monthKey, { totalScore: 0, count: 0 }])
-  )
+  const scoreByMonth = new Map(monthBuckets.map((monthKey) => [monthKey, { totalScore: 0, count: 0 }]))
 
-  completedClients.forEach((client) => {
-    const rawDate = client.completed_at || client.created_at
-    if (!rawDate) return
+  const sessionsForEvolution =
+    allSessions.length > 0
+      ? allSessions
+      : clientsWithEffectiveScore.map((client) => ({
+          score: client.effectiveScore,
+          completed_at: client.effectiveCompletedAt || client.created_at
+        }))
+
+  sessionsForEvolution.forEach((session) => {
+    const rawDate = session.completed_at || session.created_at
+    if (!rawDate || typeof session.score !== 'number') return
 
     const monthKey = formatMonthKey(new Date(rawDate))
     if (!scoreByMonth.has(monthKey)) return
 
     const aggregate = scoreByMonth.get(monthKey)
-    aggregate.totalScore += client.score
+    aggregate.totalScore += session.score
     aggregate.count += 1
   })
 
   const monthlyEvolution = monthBuckets.map((monthKey) => {
     const aggregate = scoreByMonth.get(monthKey)
     const averageScore = aggregate.count > 0 ? Math.round(aggregate.totalScore / aggregate.count) : 0
-
     return {
       monthKey,
       label: formatMonthLabel(monthKey),
@@ -1043,18 +1563,30 @@ export const getAdvisorAnalytics = async (advisorId) => {
   const strengthCounts = new Map()
   const weaknessCounts = new Map()
 
-  completedClients.forEach((client) => {
-    const insights = client.client_insights || []
-    insights.forEach((insight) => {
-      if (!insight?.concept || !insight?.type) return
-
-      if (insight.type === 'strength') {
-        strengthCounts.set(insight.concept, (strengthCounts.get(insight.concept) || 0) + 1)
-      } else if (insight.type === 'weakness') {
-        weaknessCounts.set(insight.concept, (weaknessCounts.get(insight.concept) || 0) + 1)
-      }
+  if (allSessions.length > 0) {
+    clients.forEach((client) => {
+      const latestSession = latestSessionByClient.get(client.id)
+      if (!latestSession) return
+      normalizeInsightArray(latestSession.strengths).forEach((concept) => {
+        strengthCounts.set(concept, (strengthCounts.get(concept) || 0) + 1)
+      })
+      normalizeInsightArray(latestSession.weaknesses).forEach((concept) => {
+        weaknessCounts.set(concept, (weaknessCounts.get(concept) || 0) + 1)
+      })
     })
-  })
+  } else {
+    clientsWithEffectiveScore.forEach((client) => {
+      const insights = client.client_insights || []
+      insights.forEach((insight) => {
+        if (!insight?.concept || !insight?.type) return
+        if (insight.type === 'strength') {
+          strengthCounts.set(insight.concept, (strengthCounts.get(insight.concept) || 0) + 1)
+        } else if (insight.type === 'weakness') {
+          weaknessCounts.set(insight.concept, (weaknessCounts.get(insight.concept) || 0) + 1)
+        }
+      })
+    })
+  }
 
   const toTopList = (counterMap) =>
     [...counterMap.entries()]
@@ -1065,6 +1597,21 @@ export const getAdvisorAnalytics = async (advisorId) => {
   const conceptStats = {
     strengths: toTopList(strengthCounts),
     weaknesses: toTopList(weaknessCounts)
+  }
+
+  const progressDeltas = clients
+    .map((client) => progressByClient.get(client.id)?.progressDelta)
+    .filter((delta) => typeof delta === 'number')
+
+  const progress = {
+    totalSessions: allSessions.length,
+    trackedClients: progressDeltas.length,
+    avgDelta:
+      progressDeltas.length > 0
+        ? Math.round(progressDeltas.reduce((sum, delta) => sum + delta, 0) / progressDeltas.length)
+        : 0,
+    improvedClients: progressDeltas.filter((delta) => delta > 0).length,
+    regressedClients: progressDeltas.filter((delta) => delta < 0).length
   }
 
   const pipeline = {
@@ -1084,18 +1631,33 @@ export const getAdvisorAnalytics = async (advisorId) => {
   )
 
   const priorities = clients
-    .map((client) => ({
-      id: client.id,
-      name: client.name,
-      email: client.email,
-      quizStatus: client.quiz_status,
-      followupStatus: client.followup_status || 'a_contacter',
-      score: typeof client.score === 'number' ? client.score : null,
-      lastContactedAt: client.last_contacted_at,
-      createdAt: client.created_at,
-      advisorNotes: client.advisor_notes || '',
-      priority: computePriority(client)
-    }))
+    .map((client) => {
+      const effectiveScore =
+        typeof latestSessionByClient.get(client.id)?.score === 'number'
+          ? latestSessionByClient.get(client.id).score
+          : typeof client.score === 'number'
+            ? client.score
+            : null
+
+      const priority = computePriority({
+        ...client,
+        score: typeof effectiveScore === 'number' ? effectiveScore : 0
+      })
+
+      return {
+        ...(progressByClient.get(client.id) || {}),
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        quizStatus: client.quiz_status,
+        followupStatus: client.followup_status || 'a_contacter',
+        score: effectiveScore,
+        lastContactedAt: client.last_contacted_at,
+        createdAt: client.created_at,
+        advisorNotes: client.advisor_notes || '',
+        priority
+      }
+    })
     .sort((a, b) => b.priority.value - a.priority.value)
 
   const topPriorities = priorities
@@ -1104,6 +1666,7 @@ export const getAdvisorAnalytics = async (advisorId) => {
 
   return {
     summary,
+    progress,
     scoreDistribution,
     monthlyEvolution,
     pipeline,

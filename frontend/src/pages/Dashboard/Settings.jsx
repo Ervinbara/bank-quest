@@ -71,7 +71,8 @@ export default function Settings() {
     setTestPlanTarget(String(advisor.plan || 'none').toLowerCase())
     setConsentData({
       marketingOptIn: Boolean(advisor.marketing_opt_in),
-      analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled)
+      analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled),
+      gamificationEnabled: advisor.gamification_enabled !== false
     })
   }, [advisor])
 
@@ -82,7 +83,8 @@ export default function Settings() {
   })
   const [consentData, setConsentData] = useState({
     marketingOptIn: Boolean(advisor?.marketing_opt_in),
-    analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled)
+    analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled),
+    gamificationEnabled: advisor?.gamification_enabled !== false
   })
 
   const [errors, setErrors] = useState({})
@@ -420,7 +422,9 @@ export default function Settings() {
         marketing_opt_in: Boolean(consentData.marketingOptIn),
         marketing_opt_in_updated_at: now,
         analytics_cookies_enabled: Boolean(consentData.analyticsCookiesEnabled),
-        analytics_cookies_updated_at: now
+        analytics_cookies_updated_at: now,
+        gamification_enabled: Boolean(consentData.gamificationEnabled),
+        gamification_updated_at: now
       })
 
       await Promise.all([
@@ -444,7 +448,8 @@ export default function Settings() {
           category: 'consent',
           metadata: {
             marketingOptIn: Boolean(consentData.marketingOptIn),
-            analyticsCookiesEnabled: Boolean(consentData.analyticsCookiesEnabled)
+            analyticsCookiesEnabled: Boolean(consentData.analyticsCookiesEnabled),
+            gamificationEnabled: Boolean(consentData.gamificationEnabled)
           }
         })
       ])
@@ -549,6 +554,7 @@ export default function Settings() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         {activeTab === 'profile' && (
+          <div className="space-y-6">
           <form onSubmit={handleSaveProfile} className="space-y-6">
             <div>
               <h3 className="text-xl font-bold text-gray-800 mb-4">Informations personnelles</h3>
@@ -624,6 +630,35 @@ export default function Settings() {
               {loading ? tr('Enregistrement...', 'Saving...') : tr('Enregistrer les modifications', 'Save changes')}
             </button>
           </form>
+
+          <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+            <h3 className="text-xl font-bold text-gray-800">{tr('Experience utilisateur', 'User experience')}</h3>
+            <label className="flex items-start gap-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="gamificationEnabled"
+                checked={consentData.gamificationEnabled}
+                onChange={handleConsentChange}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                {tr(
+                  'Afficher la gamification (missions, niveaux, badges) sur le tableau de bord.',
+                  'Show gamification (missions, levels, badges) on the dashboard.'
+                )}
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={saveConsentSettings}
+              disabled={consentLoading}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-2 font-semibold hover:bg-emerald-700 disabled:opacity-60"
+            >
+              {consentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {tr('Enregistrer ce choix', 'Save this preference')}
+            </button>
+          </div>
+          </div>
         )}
 
         {activeTab === 'security' && (
@@ -731,6 +766,21 @@ export default function Settings() {
                     {tr(
                       "Autoriser les cookies analytiques pour ameliorer l'application.",
                       'Allow analytics cookies to improve the app.'
+                    )}
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="gamificationEnabled"
+                    checked={consentData.gamificationEnabled}
+                    onChange={handleConsentChange}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    {tr(
+                      'Activer le parcours ludique (missions, niveaux, badges) sur le tableau de bord.',
+                      'Enable playful journey (missions, levels, badges) on the dashboard.'
                     )}
                   </span>
                 </label>

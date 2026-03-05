@@ -1,63 +1,56 @@
 {
-    "packageId":  "com.ervinbara.finmateadvisor",
-    "host":  "finmate-advisor.vercel.app",
-    "name":  "FinMate",
-    "launcherName":  "FinMate",
-    "display":  "standalone",
-    "themeColor":  "#7E22CE",
-    "themeColorDark":  "#000000",
-    "navigationColor":  "#000000",
-    "navigationColorDark":  "#000000",
-    "navigationDividerColor":  "#000000",
-    "navigationDividerColorDark":  "#000000",
-    "backgroundColor":  "#581C87",
-    "enableNotifications":  true,
-    "startUrl":  "/",
-    "iconUrl":  "https://finmate-advisor.vercel.app/icon-512.png",
-    "maskableIconUrl":  "https://finmate-advisor.vercel.app/icon-512.png",
-    "splashScreenFadeOutDuration":  300,
-    "signingKey":  {
-                       "path":  "C:\\laragon\\www\\bank-quest\\frontend\\android-twa\\android.keystore",
-                       "alias":  "android"
-                   },
-    "appVersionName":  "1.0.8",
-    "appVersionCode":  8,
-    "shortcuts":  [
-
-                  ],
-    "generatorApp":  "bubblewrap-cli",
-    "webManifestUrl":  "https://finmate-advisor.vercel.app/manifest.webmanifest",
-    "fallbackType":  "customtabs",
-    "features":  {
-
-                 },
-    "alphaDependencies":  {
-                              "enabled":  false
-                          },
-    "enableSiteSettingsShortcut":  true,
-    "isChromeOSOnly":  false,
-    "isMetaQuest":  false,
-    "fullScopeUrl":  "https://finmate-advisor.vercel.app/",
-    "minSdkVersion":  21,
-    "orientation":  "portrait",
-    "fingerprints":  [
-
-                     ],
-    "additionalTrustedOrigins":  [
-
-                                 ],
-    "retainedBundles":  [
-
-                        ],
-    "protocolHandlers":  [
-
-                         ],
-    "fileHandlers":  [
-
-                     ],
-    "launchHandlerClientMode":  "",
-    "displayOverride":  [
-
-                        ],
-    "appVersion":  "3"
+  "packageId": "com.ervinbara.finmateadvisor",
+  "host": "finmate-advisor.vercel.app",
+  "name": "FinMate",
+  "launcherName": "FinMate",
+  "display": "standalone",
+  "themeColor": "#7E22CE",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#581C87",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://finmate-advisor.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://finmate-advisor.vercel.app/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:\\laragon\\www\\bank-quest\\frontend\\android-twa\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.9",
+  "appVersionCode": 10,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://finmate-advisor.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://finmate-advisor.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [
+    {
+      "name": "play-signing",
+      "value": "63:CE:C4:4C:6E:11:0F:A9:EC:C0:EB:72:24:99:50:7C:DC:05:A0:A9:F2:BD:88:44:F2:0D:EC:E4:54:25:6A:2B"
+    },
+    {
+      "name": "upload-key",
+      "value": "00:8D:38:D3:DA:9C:DB:40:13:63:E3:C0:90:04:60:7B:D2:BF:3C:EF:B5:74:9D:39:10:08:24:7A:BE:22:36:1A"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1.0.9"
 }

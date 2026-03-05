@@ -55,6 +55,7 @@ export default function Invitations() {
   const [linkFilter, setLinkFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [isMobile, setIsMobile] = useState(false)
 
   const loadInvitations = useCallback(async () => {
     if (!advisor?.id) return
@@ -140,6 +141,14 @@ export default function Invitations() {
       return name.includes(normalizedSearch) || email.includes(normalizedSearch)
     })
   }, [rows, searchTerm, quizFilter, linkFilter])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const applyMobileState = () => setIsMobile(window.innerWidth < 768)
+    applyMobileState()
+    window.addEventListener('resize', applyMobileState)
+    return () => window.removeEventListener('resize', applyMobileState)
+  }, [])
 
   useEffect(() => {
     setPage(1)
@@ -275,24 +284,69 @@ export default function Invitations() {
               className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
             />
           </div>
-          <select
-            value={quizFilter}
-            onChange={(event) => setQuizFilter(event.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
-          >
-            <option value="pending">{tr('Quiz en attente', 'Pending quiz')}</option>
-            <option value="completed">{tr('Quiz completes', 'Completed quiz')}</option>
-            <option value="all">{tr('Tous les quiz', 'All quiz statuses')}</option>
-          </select>
-          <select
-            value={linkFilter}
-            onChange={(event) => setLinkFilter(event.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
-          >
-            <option value="all">{tr('Avec et sans lien', 'With and without link')}</option>
-            <option value="with_link">{tr('Lien disponible', 'Link available')}</option>
-            <option value="without_link">{tr('Sans lien', 'No link')}</option>
-          </select>
+          {isMobile ? (
+            <div className="md:col-span-2 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'pending', label: tr('En attente', 'Pending') },
+                  { key: 'completed', label: tr('Completes', 'Completed') },
+                  { key: 'all', label: tr('Tous', 'All') }
+                ].map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => setQuizFilter(option.key)}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                      quizFilter === option.key
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: tr('Tous liens', 'All links') },
+                  { key: 'with_link', label: tr('Avec lien', 'With link') },
+                  { key: 'without_link', label: tr('Sans lien', 'No link') }
+                ].map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => setLinkFilter(option.key)}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                      linkFilter === option.key
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-50 text-blue-700'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <select
+                value={quizFilter}
+                onChange={(event) => setQuizFilter(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
+              >
+                <option value="pending">{tr('Quiz en attente', 'Pending quiz')}</option>
+                <option value="completed">{tr('Quiz completes', 'Completed quiz')}</option>
+                <option value="all">{tr('Tous les quiz', 'All quiz statuses')}</option>
+              </select>
+              <select
+                value={linkFilter}
+                onChange={(event) => setLinkFilter(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white"
+              >
+                <option value="all">{tr('Avec et sans lien', 'With and without link')}</option>
+                <option value="with_link">{tr('Lien disponible', 'Link available')}</option>
+                <option value="without_link">{tr('Sans lien', 'No link')}</option>
+              </select>
+            </>
+          )}
         </div>
       </div>
 

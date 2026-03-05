@@ -50,6 +50,7 @@ export default function Clients() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(9)
   const [updatingFollowupByClient, setUpdatingFollowupByClient] = useState({})
+  const [isMobile, setIsMobile] = useState(false)
   const planAccess = getPlanAccess(advisor?.plan)
   const remainingClientSlots = getRemainingClientSlots({
     plan: planAccess.code,
@@ -124,6 +125,18 @@ export default function Clients() {
       return name.includes(normalizedSearch) || email.includes(normalizedSearch)
     })
   }, [activeStatusFilter, activeFollowupFilter, clients, searchTerm])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const applyMobileState = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) setFiltersCollapsed(true)
+    }
+    applyMobileState()
+    window.addEventListener('resize', applyMobileState)
+    return () => window.removeEventListener('resize', applyMobileState)
+  }, [])
 
   useEffect(() => {
     setPage(1)
@@ -272,6 +285,27 @@ export default function Clients() {
             'Limits: Free 5 | Solo 50 | Pro 200 | Cabinet/Test unlimited.'
           )}
         </div>
+
+        {isMobile ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[11px] text-gray-500">{tr('Total', 'Total')}</p>
+              <p className="text-lg font-bold text-gray-900">{stats.all}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[11px] text-gray-500">{tr('Completes', 'Completed')}</p>
+              <p className="text-lg font-bold text-emerald-700">{stats.completed}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[11px] text-gray-500">{tr('En attente', 'Pending')}</p>
+              <p className="text-lg font-bold text-amber-700">{stats.pending}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <p className="text-[11px] text-gray-500">{tr('A contacter', 'To contact')}</p>
+              <p className="text-lg font-bold text-blue-700">{stats.a_contacter}</p>
+            </div>
+          </div>
+        ) : null}
 
         <button
           onClick={() => setFiltersCollapsed((prev) => !prev)}

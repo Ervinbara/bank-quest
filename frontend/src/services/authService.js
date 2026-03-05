@@ -2,6 +2,56 @@ import { supabase } from '@/lib/supabase'
 
 const LEGAL_VERSION = '2026-03-02'
 
+const buildAdvisorPayload = ({
+  email,
+  name,
+  company,
+  phone = null,
+  marketingOptIn = false
+}) => {
+  const acceptedAt = new Date().toISOString()
+  return {
+    email,
+    name,
+    company,
+    phone,
+    terms_version: LEGAL_VERSION,
+    privacy_policy_version: LEGAL_VERSION,
+    terms_accepted_at: acceptedAt,
+    privacy_accepted_at: acceptedAt,
+    marketing_opt_in: Boolean(marketingOptIn),
+    gamification_enabled: true,
+    gamification_updated_at: acceptedAt
+  }
+}
+
+const ensureAdvisorForAuthenticatedEmail = async ({
+  email,
+  name,
+  company,
+  phone = null,
+  marketingOptIn = false
+}) => {
+  const { data: existing, error: existingError } = await supabase
+    .from('advisors')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (existing) return existing
+
+  const payload = buildAdvisorPayload({ email, name, company, phone, marketingOptIn })
+  const { data: advisor, error: advisorError } = await supabase
+    .from('advisors')
+    .insert([payload])
+    .select()
+    .single()
+
+  if (advisorError) throw advisorError
+  return advisor
+}
+
 // Connexion
 export const login = async (email, password) => {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -11,13 +61,13 @@ export const login = async (email, password) => {
 
   if (error) throw error
 
-  const { data: advisor, error: advisorError } = await supabase
-    .from('advisors')
-    .select('*')
-    .eq('email', email)
-    .single()
-
-  if (advisorError) throw advisorError
+  const advisor = await ensureAdvisorForAuthenticatedEmail({
+    email,
+    name: data?.user?.user_metadata?.full_name || data?.user?.user_metadata?.name || email.split('@')[0],
+    company: data?.user?.user_metadata?.company || 'FinMate Advisor',
+    phone: null,
+    marketingOptIn: false
+  })
 
   return { user: data.user, advisor }
 }
@@ -28,11 +78,21 @@ export const loginWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo
+      redirectTo,
+      skipBrowserRedirect: true,
+      queryParams: {
+        prompt: 'select_account'
+      }
     }
   })
 
   if (error) throw error
+
+  if (!data?.url) {
+    throw new Error("Impossible de demarrer l'authentification Google. Verifiez la configuration OAuth.")
+  }
+
+  window.location.assign(data.url)
   return data
 }
 
@@ -42,43 +102,43 @@ export const register = async (userData) => {
     throw new Error('Veuillez accepter les conditions et la politique de confidentialite')
   }
 
-  const acceptedAt = new Date().toISOString()
-
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: userData.email,
     password: userData.password,
     options: {
       data: {
         legal_version: LEGAL_VERSION,
-        terms_accepted_at: acceptedAt,
-        privacy_accepted_at: acceptedAt
+        terms_accepted_at: new Date().toISOString(),
+        privacy_accepted_at: new Date().toISOString()
       }
     }
   })
 
   if (authError) throw authError
 
-  const { data: advisor, error: advisorError } = await supabase
-    .from('advisors')
-    .insert([
-      {
-        email: userData.email,
-        name: userData.name,
-        company: userData.company,
-        phone: userData.phone || null,
-        terms_version: LEGAL_VERSION,
-        privacy_policy_version: LEGAL_VERSION,
-        terms_accepted_at: acceptedAt,
-        privacy_accepted_at: acceptedAt,
-        marketing_opt_in: Boolean(userData?.consents?.marketingOptIn)
-      }
-    ])
-    .select()
-    .single()
+  const hasAuthenticatedSession = Boolean(authData?.session?.access_token)
 
-  if (advisorError) throw advisorError
+  if (!hasAuthenticatedSession) {
+    return {
+      user: authData.user,
+      advisor: null,
+      requiresEmailConfirmation: true
+    }
+  }
 
-  return { user: authData.user, advisor }
+  const advisor = await ensureAdvisorForAuthenticatedEmail({
+    email: userData.email,
+    name: userData.name,
+    company: userData.company,
+    phone: userData.phone || null,
+    marketingOptIn: Boolean(userData?.consents?.marketingOptIn)
+  })
+
+  return {
+    user: authData.user,
+    advisor,
+    requiresEmailConfirmation: false
+  }
 }
 
 // Deconnexion

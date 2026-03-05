@@ -82,7 +82,7 @@ export default function Register() {
     setLoading(true)
     setAlert(null)
     try {
-      await register({
+      const result = await register({
         name: formData.name,
         email: formData.email,
         company: formData.company,
@@ -94,11 +94,23 @@ export default function Register() {
           marketingOptIn: formData.marketingOptIn
         }
       })
-      setAlert({
-        type: 'success',
-        message: language === 'fr' ? 'Compte cree avec succes !' : 'Account created successfully!'
-      })
-      setTimeout(() => navigate('/dashboard'), 1000)
+
+      if (result?.requiresEmailConfirmation) {
+        setAlert({
+          type: 'success',
+          message: tr(
+            'Compte cree. Verifiez votre email pour confirmer votre inscription puis connectez-vous.',
+            'Account created. Check your email to confirm your registration, then sign in.'
+          )
+        })
+        setTimeout(() => navigate('/auth/login'), 1400)
+      } else {
+        setAlert({
+          type: 'success',
+          message: language === 'fr' ? 'Compte cree avec succes !' : 'Account created successfully!'
+        })
+        setTimeout(() => navigate('/dashboard'), 1000)
+      }
     } catch (error) {
       setAlert({ type: 'error', message: error.message })
     } finally {
@@ -108,6 +120,13 @@ export default function Register() {
 
   const handleGoogleSignup = async () => {
     if (!formData.termsAccepted || !formData.privacyAccepted) {
+      setAlert({
+        type: 'error',
+        message: tr(
+          'Veuillez accepter les conditions et la politique de confidentialite avant de continuer avec Google.',
+          'Please accept terms and privacy policy before continuing with Google.'
+        )
+      })
       setErrors((prev) => ({
         ...prev,
         termsAccepted: !formData.termsAccepted
@@ -126,6 +145,7 @@ export default function Register() {
       await loginWithGoogle()
     } catch (error) {
       setAlert({ type: 'error', message: error.message })
+    } finally {
       setGoogleLoading(false)
     }
   }

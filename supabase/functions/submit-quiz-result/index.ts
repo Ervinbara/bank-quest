@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-quiz-token'
 }
 
 const json = (body: Record<string, unknown>, status = 200) =>
@@ -20,6 +20,48 @@ const normalizeConceptList = (input: unknown): string[] => {
     .slice(0, 10)
 }
 
+const normalizeQuestionResponses = (input: unknown) => {
+  if (!Array.isArray(input)) return []
+  return input
+    .map((item) => {
+      const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
+      const questionId = String(row.questionId || row.id || '').trim()
+      const prompt = String(row.prompt || row.questionText || '').trim()
+      const concept = String(row.concept || '').trim()
+      const answerLabel = String(row.answerLabel || row.optionLabel || row.answer || '').trim()
+      const pointsRaw = Number(row.points)
+      const points = Number.isFinite(pointsRaw) ? Math.max(0, Math.min(5, Math.round(pointsRaw))) : null
+      if (!questionId && !prompt) return null
+      return {
+        questionId: questionId || null,
+        prompt: prompt || null,
+        concept: concept || null,
+        answerLabel: answerLabel || null,
+        points
+      }
+    })
+    .filter(Boolean)
+    .slice(0, 200)
+}
+
+const isMissingSessionsTableError = (message: string) => {
+  const lower = String(message || '').toLowerCase()
+  return (
+    lower.includes("could not find the table 'public.client_quiz_sessions'") ||
+    lower.includes('relation "public.client_quiz_sessions" does not exist')
+  )
+}
+
+const isMissingInvitationQuestionnaireColumnError = (message: string) => {
+  const lower = String(message || '').toLowerCase()
+  return lower.includes("column 'questionnaire_id' does not exist") || lower.includes('questionnaire_id')
+}
+
+const isMissingSessionAnswersColumnError = (message: string) => {
+  const lower = String(message || '').toLowerCase()
+  return lower.includes("column 'question_answers' does not exist") || lower.includes('question_answers')
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -32,35 +74,103 @@ serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey)
     const body = await req.json().catch(() => ({}))
 
-    const clientId = String(body?.clientId || '').trim()
+    const providedClientId = String(body?.clientId || '').trim()
     const token = String(body?.token || '').trim()
     const score = Number(body?.score)
     const strengths = normalizeConceptList(body?.strengths)
     const weaknesses = normalizeConceptList(body?.weaknesses)
+    const questionResponses = normalizeQuestionResponses(body?.questionResponses)
 
-    if (!clientId) return json({ error: 'Client introuvable' }, 400)
     if (!token) return json({ error: "Lien d'invitation invalide" }, 400)
     if (!Number.isFinite(score) || score < 0 || score > 100) return json({ error: 'Score invalide' }, 400)
 
-    const { data: invitation, error: invitationError } = await admin
+    let { data: invitation, error: invitationError } = await admin
       .from('client_invitations')
-      .select('client_id, revoked_at, expires_at')
+      .select('id, client_id, questionnaire_id, revoked_at, expires_at')
       .eq('token', token)
       .maybeSingle()
 
+    if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError.message)) {
+      const fallback = await admin
+        .from('client_invitations')
+        .select('id, client_id, revoked_at, expires_at')
+        .eq('token', token)
+        .maybeSingle()
+      invitation = fallback.data as
+        | {
+            id: string
+            client_id: string
+            revoked_at: string | null
+            expires_at: string | null
+            questionnaire_id?: string | null
+          }
+        | null
+      invitationError = fallback.error
+    }
+
     if (invitationError) return json({ error: invitationError.message }, 400)
-    if (!invitation || invitation.client_id !== clientId) return json({ error: "Lien d'invitation invalide" }, 403)
+    if (!invitation) return json({ error: "Lien d'invitation invalide" }, 403)
+    const clientId = invitation.client_id
+    if (!clientId) return json({ error: 'Client introuvable' }, 400)
+    if (providedClientId && providedClientId !== clientId) {
+      console.warn(
+        `submit-quiz-result: provided clientId mismatch. provided=${providedClientId} tokenClient=${clientId}`
+      )
+    }
     if (invitation.revoked_at) return json({ error: "Lien d'invitation revoque" }, 403)
     if (invitation.expires_at && new Date(invitation.expires_at).getTime() < Date.now()) {
       return json({ error: "Lien d'invitation expire" }, 403)
+    }
+
+    const roundedScore = Math.round(score)
+    const completionTime = new Date().toISOString()
+
+    let createdSession: Record<string, unknown> | null = null
+    let { data: insertedSession, error: insertSessionError } = await admin
+      .from('client_quiz_sessions')
+      .insert({
+        client_id: clientId,
+        invitation_id: invitation.id,
+        questionnaire_id: invitation.questionnaire_id,
+        score: roundedScore,
+        strengths,
+        weaknesses,
+        question_answers: questionResponses,
+        completed_at: completionTime
+      })
+      .select('id, client_id, questionnaire_id, score, strengths, weaknesses, question_answers, completed_at')
+      .single()
+
+    if (insertSessionError && isMissingSessionAnswersColumnError(insertSessionError.message)) {
+      const fallbackInsert = await admin
+        .from('client_quiz_sessions')
+        .insert({
+          client_id: clientId,
+          invitation_id: invitation.id,
+          questionnaire_id: invitation.questionnaire_id,
+          score: roundedScore,
+          strengths,
+          weaknesses,
+          completed_at: completionTime
+        })
+        .select('id, client_id, questionnaire_id, score, strengths, weaknesses, completed_at')
+        .single()
+      insertedSession = fallbackInsert.data
+      insertSessionError = fallbackInsert.error
+    }
+
+    if (!insertSessionError) {
+      createdSession = insertedSession
+    } else if (!isMissingSessionsTableError(insertSessionError.message)) {
+      console.error(`submit-quiz-result: session insert failed, fallback to snapshot only: ${insertSessionError.message}`)
     }
 
     const { data: updatedClient, error: updateError } = await admin
       .from('clients')
       .update({
         quiz_status: 'completed',
-        score: Math.round(score),
-        completed_at: new Date().toISOString()
+        score: roundedScore,
+        completed_at: completionTime
       })
       .eq('id', clientId)
       .select('*')
@@ -81,9 +191,8 @@ serve(async (req) => {
       if (insertInsightsError) return json({ error: insertInsightsError.message }, 400)
     }
 
-    return json({ success: true, client: updatedClient }, 200)
+    return json({ success: true, client: updatedClient, session: createdSession }, 200)
   } catch (error) {
     return json({ error: String(error) }, 500)
   }
 })
-

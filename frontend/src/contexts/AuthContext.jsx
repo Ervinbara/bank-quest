@@ -66,7 +66,9 @@ export const AuthProvider = ({ children }) => {
           privacy_policy_version: LEGAL_VERSION,
           terms_accepted_at: acceptedAt,
           privacy_accepted_at: acceptedAt,
-          marketing_opt_in: false
+          marketing_opt_in: false,
+          gamification_enabled: true,
+          gamification_updated_at: acceptedAt
         }
       ])
       .select()
@@ -184,10 +186,11 @@ export const AuthProvider = ({ children }) => {
   }
 
   const register = async (userData) => {
-    const { user: authUser, advisor: advisorData } = await authService.register(userData)
+    const registration = await authService.register(userData)
+    const { user: authUser, advisor: advisorData } = registration
     setUser(authUser)
     setAdvisor(advisorData)
-    return { success: true, user: authUser, advisor: advisorData }
+    return { success: true, user: authUser, advisor: advisorData, ...registration }
   }
 
   const loginWithGoogle = async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -7,15 +7,43 @@ import StatsCard from '@/components/Dashboard/StatsCard'
 import DashboardGuide from '@/components/Dashboard/DashboardGuide'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import InviteClientModal from '@/components/Dashboard/InviteClientModal'
-import { Users, CheckCircle, Clock, TrendingUp, Loader2 } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Crown,
+  Eye,
+  EyeOff,
+  Flag,
+  Flame,
+  Gift,
+  Loader2,
+  Rocket,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Trophy,
+  Users
+} from 'lucide-react'
 
 export default function Overview() {
-  const { advisor } = useAuth()
+  const { advisor, updateProfile, refreshAdvisor } = useAuth()
   const { tr, language } = useLanguage()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  const [gamificationLoading, setGamificationLoading] = useState(false)
+  const [isJourneyCollapsed, setIsJourneyCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('finmate-overview-journey-collapsed') === '1'
+    } catch {
+      return false
+    }
+  })
+  const gamificationEnabled = advisor?.gamification_enabled !== false
 
   const loadStats = useCallback(async () => {
     if (!advisor?.id) return
@@ -46,6 +74,293 @@ export default function Overview() {
 
     return unsubscribe
   }, [advisor?.id, loadStats])
+
+  const setGamificationVisibility = async (enabled) => {
+    if (!advisor?.id || gamificationLoading) return
+    try {
+      setGamificationLoading(true)
+      await updateProfile({
+        gamification_enabled: Boolean(enabled),
+        gamification_updated_at: new Date().toISOString()
+      })
+      await refreshAdvisor()
+    } catch (err) {
+      console.error('Erreur mise a jour gamification:', err)
+    } finally {
+      setGamificationLoading(false)
+    }
+  }
+
+  const toggleJourneyCollapsed = () => {
+    setIsJourneyCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('finmate-overview-journey-collapsed', next ? '1' : '0')
+      } catch {
+        // ignore storage failures
+      }
+      return next
+    })
+  }
+
+  const missionPhases = useMemo(() => {
+    const phase1Missions = [
+      {
+        key: 'first_client',
+        title: tr('Etape 1 - Ajouter votre premier client', 'Step 1 - Add your first client'),
+        description: tr(
+          'Demarrez votre pipeline en creant votre premier contact client.',
+          'Kick off your pipeline by creating your first client contact.'
+        ),
+        done: (stats?.totalClients || 0) >= 1,
+        points: 40,
+        ctaLabel: tr('Inviter un client', 'Invite a client'),
+        ctaAction: () => setInviteModalOpen(true)
+      },
+      {
+        key: 'first_quiz',
+        title: tr('Etape 2 - Obtenir un questionnaire complete', 'Step 2 - Get a completed questionnaire'),
+        description: tr(
+          'Envoyez votre premier lien et validez un questionnaire rempli.',
+          'Send your first link and validate a completed questionnaire.'
+        ),
+        done: (stats?.completed || 0) >= 1,
+        points: 35,
+        ctaLabel: tr('Voir les invitations', 'View invitations'),
+        ctaTo: '/dashboard/invitations'
+      },
+      {
+        key: 'first_followup',
+        title: tr('Etape 3 - Lancer un suivi conseiller', 'Step 3 - Start advisor follow-up'),
+        description: tr(
+          'Passez un client en suivi actif pour structurer votre relance.',
+          'Move one client to active follow-up to structure your outreach.'
+        ),
+        done: (stats?.inProgress || 0) + (stats?.closed || 0) >= 1,
+        points: 25,
+        ctaLabel: tr('Ouvrir mes clients', 'Open my clients'),
+        ctaTo: '/dashboard/clients'
+      }
+    ]
+
+    const phase2Missions = [
+      {
+        key: 'portfolio_5',
+        title: tr('Objectif - 5 clients actifs', 'Goal - 5 active clients'),
+        description: tr(
+          'Consolidez votre portefeuille avec au moins 5 clients.',
+          'Grow your portfolio to at least 5 clients.'
+        ),
+        done: (stats?.totalClients || 0) >= 5,
+        points: 40,
+        ctaLabel: tr('Gerer mes clients', 'Manage clients'),
+        ctaTo: '/dashboard/clients'
+      },
+      {
+        key: 'quiz_3',
+        title: tr('Objectif - 3 quiz completes', 'Goal - 3 completed quizzes'),
+        description: tr(
+          'Validez 3 questionnaires pour fiabiliser vos insights.',
+          'Complete 3 questionnaires to improve insight quality.'
+        ),
+        done: (stats?.completed || 0) >= 3,
+        points: 35,
+        ctaLabel: tr('Suivre mes invitations', 'Track invitations'),
+        ctaTo: '/dashboard/invitations'
+      },
+      {
+        key: 'avg_70',
+        title: tr('Objectif - Score moyen 70+', 'Goal - Average score 70+'),
+        description: tr(
+          'Atteignez 70/100 de score moyen sur vos quiz completes.',
+          'Reach a 70/100 average score on completed quizzes.'
+        ),
+        done: (stats?.avgScore || 0) >= 70 && (stats?.completed || 0) >= 2,
+        points: 30,
+        ctaLabel: tr('Voir analytics', 'View analytics'),
+        ctaTo: '/dashboard/analytics'
+      },
+      {
+        key: 'followup_3',
+        title: tr('Objectif - 3 suivis actifs', 'Goal - 3 active follow-ups'),
+        description: tr(
+          'Passez 3 clients en statut RDV planifie ou en cours.',
+          'Move 3 clients to scheduled/in-progress follow-up.'
+        ),
+        done: (stats?.inProgress || 0) >= 3,
+        points: 35,
+        ctaLabel: tr('Piloter les suivis', 'Manage follow-ups'),
+        ctaTo: '/dashboard/clients'
+      }
+    ]
+
+    const phase3Missions = [
+      {
+        key: 'portfolio_12',
+        title: tr('Maitrise - 12 clients', 'Mastery - 12 clients'),
+        description: tr(
+          'Passez un cap avec 12 clients dans votre portefeuille.',
+          'Reach the next milestone with 12 clients in your portfolio.'
+        ),
+        done: (stats?.totalClients || 0) >= 12,
+        points: 45,
+        ctaLabel: tr('Developper mon portefeuille', 'Grow my portfolio'),
+        ctaTo: '/dashboard/clients'
+      },
+      {
+        key: 'quiz_10',
+        title: tr('Maitrise - 10 quiz completes', 'Mastery - 10 completed quizzes'),
+        description: tr(
+          'Installez un rythme regulier de collecte de donnees.',
+          'Build a steady rhythm of data collection.'
+        ),
+        done: (stats?.completed || 0) >= 10,
+        points: 45,
+        ctaLabel: tr('Lancer plus de quiz', 'Launch more quizzes'),
+        ctaTo: '/dashboard/invitations'
+      },
+      {
+        key: 'avg_80',
+        title: tr('Maitrise - Score moyen 80+', 'Mastery - Average score 80+'),
+        description: tr(
+          'Maintenez un niveau de qualification eleve.',
+          'Maintain a high qualification standard.'
+        ),
+        done: (stats?.avgScore || 0) >= 80 && (stats?.completed || 0) >= 5,
+        points: 40,
+        ctaLabel: tr('Optimiser la qualite', 'Optimize quality'),
+        ctaTo: '/dashboard/analytics'
+      },
+      {
+        key: 'close_3',
+        title: tr('Maitrise - 3 dossiers clos', 'Mastery - 3 closed deals'),
+        description: tr(
+          'Transformez vos suivis en resultats concrets.',
+          'Turn follow-ups into concrete business outcomes.'
+        ),
+        done: (stats?.closed || 0) >= 3,
+        points: 50,
+        ctaLabel: tr('Suivre les opportunites', 'Track opportunities'),
+        ctaTo: '/dashboard/clients'
+      }
+    ]
+
+    return [
+      {
+        key: 'starter',
+        name: tr('Phase 1 - Demarrage', 'Phase 1 - Starter'),
+        icon: Sparkles,
+        missions: phase1Missions
+      },
+      {
+        key: 'acceleration',
+        name: tr('Phase 2 - Acceleration', 'Phase 2 - Acceleration'),
+        icon: Rocket,
+        missions: phase2Missions
+      },
+      {
+        key: 'mastery',
+        name: tr('Phase 3 - Maitrise', 'Phase 3 - Mastery'),
+        icon: Crown,
+        missions: phase3Missions
+      }
+    ]
+  }, [stats?.totalClients, stats?.completed, stats?.inProgress, stats?.closed, stats?.avgScore, tr])
+
+  const phaseProgress = useMemo(
+    () =>
+      missionPhases.map((phase, index) => {
+        const completed = phase.missions.filter((mission) => mission.done).length
+        const total = phase.missions.length
+        const unlocked = index === 0 || missionPhases[index - 1].missions.every((mission) => mission.done)
+        return {
+          ...phase,
+          completed,
+          total,
+          progress: Math.round((completed / total) * 100),
+          complete: completed === total,
+          unlocked
+        }
+      }),
+    [missionPhases]
+  )
+
+  const onboardingCompletedCount = phaseProgress[0]?.completed || 0
+  const onboardingProgress = phaseProgress[0]?.progress || 0
+  const activePhase = phaseProgress.find((phase) => phase.unlocked && !phase.complete) || phaseProgress[phaseProgress.length - 1]
+
+  const gamification = useMemo(() => {
+    const missions = phaseProgress.flatMap((phase) => phase.missions)
+    const missionXp = missions.filter((mission) => mission.done).reduce((total, mission) => total + mission.points, 0)
+    const volumeXp = Math.min((stats?.completed || 0) * 5, 40)
+    const qualityXp = (stats?.avgScore || 0) >= 80 ? 20 : (stats?.avgScore || 0) >= 65 ? 10 : 0
+    const consistencyXp = Math.min((stats?.inProgress || 0) * 4 + (stats?.closed || 0) * 8, 50)
+    const totalXp = missionXp + volumeXp + qualityXp + consistencyXp
+
+    let level = 1
+    let threshold = 80
+    let accumulated = totalXp
+    while (accumulated >= threshold) {
+      accumulated -= threshold
+      level += 1
+      threshold = Math.round(threshold * 1.15)
+    }
+    const currentLevelXp = accumulated
+    const nextLevelAt = threshold
+    const levelProgress = Math.min(100, Math.round((currentLevelXp / nextLevelAt) * 100))
+    const tierLabel =
+      level >= 10
+        ? tr('Legendaire', 'Legendary')
+        : level >= 7
+          ? tr('Expert', 'Expert')
+          : level >= 4
+            ? tr('Confirme', 'Advanced')
+            : tr('Debutant', 'Starter')
+
+    const badges = [
+      {
+        key: 'starter',
+        label: tr('Demarrage', 'Starter'),
+        unlocked: (stats?.totalClients || 0) > 0
+      },
+      {
+        key: 'first_win',
+        label: tr('Premier quiz', 'First quiz'),
+        unlocked: (stats?.completed || 0) > 0
+      },
+      {
+        key: 'coach',
+        label: tr('Coach actif', 'Active coach'),
+        unlocked: (stats?.inProgress || 0) + (stats?.closed || 0) > 0
+      },
+      {
+        key: 'performer',
+        label: tr('Performance 80+', '80+ performer'),
+        unlocked: (stats?.completed || 0) >= 3 && (stats?.avgScore || 0) >= 80
+      },
+      {
+        key: 'acceleration',
+        label: tr('Accelerateur', 'Accelerator'),
+        unlocked: phaseProgress[1]?.complete || false
+      },
+      {
+        key: 'closer',
+        label: tr('Closer', 'Closer'),
+        unlocked: (stats?.closed || 0) >= 3
+      }
+    ]
+
+    return {
+      totalXp,
+      level,
+      tierLabel,
+      currentLevelXp,
+      nextLevelAt,
+      levelProgress,
+      badges,
+      unlockedBadges: badges.filter((badge) => badge.unlocked).length
+    }
+  }, [phaseProgress, stats?.avgScore, stats?.closed, stats?.completed, stats?.inProgress, stats?.totalClients, tr])
 
   if (loading) {
     return (
@@ -84,6 +399,174 @@ export default function Overview() {
         </h2>
         <p className="text-emerald-100 text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
       </div>
+
+      {gamificationEnabled ? (
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 rounded-xl p-5 sm:p-6 text-white shadow-lg">
+        <div className="mb-3 flex justify-start">
+          <button
+            onClick={() => void setGamificationVisibility(false)}
+            disabled={gamificationLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/70 bg-rose-500/20 px-3.5 py-2 text-sm font-bold text-rose-100 shadow-sm hover:bg-rose-500/30 hover:border-rose-200 disabled:opacity-60"
+          >
+            {gamificationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <EyeOff className="w-4 h-4" />}
+            {tr('Masquer la gamification', 'Hide gamification')}
+          </button>
+        </div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div className="space-y-2">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-200">
+              <Sparkles className="w-4 h-4" />
+              {tr('Mission de demarrage', 'Starter mission')}
+            </p>
+            <h3 className="text-xl sm:text-2xl font-bold">
+              {activePhase?.complete
+                ? tr('Parcours termine, continuez votre serie', 'Quest completed, keep your streak going')
+                : tr('Objectif en cours', 'Current objective') + `: ${activePhase?.name || ''}`}
+            </h3>
+            <p className="text-sm text-slate-200">
+              {tr('Progression onboarding', 'Onboarding progress')}: {onboardingCompletedCount}/3 ({onboardingProgress}%)
+            </p>
+            <div className="w-full max-w-xl h-2 rounded-full bg-slate-700 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${onboardingProgress}%` }} />
+            </div>
+          </div>
+
+          <div className="min-w-[230px] rounded-xl border border-white/20 bg-white/10 p-4">
+            <p className="text-xs uppercase tracking-wide text-emerald-100">{tr('Niveau conseiller', 'Advisor level')}</p>
+            <p className="mt-1 text-3xl font-bold flex items-center gap-2">
+              <Trophy className="w-7 h-7 text-amber-300" />
+              {tr('Niv.', 'Lvl')} {gamification.level}
+            </p>
+            <p className="text-sm text-slate-200 mt-1">{gamification.totalXp} XP - {gamification.tierLabel}</p>
+            <div className="mt-2 h-2 rounded-full bg-slate-700 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-amber-300 to-emerald-300" style={{ width: `${gamification.levelProgress}%` }} />
+            </div>
+            <p className="text-xs text-slate-300 mt-1">
+              {tr('Prochain niveau', 'Next level')}: {gamification.currentLevelXp}/{gamification.nextLevelAt} XP
+            </p>
+          </div>
+        </div>
+      </div>
+      ) : (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-800">{tr('Gamification masquee', 'Gamification hidden')}</p>
+          <p className="text-sm text-slate-600">
+            {tr('Vous pouvez la reactiver ici ou dans Parametres.', 'You can re-enable it here or in Settings.')}
+          </p>
+        </div>
+        <button
+          onClick={() => void setGamificationVisibility(true)}
+          disabled={gamificationLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+        >
+          {gamificationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+          {tr('Afficher la gamification', 'Show gamification')}
+        </button>
+      </div>
+      )}
+
+      {gamificationEnabled ? (
+      <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Target className="w-5 h-5 text-indigo-600" />
+            {tr('Parcours guide evolutif', 'Progressive guided journey')}
+          </h3>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-600">
+              {tr('Badges debloques', 'Unlocked badges')}: {gamification.unlockedBadges}/{gamification.badges.length}
+            </p>
+            <button
+              onClick={toggleJourneyCollapsed}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {isJourneyCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              {isJourneyCollapsed ? tr('Deplier', 'Expand') : tr('Plier', 'Collapse')}
+            </button>
+          </div>
+        </div>
+
+        {!isJourneyCollapsed ? (
+        <>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          {phaseProgress.map((phase) => {
+            const Icon = phase.icon
+            return (
+              <div
+                key={phase.key}
+                className={`rounded-lg border px-3 py-2 ${phase.unlocked ? 'border-indigo-200 bg-indigo-50/60' : 'border-gray-200 bg-gray-50 text-gray-500'}`}
+              >
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Icon className="w-4 h-4" />
+                  {phase.name}
+                </p>
+                <p className="text-xs mt-1">
+                  {phase.completed}/{phase.total} - {phase.progress}%
+                </p>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {(activePhase?.missions || []).map((step) => (
+            <div
+              key={step.key}
+              className={`rounded-xl border p-4 transition-all ${step.done ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-bold text-gray-900">{step.title}</p>
+                  <p className="text-sm text-gray-600 mt-1">{step.description}</p>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${step.done ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}
+                >
+                  {step.done ? <CheckCircle className="w-3.5 h-3.5" /> : <Flag className="w-3.5 h-3.5" />}
+                  {step.done ? tr('Valide', 'Done') : tr('A faire', 'To do')}
+                </span>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm font-semibold text-indigo-700">+{step.points} XP</p>
+                {step.ctaTo ? (
+                  <Link
+                    to={step.ctaTo}
+                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                  >
+                    {step.ctaLabel}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={step.ctaAction}
+                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                  >
+                    {step.ctaLabel}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {gamification.badges.map((badge) => (
+            <span
+              key={badge.key}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${badge.unlocked ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'}`}
+            >
+              {badge.unlocked ? <Gift className="w-3.5 h-3.5" /> : <Flame className="w-3.5 h-3.5" />}
+              {badge.label}
+            </span>
+          ))}
+        </div>
+        </>
+        ) : null}
+      </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard title={tr('Total clients', 'Total clients')} value={stats?.totalClients || 0} icon={Users} color="purple" />
