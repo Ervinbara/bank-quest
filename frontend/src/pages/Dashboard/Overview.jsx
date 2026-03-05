@@ -49,9 +49,9 @@ export default function Overview() {
       return false
     }
   })
-  const gamificationEnabled = advisor?.gamification_enabled !== false
+  const gamificationEnabled = advisor?.gamification_enabled === true
   const smartAlertsEnabled = advisor?.smart_alerts_enabled !== false
-  const productInstrumentationEnabled = advisor?.product_instrumentation_enabled !== false
+  const productInstrumentationEnabled = advisor?.product_instrumentation_enabled === true
   const alertDelayDays = Math.max(1, Number(advisor?.smart_alerts_delay_days || 7))
 
   const loadStats = useCallback(async () => {
@@ -475,26 +475,26 @@ export default function Overview() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="flex justify-end">
         <DashboardGuide guide={dashboardGuides.overview} />
       </div>
 
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-8 text-white">
-        <h2 className="text-3xl font-bold mb-2">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-6 sm:p-8 text-white">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2">
           {tr('Bonjour', 'Hello')} {advisor?.name?.split(' ')[0]} !
         </h2>
-        <p className="text-emerald-100 text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
+        <p className="text-emerald-100 text-base sm:text-lg">{tr('Voici un apercu de votre activite', 'Here is your activity overview')}</p>
       </div>
 
       {productInstrumentationEnabled ? (
-      <div className="bg-white rounded-xl shadow-md p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 min-w-0">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2 min-w-0">
             <TrendingUp className="w-5 h-5 text-indigo-600" />
             {tr('Instrumentation produit', 'Product instrumentation')}
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap w-full sm:w-auto">
             <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
               {tr('Conversion globale', 'Overall conversion')}: {funnelMetrics?.rates?.fullFunnel ?? 0}%
             </span>
@@ -556,7 +556,7 @@ export default function Overview() {
         </div>
       </div>
       ) : (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
           <p className="font-semibold text-slate-800">{tr('Instrumentation produit masquee', 'Product instrumentation hidden')}</p>
           <p className="text-sm text-slate-600">
@@ -575,7 +575,7 @@ export default function Overview() {
       )}
 
       {gamificationEnabled ? (
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 rounded-xl p-5 sm:p-6 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 rounded-xl p-4 sm:p-6 text-white shadow-lg overflow-hidden">
         <div className="mb-3 flex justify-start">
           <button
             onClick={() => void setGamificationVisibility(false)}
@@ -586,13 +586,13 @@ export default function Overview() {
             {tr('Masquer la gamification', 'Hide gamification')}
           </button>
         </div>
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-          <div className="space-y-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-5">
+          <div className="space-y-2 min-w-0">
             <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-200">
               <Sparkles className="w-4 h-4" />
               {tr('Mission de demarrage', 'Starter mission')}
             </p>
-            <h3 className="text-xl sm:text-2xl font-bold">
+            <h3 className="text-xl sm:text-2xl font-bold leading-tight">
               {activePhase?.complete
                 ? tr('Parcours termine, continuez votre serie', 'Quest completed, keep your streak going')
                 : tr('Objectif en cours', 'Current objective') + `: ${activePhase?.name || ''}`}
@@ -605,9 +605,9 @@ export default function Overview() {
             </div>
           </div>
 
-          <div className="min-w-[230px] rounded-xl border border-white/20 bg-white/10 p-4">
+          <div className="w-full lg:w-[230px] min-w-0 rounded-xl border border-white/20 bg-white/10 p-3.5 sm:p-4">
             <p className="text-xs uppercase tracking-wide text-emerald-100">{tr('Niveau conseiller', 'Advisor level')}</p>
-            <p className="mt-1 text-3xl font-bold flex items-center gap-2">
+            <p className="mt-1 text-2xl sm:text-3xl font-bold flex items-center gap-2">
               <Trophy className="w-7 h-7 text-amber-300" />
               {tr('Niv.', 'Lvl')} {gamification.level}
             </p>
@@ -622,7 +622,7 @@ export default function Overview() {
         </div>
       </div>
       ) : (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
           <p className="font-semibold text-slate-800">{tr('Gamification masquee', 'Gamification hidden')}</p>
           <p className="text-sm text-slate-600">
@@ -647,7 +647,7 @@ export default function Overview() {
             <Target className="w-5 h-5 text-indigo-600" />
             {tr('Parcours guide evolutif', 'Progressive guided journey')}
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <p className="text-sm text-gray-600">
               {tr('Badges debloques', 'Unlocked badges')}: {gamification.unlockedBadges}/{gamification.badges.length}
             </p>
@@ -702,12 +702,12 @@ export default function Overview() {
                 </span>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <p className="text-sm font-semibold text-indigo-700">+{step.points} XP</p>
                 {step.ctaTo ? (
                   <Link
                     to={step.ctaTo}
-                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                    className="inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
                   >
                     {step.ctaLabel}
                     <ArrowRight className="w-4 h-4" />
@@ -715,7 +715,7 @@ export default function Overview() {
                 ) : (
                   <button
                     onClick={step.ctaAction}
-                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                    className="inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto"
                   >
                     {step.ctaLabel}
                     <ArrowRight className="w-4 h-4" />
@@ -823,7 +823,7 @@ export default function Overview() {
         </div>
       </div>
       ) : (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
           <p className="font-semibold text-slate-800">{tr('Alertes intelligentes masquees', 'Smart alerts hidden')}</p>
           <p className="text-sm text-slate-600">

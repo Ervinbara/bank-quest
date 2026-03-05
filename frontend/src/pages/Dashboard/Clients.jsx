@@ -236,7 +236,7 @@ export default function Clients() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{tr('Mes clients', 'My clients')}</h2>
@@ -255,12 +255,12 @@ export default function Clients() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <DashboardGuide guide={dashboardGuides.clients} />
           <button
             onClick={() => setImportModalOpen(true)}
             disabled={clientLimitReached}
-            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
+            className="flex w-full sm:w-auto justify-center items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
           >
             <Upload className="w-4 h-4" />
             {tr('Importer des clients', 'Import clients')}
@@ -268,7 +268,7 @@ export default function Clients() {
           <button
             onClick={() => setInviteModalOpen(true)}
             disabled={clientLimitReached}
-            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+            className="flex w-full sm:w-auto justify-center items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
           >
             <UserPlus className="w-4 h-4" />
             {tr('Ajouter / Inviter un client', 'Add / Invite a client')}

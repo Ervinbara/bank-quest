@@ -72,10 +72,10 @@ export default function Settings() {
     setConsentData({
       marketingOptIn: Boolean(advisor.marketing_opt_in),
       analyticsCookiesEnabled: Boolean(advisor.analytics_cookies_enabled),
-      gamificationEnabled: advisor.gamification_enabled !== false,
+      gamificationEnabled: advisor.gamification_enabled === true,
       smartAlertsEnabled: advisor.smart_alerts_enabled !== false,
       smartAlertsDelayDays: Math.max(1, Number(advisor.smart_alerts_delay_days || 7)),
-      productInstrumentationEnabled: advisor.product_instrumentation_enabled !== false
+      productInstrumentationEnabled: advisor.product_instrumentation_enabled === true
     })
   }, [advisor])
 
@@ -87,10 +87,10 @@ export default function Settings() {
   const [consentData, setConsentData] = useState({
     marketingOptIn: Boolean(advisor?.marketing_opt_in),
     analyticsCookiesEnabled: Boolean(advisor?.analytics_cookies_enabled),
-    gamificationEnabled: advisor?.gamification_enabled !== false,
+    gamificationEnabled: advisor?.gamification_enabled === true,
     smartAlertsEnabled: advisor?.smart_alerts_enabled !== false,
     smartAlertsDelayDays: Math.max(1, Number(advisor?.smart_alerts_delay_days || 7)),
-    productInstrumentationEnabled: advisor?.product_instrumentation_enabled !== false
+    productInstrumentationEnabled: advisor?.product_instrumentation_enabled === true
   })
 
   const [errors, setErrors] = useState({})

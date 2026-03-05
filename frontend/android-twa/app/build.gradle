@@ -20,6 +20,12 @@ plugins {
     id 'com.android.application'
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 def twaManifest = [
     applicationId: 'com.ervinbara.finmateadvisor',
     hostName: 'finmate-advisor.vercel.app', // The domain being opened in the TWA.
@@ -57,8 +63,8 @@ android {
         applicationId "com.ervinbara.finmateadvisor"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 10
-        versionName "1.0.9"
+        versionCode 12
+        versionName "1.0.10"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -150,9 +156,20 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -201,6 +218,45 @@ task generateShorcutsFile {
 
 preBuild.dependsOn(generateShorcutsFile)
 
+def releaseBundlePath = "$buildDir/outputs/bundle/release/app-release.aab"
+def releaseBundleSignedTempPath = "$buildDir/outputs/bundle/release/app-release-signed-temp.aab"
+
+tasks.register("signBundleForPlay") {
+    dependsOn("bundleRelease")
+    doLast {
+        if (!keystorePropertiesFile.exists()) {
+            throw new GradleException("Missing key.properties. Cannot sign release bundle.")
+        }
+
+        def unsignedBundle = file(releaseBundlePath)
+        if (!unsignedBundle.exists()) {
+            throw new GradleException("Release bundle not found at ${releaseBundlePath}")
+        }
+
+        def tempSignedBundle = file(releaseBundleSignedTempPath)
+        if (tempSignedBundle.exists()) {
+            tempSignedBundle.delete()
+        }
+
+        ant.signjar(
+            jar: unsignedBundle.absolutePath,
+            signedjar: tempSignedBundle.absolutePath,
+            keystore: file(keystoreProperties['storeFile']).absolutePath,
+            storepass: keystoreProperties['storePassword'],
+            keypass: keystoreProperties['keyPassword'],
+            alias: keystoreProperties['keyAlias'],
+            preservelastmodified: "true"
+        )
+
+        unsignedBundle.delete()
+        tempSignedBundle.renameTo(unsignedBundle)
+    }
+}
+
+afterEvaluate {
+    tasks.findByName("bundleRelease")?.finalizedBy("signBundleForPlay")
+}
+
 repositories {
     
 }
@@ -211,3 +267,4 @@ dependencies {
         implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
     
 }
+

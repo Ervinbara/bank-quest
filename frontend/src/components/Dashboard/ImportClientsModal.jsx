@@ -282,6 +282,35 @@ export default function ImportClientsModal({
 
           {step === 'upload' ? (
             <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
+                <p className="font-semibold text-slate-900">
+                  {tr('Normes a respecter pour l import', 'Import rules to follow')}
+                </p>
+                <div className="space-y-1">
+                  <p>1. {tr('Formats acceptes: .csv, .xlsx, .xls', 'Accepted formats: .csv, .xlsx, .xls')}</p>
+                  <p>2. {tr('Colonnes minimales obligatoires: name, email', 'Minimum required columns: name, email')}</p>
+                  <p>3. {tr('Email valide obligatoire (ex: client@domaine.fr)', 'Valid email required (ex: client@domain.com)')}</p>
+                  <p>4. {tr('1 ligne = 1 client', '1 row = 1 client')}</p>
+                  <p>5. {tr('Les doublons email sont ignores', 'Duplicate emails are skipped')}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs font-semibold text-slate-600 mb-2">
+                    {tr('Exemple CSV', 'CSV example')}
+                  </p>
+                  <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words">
+name,email
+Jean Martin,jean.martin.test@exemple.fr
+Sofia Bernard,sofia.bernard.test@exemple.fr
+                  </pre>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {tr(
+                    'Note: a ce stade, seul le nom et l email sont importes automatiquement.',
+                    'Note: at this stage, only name and email are imported automatically.'
+                  )}
+                </p>
+              </div>
+
               <label className="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-emerald-500 transition cursor-pointer">
                 <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                 <p className="font-semibold text-gray-700">{tr('Selectionner un fichier', 'Select a file')}</p>

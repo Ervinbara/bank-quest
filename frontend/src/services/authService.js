@@ -50,12 +50,12 @@ const buildAdvisorPayload = ({
     terms_accepted_at: acceptedAt,
     privacy_accepted_at: acceptedAt,
     marketing_opt_in: Boolean(marketingOptIn),
-    gamification_enabled: true,
+    gamification_enabled: false,
     gamification_updated_at: acceptedAt,
     smart_alerts_enabled: true,
     smart_alerts_delay_days: 7,
     smart_alerts_updated_at: acceptedAt,
-    product_instrumentation_enabled: true,
+    product_instrumentation_enabled: false,
     product_instrumentation_updated_at: acceptedAt
   }
 }

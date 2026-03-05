@@ -99,7 +99,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen flex overflow-x-clip">
+    <div className="min-h-screen flex overflow-x-hidden">
       <Sidebar
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -111,7 +111,7 @@ export default function DashboardLayout() {
 
       <div className="flex-1 flex flex-col">
         <header className="bg-white/80 backdrop-blur-xl border-b border-emerald-100/80 sticky top-0 z-10">
-          <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3">
+          <div className="px-3 max-[380px]:px-2.5 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 max-[380px]:gap-1.5 sm:gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
@@ -162,7 +162,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-28 md:pb-6 finance-animate-in">
+        <main className="flex-1 min-w-0 px-3 max-[380px]:px-2.5 py-4 sm:p-6 pb-28 md:pb-6 finance-animate-in">
           <Outlet />
         </main>
       </div>
