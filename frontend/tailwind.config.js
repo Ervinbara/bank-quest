@@ -6,6 +6,9 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+            },
             colors: {
                 primary: {
                     50: '#ecfdf5',
@@ -25,7 +28,9 @@ export default {
                     emerald: '#047857',
                     teal: '#0f766e',
                     mint: '#ecfdf5',
-                    gold: '#d4af37',
+                    gold: '#b8962e',
+                    'gold-light': '#fdf6dc',
+                    'gold-muted': '#92740f',
                 }
             },
             animation: {

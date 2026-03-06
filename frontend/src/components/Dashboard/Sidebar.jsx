@@ -1,7 +1,71 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Settings, BarChart3, Link2, ClipboardList, Library, X, PanelLeftClose, PanelLeftOpen, Shield } from 'lucide-react'
+import {
+  LayoutDashboard, Users, Settings, BarChart3, Link2,
+  ClipboardList, Library, X, PanelLeftClose, PanelLeftOpen, Shield,
+  Crown
+} from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+/* ── Logo SVG inline ─────────────────────────────────────────── */
+function FinMateLogo({ collapsed }) {
+  return (
+    <Link to="/" className="flex items-center gap-2.5 min-w-0">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+        <rect width="32" height="32" rx="9" fill="url(#fm-grad)" />
+        <path d="M9 10h10M9 16h7M9 22h10" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="23" cy="22" r="3.5" fill="white" fillOpacity="0.9" />
+        <path d="M21.5 22h3M23 20.5v3" stroke="url(#fm-grad)" strokeWidth="1.8" strokeLinecap="round" />
+        <defs>
+          <linearGradient id="fm-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#0f766e" />
+            <stop offset="1" stopColor="#047857" />
+          </linearGradient>
+        </defs>
+      </svg>
+      {!collapsed && (
+        <span className="text-lg font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent tracking-tight">
+          FinMate
+        </span>
+      )}
+    </Link>
+  )
+}
+
+/* ── Plan badge bas de sidebar ───────────────────────────────── */
+function PlanCard({ collapsed, isFreePlan, normalizedPlan, t }) {
+  return (
+    <div className={`mx-3 mb-3 rounded-xl border transition-all ${
+      isFreePlan
+        ? 'border-amber-200 bg-amber-50'
+        : 'border-emerald-200 bg-emerald-50'
+    } ${collapsed ? 'p-2' : 'p-3'}`}>
+      {!collapsed && (
+        <>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Crown className="w-3.5 h-3.5 text-amber-600" />
+            <p className="text-xs font-bold text-slate-800">
+              {isFreePlan ? t('sidebar.freeVersion', 'Plan Gratuit') : `Plan ${normalizedPlan.charAt(0).toUpperCase() + normalizedPlan.slice(1)}`}
+            </p>
+          </div>
+          <p className="text-[11px] text-slate-500 mb-2.5 leading-snug">
+            {isFreePlan
+              ? t('sidebar.upgradeHint', 'Passez à Solo pour envoyer des invitations par email.')
+              : t('sidebar.manageBilling', 'Gérer dans les paramètres de facturation')}
+          </p>
+        </>
+      )}
+      <Link
+        to="/dashboard/settings"
+        title={collapsed ? t('sidebar.upgrade', 'Upgrade') : undefined}
+        className={`btn-primary w-full text-center text-xs py-1.5 ${collapsed ? 'px-1' : ''}`}
+      >
+        {collapsed ? '↑' : isFreePlan ? t('sidebar.upgrade', 'Passer à Pro') : t('sidebar.settings', 'Paramètres')}
+      </Link>
+    </div>
+  )
+}
+
+/* ── Composant principal ─────────────────────────────────────── */
 export default function Sidebar({
   mobileOpen = false,
   onClose = () => {},
@@ -20,7 +84,7 @@ export default function Sidebar({
       group: 'pilotage',
       path: '/dashboard',
       icon: LayoutDashboard,
-      label: t('sidebar.overview', 'Overview'),
+      label: t('sidebar.overview', 'Vue d\'ensemble'),
       exact: true
     },
     {
@@ -39,25 +103,25 @@ export default function Sidebar({
       group: 'creation',
       path: '/dashboard/question-bank',
       icon: Library,
-      label: t('sidebar.questionBank', '1. Banque de questions (source)')
+      label: t('sidebar.questionBank', 'Banque de questions')
     },
     {
       group: 'creation',
       path: '/dashboard/questionnaires',
       icon: ClipboardList,
-      label: t('sidebar.questionnaires', '2. Questionnaires (formulaires clients)')
+      label: t('sidebar.questionnaires', 'Questionnaires')
     },
     {
       group: 'pilotage',
       path: '/dashboard/analytics',
       icon: BarChart3,
-      label: t('sidebar.analytics', 'Analytics')
+      label: t('sidebar.analytics', 'Statistiques')
     },
     {
       group: 'compte',
       path: '/dashboard/settings',
       icon: Settings,
-      label: t('sidebar.settings', 'Settings')
+      label: t('sidebar.settings', 'Paramètres')
     }
   ]
 
@@ -70,127 +134,105 @@ export default function Sidebar({
     })
   }
 
-  const isActive = (path, exact) => {
-    if (exact) return location.pathname === path
-    return location.pathname.startsWith(path)
+  const isActive = (path, exact) =>
+    exact ? location.pathname === path : location.pathname.startsWith(path)
+
+  const groupLabel = (group) => {
+    if (group === 'creation') return t('Creation', 'Création')
+    if (group === 'compte')   return t('Compte', 'Compte')
+    return t('Pilotage', 'Pilotage')
   }
 
   const sidebarContent = (
-    <>
-      <div className={`p-4 border-b ${collapsed ? 'md:px-3' : 'md:p-6'}`}>
-        <div className={`flex items-center ${collapsed ? 'justify-center md:justify-between' : 'justify-between'} gap-2`}>
-          <Link to="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2'} min-w-0`}>
-            <span className="text-3xl">FM</span>
-            {!collapsed ? (
-              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                FinMate
-              </span>
-            ) : null}
-          </Link>
+    <div className="flex flex-col h-full">
+      {/* Header logo */}
+      <div className={`flex items-center justify-between border-b border-slate-100 ${collapsed ? 'px-3 py-4' : 'px-4 py-4'}`}>
+        <FinMateLogo collapsed={collapsed} />
+        {/* Bouton fermer sur mobile, bouton collapse sur desktop */}
+        {mobileOpen ? (
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            aria-label={t('Fermer', 'Close')}
+          >
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        ) : (
           <button
             onClick={onToggleCollapsed}
-            className="hidden md:inline-flex p-2 rounded-lg hover:bg-gray-100"
-            aria-label={collapsed ? t('Etendre le menu', 'Expand menu') : t('Reduire le menu', 'Collapse menu')}
-            title={collapsed ? t('Etendre le menu', 'Expand menu') : t('Reduire le menu', 'Collapse menu')}
+            className="hidden md:inline-flex p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            aria-label={collapsed ? t('Étendre le menu', 'Expand menu') : t('Réduire le menu', 'Collapse menu')}
+            title={collapsed ? t('Étendre', 'Expand') : t('Réduire', 'Collapse')}
           >
-            {collapsed ? <PanelLeftOpen className="w-4 h-4 text-gray-700" /> : <PanelLeftClose className="w-4 h-4 text-gray-700" />}
+            {collapsed
+              ? <PanelLeftOpen className="w-4 h-4 text-slate-500" />
+              : <PanelLeftClose className="w-4 h-4 text-slate-500" />}
           </button>
-        </div>
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      {/* Nav items */}
+      <nav className={`flex-1 py-3 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
         {menuItems.map((item, index) => {
           const Icon = item.icon
           const active = isActive(item.path, item.exact)
           const previousGroup = index > 0 ? menuItems[index - 1].group : null
-          const showGroupLabel = !collapsed && item.group && item.group !== previousGroup
-          const groupLabel =
-            item.group === 'creation'
-              ? t('Creation', 'Creation')
-              : item.group === 'compte'
-                ? t('Compte', 'Account')
-                : t('Pilotage', 'Operations')
+          const showGroupLabel = !collapsed && item.group !== previousGroup
 
           return (
             <div key={item.path}>
-              {showGroupLabel ? (
-                <p className="px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                  {groupLabel}
-                </p>
-              ) : null}
+              {showGroupLabel && (
+                <p className="section-label">{groupLabel(item.group)}</p>
+              )}
               <Link
                 to={item.path}
                 onClick={onClose}
                 title={collapsed ? item.label : undefined}
-                className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all ${
-                  active
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`nav-item ${active ? 'active' : ''} ${collapsed ? 'justify-center' : ''}`}
               >
-                <Icon className="w-5 h-5" />
-                {!collapsed ? <span className="font-medium">{item.label}</span> : null}
+                <Icon className="w-4.5 h-4.5 shrink-0" style={{ width: '18px', height: '18px' }} />
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             </div>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t">
-        <div className={`bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg ${collapsed ? 'p-2' : 'p-4'}`}>
-          {!collapsed ? (
-            <p className="text-sm font-semibold text-gray-800 mb-1">
-              {isFreePlan ? t('sidebar.freeVersion', 'Free plan') : `Plan ${normalizedPlan}`}
-            </p>
-          ) : null}
-          {!collapsed ? (
-            <p className="text-xs text-gray-600 mb-3">
-              {isFreePlan
-                ? t('sidebar.daysLeft', '14 days left')
-                : t('sidebar.upgrade', 'Manage in billing settings')}
-            </p>
-          ) : null}
-          <Link
-            to="/dashboard/settings"
-            title={collapsed ? t('sidebar.upgrade', 'Upgrade to Pro') : undefined}
-            className={`block w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-center rounded-lg text-sm font-semibold hover:opacity-90 transition ${collapsed ? 'py-2 px-1' : 'py-2'}`}
-          >
-            {collapsed ? 'Plan' : isFreePlan ? t('sidebar.upgrade', 'Upgrade to Pro') : t('sidebar.settings', 'Settings')}
-          </Link>
-        </div>
-      </div>
-    </>
+      {/* Plan card */}
+      <PlanCard
+        collapsed={collapsed}
+        isFreePlan={isFreePlan}
+        normalizedPlan={normalizedPlan}
+        t={t}
+      />
+    </div>
   )
 
   return (
     <>
-      <aside className={`hidden md:flex bg-white/85 backdrop-blur-xl border-r border-emerald-100 shadow-lg flex-col transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden md:flex flex-col bg-white border-r border-slate-100 transition-all duration-200 ${
+          collapsed ? 'w-[68px]' : 'w-60'
+        }`}
+        style={{ boxShadow: '1px 0 0 0 #f1f5f9' }}
+      >
         {sidebarContent}
       </aside>
 
-      {mobileOpen ? (
+      {/* Mobile drawer */}
+      {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           <button
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={onClose}
             aria-label={t('Fermer le menu', 'Close menu')}
           />
-          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white/95 backdrop-blur-xl shadow-xl flex flex-col border-r border-emerald-100">
-            <div className="p-4 border-b flex items-center justify-between">
-              <p className="font-semibold text-gray-800">{t('Navigation', 'Navigation')}</p>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-md hover:bg-gray-100"
-                aria-label={t('Fermer le menu', 'Close menu')}
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
-            </div>
+          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white shadow-xl flex flex-col border-r border-slate-100">
             {sidebarContent}
           </aside>
         </div>
-      ) : null}
+      )}
     </>
   )
 }
-

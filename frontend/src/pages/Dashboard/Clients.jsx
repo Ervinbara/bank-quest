@@ -300,8 +300,8 @@ export default function Clients() {
         </div>
       </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-4">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <div className="card p-4 space-y-4">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900">
           {remainingClientSlots === null
             ? tr(
                 `Plan ${planAccess.label}: clients illimites. Envoi d'email ${planAccess.canSendInvitationEmails ? 'active' : 'desactive'}.`,
@@ -312,7 +312,7 @@ export default function Clients() {
                 `Plan ${planAccess.label}: ${remainingClientSlots} client slot(s) left of ${planAccess.maxClients}. ${clientLimitReached ? 'Upgrade to add more clients.' : ''}`
               )}
         </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
           {tr(
             'Limites: Gratuit 5 | Solo 50 | Pro 200 | Cabinet/Test illimite.',
             'Limits: Free 5 | Solo 50 | Pro 200 | Cabinet/Test unlimited.'
@@ -321,41 +321,41 @@ export default function Clients() {
 
         {isMobile ? (
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] text-gray-500">{tr('Total', 'Total')}</p>
-              <p className="text-lg font-bold text-gray-900">{stats.all}</p>
+            <div className="stat-mini">
+              <p className="stat-mini-label">{tr('Total', 'Total')}</p>
+              <p className="stat-mini-value">{stats.all}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] text-gray-500">{tr('Completes', 'Completed')}</p>
-              <p className="text-lg font-bold text-emerald-700">{stats.completed}</p>
+            <div className="stat-mini">
+              <p className="stat-mini-label">{tr('Completes', 'Completed')}</p>
+              <p className="stat-mini-value text-emerald-700">{stats.completed}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] text-gray-500">{tr('En attente', 'Pending')}</p>
-              <p className="text-lg font-bold text-amber-700">{stats.pending}</p>
+            <div className="stat-mini">
+              <p className="stat-mini-label">{tr('En attente', 'Pending')}</p>
+              <p className="stat-mini-value text-sky-700">{stats.pending}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] text-gray-500">{tr('A contacter', 'To contact')}</p>
-              <p className="text-lg font-bold text-blue-700">{stats.a_contacter}</p>
+            <div className="stat-mini">
+              <p className="stat-mini-label">{tr('A contacter', 'To contact')}</p>
+              <p className="stat-mini-value text-slate-700">{stats.a_contacter}</p>
             </div>
           </div>
         ) : null}
 
         <div>
-          <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Recherche', 'Search')}</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{tr('Recherche', 'Search')}</p>
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder={tr('Nom ou email client...', 'Client name or email...')}
-              className="w-full rounded-lg border border-gray-300 pl-9 pr-10 py-2 focus:outline-none focus:border-emerald-500"
+              className="input pl-9 pr-16"
             />
             {searchInput ? (
               <button
                 type="button"
                 onClick={() => setSearchInput('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-100"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
               >
                 {tr('Effacer', 'Clear')}
               </button>
@@ -364,22 +364,16 @@ export default function Clients() {
         </div>
 
         {hasActiveFilters ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="text-xs font-semibold text-slate-700">{tr('Filtres actifs', 'Active filters')}</span>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="text-xs font-semibold text-slate-600">{tr('Filtres actifs', 'Active filters')}</span>
             {searchInput.trim() ? (
-              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
-                {tr('Recherche', 'Search')}: {searchInput.trim()}
-              </span>
+              <span className="badge badge-neutral">{tr('Recherche', 'Search')}: {searchInput.trim()}</span>
             ) : null}
             {activeStatusFilter !== 'all' ? (
-              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
-                {tr('Quiz', 'Quiz')}: {STATUS_FILTERS.find((item) => item.key === activeStatusFilter)?.label}
-              </span>
+              <span className="badge badge-brand">{tr('Quiz', 'Quiz')}: {STATUS_FILTERS.find((item) => item.key === activeStatusFilter)?.label}</span>
             ) : null}
             {activeFollowupFilter !== 'all' ? (
-              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
-                {tr('Suivi', 'Follow-up')}: {FOLLOWUP_FILTERS.find((item) => item.key === activeFollowupFilter)?.label}
-              </span>
+              <span className="badge badge-neutral">{tr('Suivi', 'Follow-up')}: {FOLLOWUP_FILTERS.find((item) => item.key === activeFollowupFilter)?.label}</span>
             ) : null}
             <button
               type="button"
@@ -388,7 +382,7 @@ export default function Clients() {
                 setActiveStatusFilter('all')
                 setActiveFollowupFilter('all')
               }}
-              className="ml-auto rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="ml-auto btn-ghost text-xs py-1 px-2"
             >
               {tr('Reinitialiser', 'Reset')}
             </button>
@@ -397,54 +391,52 @@ export default function Clients() {
 
         <button
           onClick={() => setFiltersCollapsed((prev) => !prev)}
-          className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 transition"
+          className="w-full flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 hover:bg-slate-50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <ListFilter className="w-4 h-4 text-gray-600" />
-            <p className="text-sm font-semibold text-gray-700">{tr('Filtres', 'Filters')}</p>
+            <ListFilter className="w-4 h-4 text-slate-500" />
+            <p className="text-sm font-semibold text-slate-700">{tr('Filtres', 'Filters')}</p>
           </div>
-          {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronUp className="w-4 h-4 text-gray-600" />}
+          {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
         </button>
 
         {!filtersCollapsed ? (
           <div className="space-y-4">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <p className="text-sm font-semibold text-gray-700">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
-              </div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
               <div className="flex flex-wrap gap-2">
                 {STATUS_FILTERS.map((filter) => (
                   <button
                     key={filter.key}
                     onClick={() => setActiveStatusFilter(filter.key)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       activeStatusFilter === filter.key
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {filter.label}
-                    <span className="ml-2 text-xs opacity-90">({stats[filter.key] ?? 0})</span>
+                    <span className="ml-1.5 opacity-75 tabular-nums">({stats[filter.key] ?? 0})</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Filtrer par suivi commercial', 'Filter by sales follow-up')}</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{tr('Filtrer par suivi commercial', 'Filter by sales follow-up')}</p>
               <div className="flex flex-wrap gap-2">
                 {FOLLOWUP_FILTERS.map((filter) => (
                   <button
                     key={filter.key}
                     onClick={() => setActiveFollowupFilter(filter.key)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       activeFollowupFilter === filter.key
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        ? 'bg-slate-800 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {filter.label}
-                    <span className="ml-2 text-xs opacity-90">
+                    <span className="ml-1.5 opacity-75 tabular-nums">
                       ({filter.key === 'all' ? stats.all : stats[filter.key] || 0})
                     </span>
                   </button>
@@ -456,9 +448,9 @@ export default function Clients() {
       </div>
 
       {totalItems === 0 ? (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">
+        <div className="card p-12 text-center">
+          <Users className="w-14 h-14 text-slate-200 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-slate-800 mb-2">
               {stats.all === 0
                 ? tr("Aucun client pour l'instant", 'No clients yet')
                 : tr('Aucun client dans ces filtres', 'No clients in these filters')}
@@ -491,67 +483,43 @@ export default function Clients() {
                 key={client.id}
                 client={client}
                 footerAction={
-                  <div className="space-y-2">
-                    <div className="text-xs font-semibold text-gray-600">
-                      {tr('Suivi', 'Follow-up')}:
-                      {' '}
-                      {FOLLOWUP_LABELS[normalizeFollowupStatus(client.followup_status)] || tr('A contacter', 'To contact')}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                        {tr('Suivi', 'Follow-up')}
+                      </p>
+                      <span className="badge badge-neutral text-[10px]">
+                        {FOLLOWUP_LABELS[normalizeFollowupStatus(client.followup_status)] || tr('A contacter', 'To contact')}
+                      </span>
                     </div>
                     <div className="grid grid-cols-3 gap-1">
-                      <button
-                        type="button"
-                        disabled={!!updatingFollowupByClient[client.id]}
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          void setFollowupQuick(client.id, 'a_contacter')
-                        }}
-                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
-                          normalizeFollowupStatus(client.followup_status) === 'a_contacter'
-                            ? 'bg-blue-600 text-white ring-2 ring-blue-200 shadow-sm'
-                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                        }`}
-                      >
-                        {tr('A contacter', 'To contact')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!!updatingFollowupByClient[client.id]}
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          void setFollowupQuick(client.id, 'rdv_planifie')
-                        }}
-                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
-                          normalizeFollowupStatus(client.followup_status) === 'rdv_planifie'
-                            ? 'bg-purple-600 text-white ring-2 ring-purple-200 shadow-sm'
-                            : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-                        }`}
-                      >
-                        {tr('RDV', 'Meeting')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!!updatingFollowupByClient[client.id]}
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          void setFollowupQuick(client.id, 'clos')
-                        }}
-                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition disabled:opacity-60 ${
-                          normalizeFollowupStatus(client.followup_status) === 'clos'
-                            ? 'bg-emerald-600 text-white ring-2 ring-emerald-200 shadow-sm'
-                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        }`}
-                      >
-                        {tr('Clore', 'Close')}
-                      </button>
+                      {[
+                        { key: 'a_contacter', label: tr('Contact', 'Contact'), active: 'bg-sky-600 text-white ring-1 ring-sky-300', inactive: 'bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-700' },
+                        { key: 'rdv_planifie', label: tr('RDV', 'Meeting'), active: 'bg-violet-600 text-white ring-1 ring-violet-300', inactive: 'bg-slate-100 text-slate-600 hover:bg-violet-50 hover:text-violet-700' },
+                        { key: 'clos', label: tr('Clos', 'Closed'), active: 'bg-emerald-600 text-white ring-1 ring-emerald-300', inactive: 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700' },
+                      ].map(({ key, label, active, inactive }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={!!updatingFollowupByClient[client.id]}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            void setFollowupQuick(client.id, key)
+                          }}
+                          className={`py-1.5 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-60 ${
+                            normalizeFollowupStatus(client.followup_status) === key ? active : inactive
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                     <Link
                       to={`/dashboard/clients/${client.id}`}
-                      className="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition text-sm"
+                      className="btn-primary block w-full text-center text-sm py-2"
                     >
-                      {tr('Voir le detail', 'View details')}
+                      {tr('Voir le détail', 'View details')}
                     </Link>
                   </div>
                 }

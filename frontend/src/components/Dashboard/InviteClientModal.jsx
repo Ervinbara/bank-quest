@@ -179,11 +179,11 @@ export default function InviteClientModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4"
+      className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 pt-[max(12px,env(safe-area-inset-top))] pb-[max(12px,env(safe-area-inset-bottom))] sm:p-4"
       onClick={closeAndReset}
     >
       <div
-        className="bg-white w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-xl rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="bg-white w-full max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:max-h-[92vh] sm:max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         {!createdInvitation ? (
@@ -386,5 +386,4 @@ export default function InviteClientModal({
     </div>
   )
 }
-
 

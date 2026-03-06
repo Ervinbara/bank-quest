@@ -8,19 +8,19 @@ import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, 
 
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
 const ROUTE_CONTEXT = [
-  { path: '/dashboard/clients', labelFr: 'Clients', labelEn: 'Clients' },
-  { path: '/dashboard/invitations', labelFr: 'Invitations', labelEn: 'Invitations' },
-  { path: '/dashboard/questionnaires', labelFr: 'Questionnaires', labelEn: 'Questionnaires' },
+  { path: '/dashboard/clients',       labelFr: 'Clients',             labelEn: 'Clients' },
+  { path: '/dashboard/invitations',   labelFr: 'Invitations',         labelEn: 'Invitations' },
+  { path: '/dashboard/questionnaires',labelFr: 'Questionnaires',      labelEn: 'Questionnaires' },
   { path: '/dashboard/question-bank', labelFr: 'Banque de questions', labelEn: 'Question bank' },
-  { path: '/dashboard/analytics', labelFr: 'Statistiques', labelEn: 'Analytics' },
-  { path: '/dashboard/settings', labelFr: 'Parametres', labelEn: 'Settings' },
-  { path: '/dashboard/admin', labelFr: 'Super Admin', labelEn: 'Super Admin' },
-  { path: '/dashboard', labelFr: 'Apercu', labelEn: 'Overview' }
+  { path: '/dashboard/analytics',     labelFr: 'Statistiques',        labelEn: 'Analytics' },
+  { path: '/dashboard/settings',      labelFr: 'Paramètres',          labelEn: 'Settings' },
+  { path: '/dashboard/admin',         labelFr: 'Super Admin',         labelEn: 'Super Admin' },
+  { path: '/dashboard',               labelFr: 'Aperçu',              labelEn: 'Overview' }
 ]
 
 export default function DashboardLayout() {
   const { advisor, logout, isSuperAdmin } = useAuth()
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -29,38 +29,38 @@ export default function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1')
   const routeContext =
     ROUTE_CONTEXT.find((item) => location.pathname.startsWith(item.path)) || ROUTE_CONTEXT[ROUTE_CONTEXT.length - 1]
-  const currentSectionLabel = t(routeContext.labelFr, routeContext.labelEn)
+  const currentSectionLabel = tr(routeContext.labelFr, routeContext.labelEn)
 
   const mobileTabs = [
     {
       to: '/dashboard',
-      label: t('sidebar.overview', 'Overview'),
-      shortLabel: t('Apercu', 'Home'),
+      label: tr('Aperçu', 'Overview'),
+      shortLabel: tr('Aperçu', 'Home'),
       icon: LayoutDashboard,
       exact: true
     },
     {
       to: '/dashboard/clients',
-      label: t('sidebar.clients', 'Clients'),
-      shortLabel: t('Clients', 'Clients'),
+      label: tr('Clients', 'Clients'),
+      shortLabel: tr('Clients', 'Clients'),
       icon: Users
     },
     {
       to: '/dashboard/invitations',
-      label: t('sidebar.invitations', 'Invitations'),
-      shortLabel: t('Invites', 'Invites'),
+      label: tr('Invitations', 'Invitations'),
+      shortLabel: tr('Invités', 'Invites'),
       icon: Link2
     },
     {
       to: '/dashboard/analytics',
-      label: t('sidebar.analytics', 'Analytics'),
-      shortLabel: t('Stats', 'Stats'),
+      label: tr('Statistiques', 'Analytics'),
+      shortLabel: tr('Stats', 'Stats'),
       icon: BarChart3
     },
     {
       to: '/dashboard/settings',
-      label: t('sidebar.settings', 'Settings'),
-      shortLabel: t('Reglages', 'Settings'),
+      label: tr('Paramètres', 'Settings'),
+      shortLabel: tr('Réglages', 'Settings'),
       icon: Settings
     }
   ]
@@ -69,19 +69,19 @@ export default function DashboardLayout() {
     {
       key: 'invite',
       to: '/dashboard/clients?quick=invite',
-      label: t('Inviter', 'Invite'),
+      label: tr('Inviter', 'Invite'),
       icon: Link2
     },
     {
       key: 'import',
       to: '/dashboard/clients?quick=import',
-      label: t('Importer', 'Import'),
+      label: tr('Importer', 'Import'),
       icon: Users
     },
     {
       key: 'questionnaire',
       to: '/dashboard/questionnaires',
-      label: t('Questionnaire', 'Questionnaire'),
+      label: tr('Questionnaire', 'Questionnaire'),
       icon: FileText
     }
   ]
@@ -123,56 +123,51 @@ export default function DashboardLayout() {
       />
 
       <div className="flex-1 flex flex-col">
-        <header className="bg-white/80 backdrop-blur-xl border-b border-emerald-100/80 sticky top-0 z-10">
-          <div className="px-3 max-[380px]:px-2.5 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 max-[380px]:gap-1.5 sm:gap-3">
+        <header className="bg-white/85 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-10">
+          <div className="px-3 sm:px-5 py-3 flex justify-between items-center gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-2 rounded-lg border border-gray-200 hover:bg-gray-100"
+                className="md:hidden p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
                 aria-label={t('Ouvrir le menu', 'Open menu')}
               >
-                <Menu className="w-5 h-5 text-gray-700" />
+                <Menu className="w-4 h-4 text-slate-600" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">{t('dashboardLayout.title', 'Dashboard')}</h1>
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm text-gray-600 truncate">
-                    {advisor?.company || t('dashboardLayout.companyFallback', 'Your firm')}
-                  </p>
-                  <span className="hidden sm:inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
-                    {currentSectionLabel}
-                  </span>
-                </div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider leading-none mb-0.5 hidden sm:block">
+                  {advisor?.company || t('dashboardLayout.companyFallback', 'Your firm')}
+                </p>
+                <h1 className="page-title text-base sm:text-xl truncate">{currentSectionLabel}</h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-4 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <LanguageSwitcher compact />
               <div className="text-right hidden lg:block">
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-slate-800 leading-snug">
                   {advisor?.name || t('dashboardLayout.userFallback', 'User')}
                 </p>
-                <p className="text-xs text-gray-500">{advisor?.email}</p>
+                <p className="text-xs text-slate-400">{advisor?.email}</p>
               </div>
 
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1">
                 <Link
                   to="/dashboard/settings"
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
                   title={t('common.settings', 'Settings')}
                 >
-                  <User className="w-5 h-5 text-gray-600" />
+                  <User className="w-4 h-4 text-slate-500" />
                 </Link>
                 <button
                   onClick={handleLogout}
                   disabled={loggingOut}
-                  className="p-2 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title={loggingOut ? t('common.loggingOut', 'Logging out...') : t('common.logout', 'Log out')}
                 >
                   {loggingOut ? (
-                    <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
                   ) : (
-                    <LogOut className="w-5 h-5 text-red-600" />
+                    <LogOut className="w-4 h-4 text-red-500" />
                   )}
                 </button>
               </div>
