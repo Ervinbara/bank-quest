@@ -61,7 +61,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 finance-animate-in">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
-              {t('home.workflowBadge') || 'Workflow'}
+              {t('home.workflowBadge', 'Workflow')}
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.workflowTitle')}</h2>
             <p className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
@@ -114,7 +114,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 finance-animate-in">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
-              {t('home.whyBadge') || 'Fonctionnalités'}
+              {t('home.whyBadge', 'Fonctionnalites')}
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.whyTitle')}</h2>
             <p className="text-lg sm:text-xl text-slate-500">{t('home.whySubtitle')}</p>
@@ -131,7 +131,7 @@ export default function Home() {
               <p className="text-slate-500 text-sm leading-relaxed">{t('home.f1Desc')}</p>
               <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+                <span>{t('home.featureIncluded', 'Inclus')}</span>
               </div>
             </div>
 
@@ -145,7 +145,7 @@ export default function Home() {
               <p className="text-slate-500 text-sm leading-relaxed">{t('home.f2Desc')}</p>
               <div className="mt-4 flex items-center gap-1.5 text-teal-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+                <span>{t('home.featureIncluded', 'Inclus')}</span>
               </div>
             </div>
 
@@ -159,7 +159,7 @@ export default function Home() {
               <p className="text-slate-500 text-sm leading-relaxed">{t('home.f3Desc')}</p>
               <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+                <span>{t('home.featureIncluded', 'Inclus')}</span>
               </div>
             </div>
 
@@ -173,7 +173,7 @@ export default function Home() {
               <p className="text-slate-500 text-sm leading-relaxed">{t('home.f4Desc')}</p>
               <div className="mt-4 flex items-center gap-1.5 text-slate-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+                <span>{t('home.featureIncluded', 'Inclus')}</span>
               </div>
             </div>
           </div>
@@ -260,4 +260,5 @@ export default function Home() {
     </div>
   )
 }
+
 
