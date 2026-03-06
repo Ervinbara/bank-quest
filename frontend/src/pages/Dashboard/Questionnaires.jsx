@@ -472,6 +472,39 @@ export default function Questionnaires() {
         <DashboardGuide guide={dashboardGuides.questionnaires} />
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+            <p className="text-sm font-bold text-indigo-900">
+              {tr('Vous etes ici: Etape 2 - Formulaire client', 'You are here: Step 2 - Client form')}
+            </p>
+            <p className="text-xs text-indigo-800 mt-1">
+              {tr(
+                'Cette page sert a assembler le questionnaire final qui sera envoye au client.',
+                'This page is used to assemble the final questionnaire that will be sent to clients.'
+              )}
+            </p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-sm font-bold text-emerald-900">
+              {tr('Etape 1 si necessaire: Banque de questions', 'Step 1 if needed: Question bank')}
+            </p>
+            <p className="text-xs text-emerald-800 mt-1">
+              {tr(
+                'S il manque des questions, retournez dans la banque pour en ajouter par theme.',
+                'If questions are missing, go back to the bank to add them by topic.'
+              )}
+            </p>
+            <Link
+              to="/dashboard/question-bank"
+              className="mt-2 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition"
+            >
+              {tr('Ouvrir Etape 1', 'Open Step 1')}
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-sm text-indigo-900 space-y-1">
@@ -505,7 +538,7 @@ export default function Questionnaires() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
-          <h3 className="font-bold text-gray-900">{tr('Vos questionnaires', 'Your questionnaires')}</h3>
+          <h3 className="font-bold text-gray-900">{tr('Vos questionnaires (ce que le client recevra)', 'Your questionnaires (what clients receive)')}</h3>
           <div className="relative">
             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input

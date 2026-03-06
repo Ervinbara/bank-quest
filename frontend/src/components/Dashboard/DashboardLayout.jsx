@@ -7,6 +7,16 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings, Plus, X, FileText } from 'lucide-react'
 
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
+const ROUTE_CONTEXT = [
+  { path: '/dashboard/clients', labelFr: 'Clients', labelEn: 'Clients' },
+  { path: '/dashboard/invitations', labelFr: 'Invitations', labelEn: 'Invitations' },
+  { path: '/dashboard/questionnaires', labelFr: 'Questionnaires', labelEn: 'Questionnaires' },
+  { path: '/dashboard/question-bank', labelFr: 'Banque de questions', labelEn: 'Question bank' },
+  { path: '/dashboard/analytics', labelFr: 'Statistiques', labelEn: 'Analytics' },
+  { path: '/dashboard/settings', labelFr: 'Parametres', labelEn: 'Settings' },
+  { path: '/dashboard/admin', labelFr: 'Super Admin', labelEn: 'Super Admin' },
+  { path: '/dashboard', labelFr: 'Apercu', labelEn: 'Overview' }
+]
 
 export default function DashboardLayout() {
   const { advisor, logout, isSuperAdmin } = useAuth()
@@ -17,6 +27,9 @@ export default function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1')
+  const routeContext =
+    ROUTE_CONTEXT.find((item) => location.pathname.startsWith(item.path)) || ROUTE_CONTEXT[ROUTE_CONTEXT.length - 1]
+  const currentSectionLabel = t(routeContext.labelFr, routeContext.labelEn)
 
   const mobileTabs = [
     {
@@ -122,9 +135,14 @@ export default function DashboardLayout() {
               </button>
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">{t('dashboardLayout.title', 'Dashboard')}</h1>
-                <p className="text-sm text-gray-600 truncate">
-                  {advisor?.company || t('dashboardLayout.companyFallback', 'Your firm')}
-                </p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm text-gray-600 truncate">
+                    {advisor?.company || t('dashboardLayout.companyFallback', 'Your firm')}
+                  </p>
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                    {currentSectionLabel}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -163,11 +181,13 @@ export default function DashboardLayout() {
         </header>
 
         <main className="flex-1 min-w-0 px-3 max-[380px]:px-2.5 py-4 sm:p-6 pb-28 md:pb-6 finance-animate-in">
-          <Outlet />
+          <div className="mx-auto w-full max-w-[1440px]">
+            <Outlet />
+          </div>
         </main>
       </div>
 
-      <div className="md:hidden fixed bottom-24 right-4 z-30 flex flex-col items-end gap-2">
+      <div className="md:hidden fixed bottom-[5.5rem] right-4 z-30 flex flex-col items-end gap-2">
         {mobileQuickOpen
           ? quickActions.map((action) => {
               const Icon = action.icon

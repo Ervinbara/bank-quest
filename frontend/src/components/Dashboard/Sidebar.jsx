@@ -17,37 +17,44 @@ export default function Sidebar({
 
   const menuItems = [
     {
+      group: 'pilotage',
       path: '/dashboard',
       icon: LayoutDashboard,
       label: t('sidebar.overview', 'Overview'),
       exact: true
     },
     {
+      group: 'pilotage',
       path: '/dashboard/clients',
       icon: Users,
       label: t('sidebar.clients', 'Clients')
     },
     {
+      group: 'pilotage',
       path: '/dashboard/invitations',
       icon: Link2,
       label: t('sidebar.invitations', 'Invitations')
     },
     {
-      path: '/dashboard/questionnaires',
-      icon: ClipboardList,
-      label: t('sidebar.questionnaires', 'Questionnaires (Etape 2)')
-    },
-    {
+      group: 'creation',
       path: '/dashboard/question-bank',
       icon: Library,
-      label: t('sidebar.questionBank', 'Banque de questions (Etape 1)')
+      label: t('sidebar.questionBank', '1. Banque de questions (source)')
     },
     {
+      group: 'creation',
+      path: '/dashboard/questionnaires',
+      icon: ClipboardList,
+      label: t('sidebar.questionnaires', '2. Questionnaires (formulaires clients)')
+    },
+    {
+      group: 'pilotage',
       path: '/dashboard/analytics',
       icon: BarChart3,
       label: t('sidebar.analytics', 'Analytics')
     },
     {
+      group: 'compte',
       path: '/dashboard/settings',
       icon: Settings,
       label: t('sidebar.settings', 'Settings')
@@ -56,6 +63,7 @@ export default function Sidebar({
 
   if (showAdmin) {
     menuItems.push({
+      group: 'compte',
       path: '/dashboard/admin',
       icon: Shield,
       label: t('sidebar.admin', 'Super Admin')
@@ -91,25 +99,39 @@ export default function Sidebar({
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon
           const active = isActive(item.path, item.exact)
+          const previousGroup = index > 0 ? menuItems[index - 1].group : null
+          const showGroupLabel = !collapsed && item.group && item.group !== previousGroup
+          const groupLabel =
+            item.group === 'creation'
+              ? t('Creation', 'Creation')
+              : item.group === 'compte'
+                ? t('Compte', 'Account')
+                : t('Pilotage', 'Operations')
 
           return (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all ${
-                active
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              {!collapsed ? <span className="font-medium">{item.label}</span> : null}
-            </Link>
+            <div key={item.path}>
+              {showGroupLabel ? (
+                <p className="px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                  {groupLabel}
+                </p>
+              ) : null}
+              <Link
+                to={item.path}
+                onClick={onClose}
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all ${
+                  active
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {!collapsed ? <span className="font-medium">{item.label}</span> : null}
+              </Link>
+            </div>
           )
         })}
       </nav>

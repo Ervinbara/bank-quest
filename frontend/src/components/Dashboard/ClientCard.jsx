@@ -32,26 +32,26 @@ export default function ClientCard({ client, onClick, footerAction }) {
         onClick ? 'cursor-pointer' : ''
       }`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
             {client.avatar || client.name.charAt(0)}
           </div>
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg">{client.name}</h3>
+          <div className="min-w-0">
+            <h3 className="font-bold text-gray-800 text-lg truncate">{client.name}</h3>
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <Mail className="w-3 h-3" />
-              <span className="text-xs">{client.email}</span>
+              <span className="text-xs break-all">{client.email}</span>
             </div>
           </div>
         </div>
 
         {isCompleted ? (
-          <div className={`px-3 py-1 rounded-full font-bold text-sm ${getScoreColor(client.score)}`}>
+          <div className={`self-start px-3 py-1 rounded-full font-bold text-sm ${getScoreColor(client.score)}`}>
             {client.score}/100
           </div>
         ) : (
-          <div className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-semibold text-sm flex items-center gap-1">
+          <div className="self-start px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-semibold text-sm flex items-center gap-1">
             <AlertCircle className="w-4 h-4" />
             {tr('En attente', 'Pending')}
           </div>
@@ -69,7 +69,7 @@ export default function ClientCard({ client, onClick, footerAction }) {
         </div>
 
         {isCompleted && (
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <div className="flex items-center gap-1 text-green-600">
               <Award className="w-4 h-4" />
                <span className="font-semibold">{strengths.length} {tr('forces', 'strengths')}</span>

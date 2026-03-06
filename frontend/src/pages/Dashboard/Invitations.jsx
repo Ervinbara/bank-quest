@@ -160,6 +160,7 @@ export default function Invitations() {
     const start = (page - 1) * pageSize
     return filteredRows.slice(start, start + pageSize)
   }, [filteredRows, page, pageSize])
+  const hasActiveFilters = Boolean(searchTerm.trim()) || quizFilter !== 'pending' || linkFilter !== 'all'
 
   const copyLink = async (row) => {
     if (!row?.invitation?.inviteUrl) return
@@ -312,8 +313,17 @@ export default function Invitations() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder={tr('Rechercher client/email...', 'Search client/email...')}
-              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-10 py-2 focus:outline-none focus:border-emerald-500"
             />
+            {searchTerm ? (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-100"
+              >
+                {tr('Effacer', 'Clear')}
+              </button>
+            ) : null}
           </div>
           {isMobile ? (
             <div className="md:col-span-2 space-y-2">
@@ -379,6 +389,43 @@ export default function Invitations() {
             </>
           )}
         </div>
+        {hasActiveFilters ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-slate-700">{tr('Filtres actifs', 'Active filters')}</span>
+            {searchTerm.trim() ? (
+              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
+                {tr('Recherche', 'Search')}: {searchTerm.trim()}
+              </span>
+            ) : null}
+            {quizFilter !== 'pending' ? (
+              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
+                {tr('Quiz', 'Quiz')}:{' '}
+                {quizFilter === 'completed'
+                  ? tr('Completes', 'Completed')
+                  : tr('Tous', 'All')}
+              </span>
+            ) : null}
+            {linkFilter !== 'all' ? (
+              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-700 border border-slate-200">
+                {tr('Lien', 'Link')}:{' '}
+                {linkFilter === 'with_link'
+                  ? tr('Avec lien', 'With link')
+                  : tr('Sans lien', 'No link')}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('')
+                setQuizFilter('pending')
+                setLinkFilter('all')
+              }}
+              className="ml-auto rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              {tr('Reinitialiser', 'Reset')}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">

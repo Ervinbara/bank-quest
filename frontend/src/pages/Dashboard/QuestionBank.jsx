@@ -380,6 +380,39 @@ export default function QuestionBank() {
         <DashboardGuide guide={dashboardGuides.questionBank} />
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-sm font-bold text-emerald-900">
+              {tr('Vous etes ici: Etape 1 - Bibliotheque interne', 'You are here: Step 1 - Internal library')}
+            </p>
+            <p className="text-xs text-emerald-800 mt-1">
+              {tr(
+                'Utilisez cette page pour creer et organiser vos questions par theme. Le client ne voit pas cette page.',
+                'Use this page to create and organize questions by topic. Clients do not see this page.'
+              )}
+            </p>
+          </div>
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+            <p className="text-sm font-bold text-indigo-900">
+              {tr('Etape 2 ensuite: Formulaire client', 'Step 2 next: Client form')}
+            </p>
+            <p className="text-xs text-indigo-800 mt-1">
+              {tr(
+                'Quand vos questions sont pretes, allez dans "Questionnaires" pour assembler le formulaire a envoyer.',
+                'Once questions are ready, go to "Questionnaires" to assemble the form you send.'
+              )}
+            </p>
+            <Link
+              to="/dashboard/questionnaires"
+              className="mt-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+            >
+              {tr('Ouvrir Etape 2', 'Open Step 2')}
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="text-sm text-emerald-900 space-y-1">
@@ -411,7 +444,7 @@ export default function QuestionBank() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
-          <h3 className="font-bold text-gray-900">{tr('Themes', 'Themes')}</h3>
+          <h3 className="font-bold text-gray-900">{tr('Themes (bibliotheque interne)', 'Topics (internal library)')}</h3>
           <div className="relative">
             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input

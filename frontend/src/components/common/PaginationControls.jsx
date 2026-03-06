@@ -48,18 +48,18 @@ export default function PaginationControls({
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 justify-between sm:justify-end">
         <button
           type="button"
           onClick={() => canPrev && onPageChange?.(page - 1)}
           disabled={!canPrev}
-          className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex min-h-[40px] items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
           <ChevronLeft className="w-4 h-4" />
           {text.prev}
         </button>
 
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-gray-700 min-w-[84px] text-center">
           {text.page} {page}/{totalPages}
         </span>
 
@@ -67,7 +67,7 @@ export default function PaginationControls({
           type="button"
           onClick={() => canNext && onPageChange?.(page + 1)}
           disabled={!canNext}
-          className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex min-h-[40px] items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
           {text.next}
           <ChevronRight className="w-4 h-4" />

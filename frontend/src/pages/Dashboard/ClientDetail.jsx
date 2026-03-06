@@ -567,28 +567,28 @@ export default function ClientDetail() {
   if (!client) return <div className="text-sm text-red-700">Client introuvable</div>
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <Link to="/dashboard/clients" className="inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-900 mb-2"><ArrowLeft className="w-4 h-4" />Retour aux clients</Link>
           <h2 className="text-2xl font-bold text-gray-800">{client.name}</h2>
           <p className="text-gray-600">Fiche detail client</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setEditing((x) => !x)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"><Pencil className="w-4 h-4" />{editing ? 'Annuler' : 'Modifier'}</button>
-          <button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">{deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}Supprimer</button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+          <button onClick={() => setEditing((x) => !x)} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"><Pencil className="w-4 h-4" />{editing ? 'Annuler' : 'Modifier'}</button>
+          <button onClick={handleDelete} disabled={deleting} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">{deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}Supprimer</button>
         </div>
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
 
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-6">
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden min-w-0">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-5 sm:p-6">
           <h3 className="text-2xl font-bold">{client.name}</h3>
-          <div className="flex items-center gap-2 text-emerald-100"><Mail className="w-4 h-4" /><span>{client.email}</span></div>
+          <div className="flex items-start gap-2 text-emerald-100 min-w-0"><Mail className="w-4 h-4 mt-0.5 shrink-0" /><span className="break-all">{client.email}</span></div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {editing ? (
             <div className="bg-gray-50 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
               <input name="name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="px-3 py-2 border rounded-lg" />
@@ -605,9 +605,9 @@ export default function ClientDetail() {
               <p className="text-sm text-blue-900">{client.last_contacted_at ? `Dernier contact: ${formatDate(client.last_contacted_at)}` : 'Aucun contact enregistre'}</p>
             </div>
             <textarea rows={3} value={followupData.advisorNotes} onChange={(e) => setFollowupData((p) => ({ ...p, advisorNotes: e.target.value }))} className="mt-3 w-full px-3 py-2 rounded-lg border" placeholder="Notes conseiller" />
-            <div className="mt-3 flex justify-end gap-2">
-              <button onClick={() => void handleSaveFollowup(false)} disabled={updatingFollowup} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-blue-800"><Save className="w-4 h-4" />Sauvegarder suivi</button>
-              <button onClick={() => void handleSaveFollowup(true)} disabled={updatingFollowup} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"><PhoneCall className="w-4 h-4" />Marquer comme contacte</button>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button onClick={() => void handleSaveFollowup(false)} disabled={updatingFollowup} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border font-semibold text-blue-800"><Save className="w-4 h-4" />Sauvegarder suivi</button>
+              <button onClick={() => void handleSaveFollowup(true)} disabled={updatingFollowup} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"><PhoneCall className="w-4 h-4" />Marquer comme contacte</button>
             </div>
           </div>
 
@@ -628,15 +628,15 @@ export default function ClientDetail() {
           </div>
 
           <div className="bg-white border rounded-xl p-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+              <div className="flex items-start gap-2 min-w-0">
                 <History className="w-5 h-5 text-slate-700" />
                 <h4 className="font-bold">Timeline client (RDV, questionnaires, notes, evolution score)</h4>
               </div>
               <button
                 type="button"
                 onClick={() => setIsTimelineCollapsed((prev) => !prev)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 self-start sm:self-auto"
               >
                 {isTimelineCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                 {isTimelineCollapsed ? 'Deplier' : 'Plier'}
@@ -654,7 +654,7 @@ export default function ClientDetail() {
 
                   return (
                     <div key={event.id} className="rounded-lg border bg-gray-50 px-3 py-2">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex items-start gap-2 min-w-0">
                           {isQuiz ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
@@ -670,7 +670,7 @@ export default function ClientDetail() {
                             <p className="text-xs text-gray-600 mt-0.5">{event.detail}</p>
                           </div>
                         </div>
-                        <span className="text-xs text-gray-500 whitespace-nowrap">{formatDate(event.createdAt)}</span>
+                        <span className="text-xs text-gray-500">{formatDate(event.createdAt)}</span>
                       </div>
                     </div>
                   )
@@ -694,12 +694,12 @@ export default function ClientDetail() {
           </div>
 
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <h4 className="font-bold text-indigo-900">Relancer avec un questionnaire</h4>
               <button
                 type="button"
                 onClick={() => setIsRelanceCollapsed((prev) => !prev)}
-                className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-semibold text-indigo-800 hover:bg-indigo-100"
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-semibold text-indigo-800 hover:bg-indigo-100 self-start sm:self-auto"
               >
                 {isRelanceCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                 {isRelanceCollapsed ? 'Deplier' : 'Plier'}
@@ -724,13 +724,13 @@ export default function ClientDetail() {
                     <p className="text-xs text-gray-600">{link.createdAt ? formatDate(link.createdAt) : 'Date inconnue'}{link.expiresAt ? ` • expire le ${formatDate(link.expiresAt)}` : ''}</p>
                     <p className="text-xs text-gray-600 break-all">{link.inviteUrl}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => void handleCopyInvitationLink(link)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-semibold"><Copy className="w-4 h-4" />{copySuccessId === (link.id || link.token) ? 'Copie' : 'Copier'}</button>
-                    <button onClick={() => void handleSendInvitationEmail(link)} disabled={!planAccess.canSendInvitationEmails || sendingInvitationId === (link.id || link.token)} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{sendingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Envoyer</button>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
+                    <button onClick={() => void handleCopyInvitationLink(link)} className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg border text-sm font-semibold"><Copy className="w-4 h-4" />{copySuccessId === (link.id || link.token) ? 'Copie' : 'Copier'}</button>
+                    <button onClick={() => void handleSendInvitationEmail(link)} disabled={!planAccess.canSendInvitationEmails || sendingInvitationId === (link.id || link.token)} className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{sendingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Envoyer</button>
                     <button
                       onClick={() => void handleDeleteInvitationLink(link)}
                       disabled={deletingInvitationId === (link.id || link.token)}
-                      className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50 disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50 disabled:opacity-60"
                     >
                       {deletingInvitationId === (link.id || link.token) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       Supprimer
@@ -795,12 +795,12 @@ export default function ClientDetail() {
                   const prev = typeof sessions[index + 1]?.score === 'number' ? sessions[index + 1].score : null
                   const delta = prev !== null && typeof s.score === 'number' ? s.score - prev : null
                   return (
-                    <button key={s.id} onClick={() => setSelectedSessionId(s.id)} className={`w-full text-left rounded-lg border px-3 py-2 flex items-center justify-between ${activeSessionId === s.id ? 'border-indigo-400 bg-indigo-50' : 'bg-gray-50 border-gray-200'}`}>
-                      <div>
+                    <button key={s.id} onClick={() => setSelectedSessionId(s.id)} className={`w-full text-left rounded-lg border px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${activeSessionId === s.id ? 'border-indigo-400 bg-indigo-50' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className="min-w-0">
                         <p className="font-semibold">{s.questionnaire_name || 'Questionnaire standard'}</p>
                         <p className="text-xs text-gray-600">{formatDate(s.completed_at || s.created_at)}</p>
                       </div>
-                      <div className="text-sm flex items-center gap-2">
+                      <div className="text-sm flex items-center gap-2 self-start sm:self-auto">
                         <span className={`font-bold ${scoreClass(s.score || 0)}`}>{s.score}/100</span>
                         {delta !== null ? <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${delta >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{delta >= 0 ? '+' : ''}{delta} pts</span> : null}
                       </div>
