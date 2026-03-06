@@ -21,7 +21,6 @@ import {
   Users,
   Target,
   ChevronDown,
-  ChevronUp,
   Search,
   RotateCcw
 } from 'lucide-react'
@@ -387,7 +386,7 @@ export default function Analytics() {
           className="w-full flex items-center justify-between mb-4"
         >
           <h3 className="text-xl font-bold text-gray-800">{tr('Vue pipeline et segmentation', 'Pipeline and segmentation overview')}</h3>
-          {panelOpen.overview ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+          <ChevronDown className={`w-5 h-5 text-gray-500 fm-chevron ${panelOpen.overview ? 'fm-chevron-open' : ''}`} />
         </button>
         {panelOpen.overview ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -439,7 +438,7 @@ export default function Analytics() {
           className="w-full flex items-center justify-between mb-4"
         >
           <h3 className="text-xl font-bold text-gray-800">{tr('Repartition et evolution', 'Distribution and evolution')}</h3>
-          {panelOpen.distribution ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+          <ChevronDown className={`w-5 h-5 text-gray-500 fm-chevron ${panelOpen.distribution ? 'fm-chevron-open' : ''}`} />
         </button>
         {panelOpen.distribution ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -498,7 +497,7 @@ export default function Analytics() {
             <h3 className="text-xl font-bold text-gray-800">{tr('Priorites de relance', 'Follow-up priorities')}</h3>
             <Target className="w-5 h-5 text-emerald-700" />
           </div>
-          {panelOpen.priorities ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+          <ChevronDown className={`w-5 h-5 text-gray-500 fm-chevron ${panelOpen.priorities ? 'fm-chevron-open' : ''}`} />
         </button>
         {!panelOpen.priorities ? null : (
           <div className="space-y-4">

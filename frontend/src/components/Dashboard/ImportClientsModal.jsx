@@ -241,12 +241,22 @@ export default function ImportClientsModal({
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 pt-[max(12px,env(safe-area-inset-top))] pb-[max(12px,env(safe-area-inset-bottom))] sm:p-4" onClick={closeAndReset}>
+    <div
+      className="fm-overlay fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 pt-[max(12px,env(safe-area-inset-top))] pb-[max(12px,env(safe-area-inset-bottom))] sm:p-4"
+      style={{ opacity: isOpen ? 1 : 0, pointerEvents: isOpen ? 'auto' : 'none' }}
+      aria-hidden={!isOpen}
+      inert={!isOpen ? '' : undefined}
+      onClick={closeAndReset}
+    >
       <div
-        className="bg-white w-full max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:max-h-[92vh] sm:max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="fm-panel bg-white w-full max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:max-h-[92vh] sm:max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(-10px)',
+        }}
+        role="dialog"
+        aria-modal="true"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-5 sm:p-6 sticky top-0 z-10">

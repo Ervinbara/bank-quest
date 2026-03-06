@@ -33,6 +33,9 @@ const translations = {
     },
     home: {
       badge: 'FinMate for financial advisors',
+      workflowBadge: 'Workflow simplifie',
+      whyBadge: 'Vos avantages',
+      featureIncluded: 'Inclus',
       titleLine1: 'Qualifiez vos clients plus vite.',
       titleLine2: 'Convertissez mieux vos rendez-vous.',
       subtitle:
@@ -157,6 +160,9 @@ const translations = {
     },
     home: {
       badge: 'FinMate for financial advisors',
+      workflowBadge: 'Workflow',
+      whyBadge: 'Core features',
+      featureIncluded: 'Included',
       titleLine1: 'Qualify clients faster.',
       titleLine2: 'Convert meetings better.',
       subtitle:

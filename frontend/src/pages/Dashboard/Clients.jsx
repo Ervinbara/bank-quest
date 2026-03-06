@@ -10,7 +10,7 @@ import ImportClientsModal from '@/components/Dashboard/ImportClientsModal'
 import PaginationControls from '@/components/common/PaginationControls'
 import { dashboardGuides } from '@/data/dashboardGuides'
 import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
-import { Loader2, Users, UserPlus, ListFilter, ChevronDown, ChevronUp, Search, Upload } from 'lucide-react'
+import { Loader2, Users, UserPlus, ListFilter, ChevronDown, Search, Upload } from 'lucide-react'
 
 const normalizeFollowupStatus = (status) => status || 'a_contacter'
 
@@ -397,7 +397,7 @@ export default function Clients() {
             <ListFilter className="w-4 h-4 text-slate-500" />
             <p className="text-sm font-semibold text-slate-700">{tr('Filtres', 'Filters')}</p>
           </div>
-          {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+          <ChevronDown className={`w-4 h-4 text-slate-400 fm-chevron ${filtersCollapsed ? '' : 'fm-chevron-open'}`} />
         </button>
 
         {!filtersCollapsed ? (

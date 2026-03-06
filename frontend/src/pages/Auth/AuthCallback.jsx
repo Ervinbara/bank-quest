@@ -38,7 +38,14 @@ export default function AuthCallback() {
         const hasCode = href.includes('code=')
         if (hasCode) {
           const { error } = await supabase.auth.exchangeCodeForSession(href)
-          if (error) throw error
+          if (error) {
+            const message = String(error?.message || '').toLowerCase()
+            const pkceMissing =
+              message.includes('pkce') ||
+              message.includes('code verifier') ||
+              message.includes('verifier not found')
+            if (!pkceMissing) throw error
+          }
         }
 
         const {
@@ -59,7 +66,13 @@ export default function AuthCallback() {
       } catch (error) {
         if (cancelled) return
         setStatus('error')
-        setMessage(error?.message || 'Impossible de finaliser la connexion.')
+        const raw = String(error?.message || '')
+        const lower = raw.toLowerCase()
+        if (lower.includes('pkce') || lower.includes('code verifier') || lower.includes('verifier not found')) {
+          setMessage('Connexion interrompue sur mobile. Reessayez Google depuis le meme navigateur/app, sans changer de fenetre.')
+          return
+        }
+        setMessage(raw || 'Impossible de finaliser la connexion.')
       }
     }
 

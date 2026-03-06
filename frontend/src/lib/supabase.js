@@ -12,6 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce'
+    // Use implicit flow to avoid PKCE verifier loss on mobile/TWA cross-browser redirects.
+    flowType: 'implicit'
   }
 })

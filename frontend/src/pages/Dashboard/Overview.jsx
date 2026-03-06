@@ -12,7 +12,6 @@ import {
   ArrowRight,
   CheckCircle,
   ChevronDown,
-  ChevronUp,
   Clock,
   Crown,
   Eye,
@@ -655,7 +654,7 @@ export default function Overview() {
               onClick={toggleJourneyCollapsed}
               className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              {isJourneyCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              <ChevronDown className={`w-4 h-4 fm-chevron ${isJourneyCollapsed ? '' : 'fm-chevron-open'}`} />
               {isJourneyCollapsed ? tr('Deplier', 'Expand') : tr('Plier', 'Collapse')}
             </button>
           </div>

@@ -206,8 +206,16 @@ export default function Sidebar({
                 title={collapsed ? item.label : undefined}
                 className={`nav-item ${active ? 'active' : ''} ${collapsed ? 'justify-center' : ''}`}
               >
-                <Icon className="w-4.5 h-4.5 shrink-0" style={{ width: '18px', height: '18px' }} />
-                {!collapsed && <span>{item.label}</span>}
+                <Icon className="shrink-0 transition-transform duration-200" style={{ width: '18px', height: '18px' }} />
+                <span
+                  className="fm-label-fade overflow-hidden whitespace-nowrap"
+                  style={{
+                    maxWidth: collapsed ? '0px' : '160px',
+                    opacity: collapsed ? 0 : 1,
+                  }}
+                >
+                  {item.label}
+                </span>
               </Link>
             </div>
           )
@@ -236,19 +244,32 @@ export default function Sidebar({
         {sidebarContent}
       </aside>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          <button
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={onClose}
-            aria-label={t('Fermer le menu', 'Close menu')}
-          />
-          <aside className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white shadow-xl flex flex-col border-r border-slate-100">
-            {sidebarContent}
-          </aside>
-        </div>
-      )}
+      {/* Mobile drawer — toujours monté, animé via CSS */}
+      <div
+        className="md:hidden fixed inset-0 z-40"
+        style={{ pointerEvents: mobileOpen ? 'auto' : 'none' }}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          style={{
+            opacity: mobileOpen ? 1 : 0,
+            transition: 'opacity 0.28s ease',
+          }}
+          onClick={onClose}
+          aria-label={t('Fermer le menu', 'Close menu')}
+        />
+        {/* Drawer */}
+        <aside
+          className="absolute left-0 top-0 h-full w-72 max-w-[88vw] bg-white shadow-xl flex flex-col border-r border-slate-100"
+          style={{
+            transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s cubic-bezier(0.22, 0.68, 0.12, 1)',
+          }}
+        >
+          {sidebarContent}
+        </aside>
+      </div>
     </>
   )
 }
