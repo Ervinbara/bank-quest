@@ -27,14 +27,14 @@ export default function Clients() {
   const FOLLOWUP_FILTERS = [
     { key: 'all', label: tr('Tous suivis', 'All follow-ups') },
     { key: 'a_contacter', label: tr('A contacter', 'To contact') },
-    { key: 'rdv_planifie', label: tr('RDV planifie', 'Meeting scheduled') },
+    { key: 'rdv_planifie', label: tr('RDV planifié', 'Meeting scheduled') },
     { key: 'en_cours', label: tr('En cours', 'In progress') },
     { key: 'clos', label: tr('Clos', 'Closed') }
   ]
 
   const FOLLOWUP_LABELS = {
     a_contacter: tr('A contacter', 'To contact'),
-    rdv_planifie: tr('RDV planifie', 'Meeting scheduled'),
+    rdv_planifie: tr('RDV planifié', 'Meeting scheduled'),
     en_cours: tr('En cours', 'In progress'),
     clos: tr('Clos', 'Closed')
   }
@@ -52,6 +52,7 @@ export default function Clients() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [infoMessage, setInfoMessage] = useState('')
   const [activeStatusFilter, setActiveStatusFilter] = useState('all')
   const [activeFollowupFilter, setActiveFollowupFilter] = useState('all')
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
@@ -180,14 +181,17 @@ export default function Clients() {
     if (!advisor?.id || !clientId) return
     const optimisticContactDate = followupStatus !== 'a_contacter' ? new Date().toISOString() : null
     let previousClient = null
+    let previousStatus = null
 
     try {
       setError(null)
+      setInfoMessage('')
       setUpdatingFollowupByClient((prev) => ({ ...prev, [clientId]: true }))
       setClients((prev) =>
         prev.map((client) => {
           if (client.id !== clientId) return client
           previousClient = client
+          previousStatus = normalizeFollowupStatus(client.followup_status)
           return {
             ...client,
             followup_status: followupStatus,
@@ -195,6 +199,14 @@ export default function Clients() {
           }
         })
       )
+
+      if (previousStatus && previousStatus !== followupStatus) {
+        setStats((prev) => ({
+          ...prev,
+          [previousStatus]: Math.max(0, Number(prev[previousStatus] || 0) - 1),
+          [followupStatus]: Number(prev[followupStatus] || 0) + 1
+        }))
+      }
 
       const updatedClient = await updateClientFollowup({
         clientId,
@@ -215,14 +227,21 @@ export default function Clients() {
           )
         )
       }
-
-      void loadClients()
+      setInfoMessage(tr('Suivi client mis a jour', 'Client follow-up updated'))
+      setTimeout(() => setInfoMessage(''), 1800)
     } catch (err) {
       console.error('Erreur mise a jour suivi client:', err)
       if (previousClient) {
         setClients((prev) =>
           prev.map((client) => (client.id === clientId ? previousClient : client))
         )
+      }
+      if (previousStatus && previousStatus !== followupStatus) {
+        setStats((prev) => ({
+          ...prev,
+          [followupStatus]: Math.max(0, Number(prev[followupStatus] || 0) - 1),
+          [previousStatus]: Number(prev[previousStatus] || 0) + 1
+        }))
       }
       setError(tr('Impossible de mettre a jour le suivi', 'Unable to update follow-up'))
     } finally {
@@ -253,7 +272,7 @@ export default function Clients() {
           onClick={loadClients}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          {tr('Reessayer', 'Retry')}
+          {tr('Réessayer', 'Retry')}
         </button>
       </div>
     )
@@ -261,6 +280,11 @@ export default function Clients() {
 
   return (
     <div className="space-y-6 min-w-0">
+      {infoMessage ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          {infoMessage}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{tr('Mes clients', 'My clients')}</h2>

@@ -470,7 +470,7 @@ export default function Settings() {
 
       setMessage({
         type: 'success',
-        text: tr('Preferences de consentement enregistrees.', 'Consent preferences saved.')
+        text: tr('Préférences de consentement enregistrées.', 'Consent preferences saved.')
       })
     } catch (error) {
       setMessage({
@@ -545,7 +545,7 @@ export default function Settings() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr('Parametres', 'Settings')}</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{tr('Paramètres', 'Settings')}</h2>
           <p className="text-gray-600">{tr('Gerez votre compte et vos preferences', 'Manage your account and preferences')}</p>
         </div>
         <DashboardGuide guide={dashboardGuides.settings} />

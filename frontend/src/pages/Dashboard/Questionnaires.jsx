@@ -406,7 +406,7 @@ export default function Questionnaires() {
         questions: draft.questions
       })
       await loadAll()
-      setSuccess(tr('Questionnaire enregistre', 'Questionnaire saved'))
+      setSuccess(tr('Questionnaire enregistré', 'Questionnaire saved'))
     } catch (err) {
       setError(err.message || tr("Impossible d'enregistrer le questionnaire", 'Unable to save questionnaire'))
     } finally {

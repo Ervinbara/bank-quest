@@ -282,7 +282,7 @@ export default function ClientQuiz() {
       })
     } catch (err) {
       console.error('Erreur soumission quiz:', err)
-      setError(err.message || "Impossible d'enregistrer le quiz, veuillez reessayer")
+      setError(err.message || "Impossible d'enregistrer le quiz, veuillez réessayer")
     } finally {
       setSaving(false)
     }
@@ -396,7 +396,7 @@ export default function ClientQuiz() {
             {client?.quiz_status === 'completed' && typeof client?.score === 'number' ? (
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
                 <p className="font-semibold text-emerald-900">
-                  Dernier resultat enregistre: {client.score}/100
+                  Dernier résultat enregistré: {client.score}/100
                   {client.completed_at ? ` (${new Date(client.completed_at).toLocaleDateString('fr-FR')})` : ''}
                 </p>
                 <p className="text-sm text-emerald-800 mt-1">

@@ -270,7 +270,7 @@ export default function Invitations() {
       setTemplateMessage('')
       const saved = await saveAdvisorEmailTemplate(advisor.id, template)
       setTemplate(saved)
-      setTemplateMessage(tr('Template email enregistre', 'Email template saved'))
+      setTemplateMessage(tr('Template email enregistré', 'Email template saved'))
       setTimeout(() => setTemplateMessage(''), 2200)
     } catch (err) {
       setError(err.message || tr("Impossible d'enregistrer le template", 'Unable to save template'))

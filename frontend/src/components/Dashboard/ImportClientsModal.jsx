@@ -376,7 +376,7 @@ Sofia Bernard,sofia.bernard.test@exemple.fr
               </div>
 
               <div className="rounded-lg border border-gray-200 p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">{tr('Apercu', 'Preview')}</p>
+                <p className="text-sm font-semibold text-gray-700 mb-2">{tr('Aperçu', 'Preview')}</p>
                 <div className="space-y-2">
                   {mappedPreviewRows.map((row, index) => (
                     <div key={`${row.email}-${index}`} className="text-sm text-gray-700 flex justify-between gap-3">

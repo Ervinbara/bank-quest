@@ -114,7 +114,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 finance-animate-in">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
-              {t('home.whyBadge', 'Fonctionnalites')}
+              {t('home.whyBadge', 'Fonctionnalités')}
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.whyTitle')}</h2>
             <p className="text-lg sm:text-xl text-slate-500">{t('home.whySubtitle')}</p>

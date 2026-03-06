@@ -37,14 +37,14 @@ import {
 
 const FOLLOWUP_OPTIONS = [
   { key: 'a_contacter', label: 'A contacter' },
-  { key: 'rdv_planifie', label: 'RDV planifie' },
+  { key: 'rdv_planifie', label: 'RDV planifié' },
   { key: 'en_cours', label: 'En cours' },
   { key: 'clos', label: 'Clos' }
 ]
 
 const FOLLOWUP_LABELS = {
   a_contacter: 'A contacter',
-  rdv_planifie: 'RDV planifie',
+  rdv_planifie: 'RDV planifié',
   en_cours: 'En cours',
   clos: 'Clos'
 }
@@ -115,6 +115,7 @@ export default function ClientDetail() {
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -200,6 +201,23 @@ export default function ClientDetail() {
         new Date(a.completed_at || a.created_at || 0).getTime()
     )
   }, [client?.quiz_sessions])
+
+  const followupDirty = useMemo(() => {
+    if (!client) return false
+    return (
+      (followupData.followupStatus || 'a_contacter') !== (client.followup_status || 'a_contacter') ||
+      String(followupData.advisorNotes || '') !== String(client.advisor_notes || '')
+    )
+  }, [client, followupData.advisorNotes, followupData.followupStatus])
+
+  const profileDirty = useMemo(() => {
+    if (!client) return false
+    return (
+      formData.name.trim() !== String(client.name || '').trim() ||
+      formData.email.trim().toLowerCase() !== String(client.email || '').trim().toLowerCase() ||
+      String(formData.avatar || '') !== String(client.avatar || '')
+    )
+  }, [client, formData.avatar, formData.email, formData.name])
 
   const activeSessionId = selectedSessionId || sessions[0]?.id || null
   const selectedSession = sessions.find((s) => s.id === activeSessionId) || null
@@ -388,7 +406,7 @@ export default function ClientDetail() {
         detail:
           typeof session.score === 'number'
             ? `Score ${session.score}/100${typeof delta === 'number' ? ` (${delta >= 0 ? '+' : ''}${delta} pts)` : ''}`
-            : 'Resultat enregistre'
+            : 'Résultat enregistré'
       })
     })
 
@@ -412,7 +430,7 @@ export default function ClientDetail() {
           type: 'followup',
           createdAt: client.last_contacted_at,
           title: 'Contact client',
-          detail: 'Dernier contact enregistre.'
+          detail: 'Dernier contact enregistré.'
         })
       }
       if (client?.advisor_notes) {
@@ -432,11 +450,13 @@ export default function ClientDetail() {
 
   const handleSave = async () => {
     if (!client?.id || !advisor?.id) return
+    if (!profileDirty) return
     if (!formData.name.trim()) return setError('Le nom est requis')
     if (!isValidEmail(formData.email)) return setError('Email invalide')
     try {
       setSaving(true)
       setError(null)
+      setSuccessMessage('')
       const updated = await updateClient({ clientId: client.id, advisorId: advisor.id, name: formData.name, email: formData.email, avatar: formData.avatar })
       setClient((prev) => ({
         ...prev,
@@ -446,6 +466,8 @@ export default function ClientDetail() {
         followup_events: updated?.followup_events || prev?.followup_events || []
       }))
       setEditing(false)
+      setSuccessMessage('Fiche client enregistrée')
+      setTimeout(() => setSuccessMessage(''), 2200)
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le client')
     } finally {
@@ -455,9 +477,11 @@ export default function ClientDetail() {
 
   const handleSaveFollowup = async (markContacted = false) => {
     if (!client?.id || !advisor?.id) return
+    if (!followupDirty && !markContacted) return
     try {
       setUpdatingFollowup(true)
       setError(null)
+      setSuccessMessage('')
       const updated = await updateClientFollowup({
         clientId: client.id,
         advisorId: advisor.id,
@@ -472,6 +496,12 @@ export default function ClientDetail() {
         quiz_progress: updated?.quiz_progress || prev?.quiz_progress || null,
         followup_events: updated?.followup_events || prev?.followup_events || []
       }))
+      setFollowupData({
+        followupStatus: updated?.followup_status || followupData.followupStatus || 'a_contacter',
+        advisorNotes: updated?.advisor_notes || ''
+      })
+      setSuccessMessage(markContacted ? 'Contact enregistré' : 'Suivi client enregistré')
+      setTimeout(() => setSuccessMessage(''), 2200)
     } catch (err) {
       setError(err.message || 'Impossible de mettre a jour le suivi')
     } finally {
@@ -580,6 +610,7 @@ export default function ClientDetail() {
       </div>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div> : null}
+      {successMessage ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{successMessage}</div> : null}
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden min-w-0">
         <div className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white p-5 sm:p-6">
@@ -592,7 +623,7 @@ export default function ClientDetail() {
             <div className="bg-gray-50 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
               <input name="name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} className="px-3 py-2 border rounded-lg" />
               <input name="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} className="px-3 py-2 border rounded-lg" />
-              <div className="flex justify-end"><button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Enregistrer</button></div>
+              <div className="flex justify-end"><button onClick={handleSave} disabled={saving || !profileDirty} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}{profileDirty ? 'Enregistrer' : 'Aucune modification'}</button></div>
             </div>
           ) : null}
 
@@ -601,12 +632,15 @@ export default function ClientDetail() {
               <select value={followupData.followupStatus} onChange={(e) => setFollowupData((p) => ({ ...p, followupStatus: e.target.value }))} className="px-3 py-2 rounded-lg border">
                 {FOLLOWUP_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
               </select>
-              <p className="text-sm text-blue-900">{client.last_contacted_at ? `Dernier contact: ${formatDate(client.last_contacted_at)}` : 'Aucun contact enregistre'}</p>
+              <p className="text-sm text-blue-900">{client.last_contacted_at ? `Dernier contact: ${formatDate(client.last_contacted_at)}` : 'Aucun contact enregistré'}</p>
             </div>
             <textarea rows={3} value={followupData.advisorNotes} onChange={(e) => setFollowupData((p) => ({ ...p, advisorNotes: e.target.value }))} className="mt-3 w-full px-3 py-2 rounded-lg border" placeholder="Notes conseiller" />
+            <div className="mt-2 text-xs font-semibold text-slate-600">
+              {followupDirty ? 'Modifications non enregistrées' : 'Suivi à jour'}
+            </div>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button onClick={() => void handleSaveFollowup(false)} disabled={updatingFollowup} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border font-semibold text-blue-800"><Save className="w-4 h-4" />Sauvegarder suivi</button>
-              <button onClick={() => void handleSaveFollowup(true)} disabled={updatingFollowup} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold"><PhoneCall className="w-4 h-4" />Marquer comme contacte</button>
+              <button onClick={() => void handleSaveFollowup(false)} disabled={updatingFollowup || !followupDirty} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border font-semibold text-blue-800 disabled:opacity-50"><Save className="w-4 h-4" />Sauvegarder suivi</button>
+              <button onClick={() => void handleSaveFollowup(true)} disabled={updatingFollowup} className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold disabled:opacity-60"><PhoneCall className="w-4 h-4" />Marquer comme contacte</button>
             </div>
           </div>
 

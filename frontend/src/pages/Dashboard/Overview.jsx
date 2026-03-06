@@ -243,7 +243,7 @@ export default function Overview() {
         key: 'followup_3',
         title: tr('Objectif - 3 suivis actifs', 'Goal - 3 active follow-ups'),
         description: tr(
-          'Passez 3 clients en statut RDV planifie ou en cours.',
+          'Passez 3 clients en statut RDV planifié ou en cours.',
           'Move 3 clients to scheduled/in-progress follow-up.'
         ),
         done: (stats?.inProgress || 0) >= 3,
@@ -467,7 +467,7 @@ export default function Overview() {
           onClick={loadStats}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          {tr('Reessayer', 'Retry')}
+          {tr('Réessayer', 'Retry')}
         </button>
       </div>
     )
@@ -557,9 +557,9 @@ export default function Overview() {
       ) : (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
-          <p className="font-semibold text-slate-800">{tr('Instrumentation produit masquee', 'Product instrumentation hidden')}</p>
+          <p className="font-semibold text-slate-800">{tr('Instrumentation produit masquée', 'Product instrumentation hidden')}</p>
           <p className="text-sm text-slate-600">
-            {tr('Vous pouvez la reactiver ici ou dans Parametres.', 'You can re-enable it here or in Settings.')}
+            {tr('Vous pouvez la réactiver ici ou dans Paramètres.', 'You can re-enable it here or in Settings.')}
           </p>
         </div>
         <button
@@ -623,9 +623,9 @@ export default function Overview() {
       ) : (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
-          <p className="font-semibold text-slate-800">{tr('Gamification masquee', 'Gamification hidden')}</p>
+          <p className="font-semibold text-slate-800">{tr('Gamification masquée', 'Gamification hidden')}</p>
           <p className="text-sm text-slate-600">
-            {tr('Vous pouvez la reactiver ici ou dans Parametres.', 'You can re-enable it here or in Settings.')}
+            {tr('Vous pouvez la réactiver ici ou dans Paramètres.', 'You can re-enable it here or in Settings.')}
           </p>
         </div>
         <button
@@ -824,9 +824,9 @@ export default function Overview() {
       ) : (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
         <div>
-          <p className="font-semibold text-slate-800">{tr('Alertes intelligentes masquees', 'Smart alerts hidden')}</p>
+          <p className="font-semibold text-slate-800">{tr('Alertes intelligentes masquées', 'Smart alerts hidden')}</p>
           <p className="text-sm text-slate-600">
-            {tr('Vous pouvez les reactiver ici ou dans Parametres.', 'You can re-enable them here or in Settings.')}
+            {tr('Vous pouvez les réactiver ici ou dans Paramètres.', 'You can re-enable them here or in Settings.')}
           </p>
         </div>
         <button
@@ -916,7 +916,7 @@ export default function Overview() {
             className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left block"
           >
             <div className="text-2xl mb-2">Reglages</div>
-            <h4 className="font-semibold text-gray-800">{tr('Parametres', 'Settings')}</h4>
+            <h4 className="font-semibold text-gray-800">{tr('Paramètres', 'Settings')}</h4>
             <p className="text-sm text-gray-600">{tr('Gerer votre compte', 'Manage your account')}</p>
           </Link>
         </div>

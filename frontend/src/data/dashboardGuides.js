@@ -1,7 +1,7 @@
 export const dashboardGuides = {
   overview: {
     buttonLabel: { fr: 'Notice de cet onglet', en: 'Tab guide' },
-    title: { fr: 'Apercu du tableau de bord', en: 'Overview dashboard guide' },
+    title: { fr: 'Aperçu du tableau de bord', en: 'Dashboard overview guide' },
     slides: [
       {
         title: { fr: 'A quoi sert cet onglet', en: 'What this tab is for' },
@@ -94,7 +94,7 @@ export const dashboardGuides = {
         bullets: {
           fr: [
             'Filtrer par statut quiz: tous, completes, en attente.',
-            'Filtrer par suivi commercial: a contacter, RDV planifie, en cours, clos.',
+            'Filtrer par suivi commercial: à contacter, RDV planifié, en cours, clos.',
             'Combiner les deux filtres pour une liste actionnable.',
             'Les boutons rapides de suivi deviennent pleins et colores quand un statut est selectionne.',
             'Le changement de suivi est applique instantanement sur la carte client.'
@@ -391,7 +391,7 @@ export const dashboardGuides = {
   },
   settings: {
     buttonLabel: { fr: 'Notice de cet onglet', en: 'Tab guide' },
-    title: { fr: 'Parametres - Guide', en: 'Settings guide' },
+    title: { fr: 'Paramètres - Guide', en: 'Settings guide' },
     slides: [
       {
         title: { fr: 'Profil', en: 'Profile' },

@@ -850,8 +850,9 @@ export const updateClientFollowup = async ({ clientId, advisorId, followupStatus
     }
   })
 
+  // Follow-up journal is best-effort: core status update must not be blocked by event logging issues.
   if (followupEventError && !isMissingClientFollowupEventsTableError(followupEventError)) {
-    throw followupEventError
+    console.warn('Unable to log follow-up event:', followupEventError?.message || followupEventError)
   }
 
   const { data: clientWithInsights, error: clientWithInsightsError } = await supabase

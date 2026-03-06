@@ -91,7 +91,7 @@ export default function Admin() {
           onClick={loadOverview}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          {tr('Reessayer', 'Retry')}
+          {tr('Réessayer', 'Retry')}
         </button>
       </div>
     )

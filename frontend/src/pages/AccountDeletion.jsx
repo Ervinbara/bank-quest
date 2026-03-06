@@ -36,7 +36,7 @@ export default function AccountDeletion() {
 
           <ol className="list-decimal pl-5 text-slate-700 space-y-2">
             <li>{tr('Connectez-vous a votre compte.', 'Sign in to your account.')}</li>
-            <li>{tr('Ouvrez Parametres > Securite.', 'Open Settings > Security.')}</li>
+            <li>{tr('Ouvrez Paramètres > Sécurité.', 'Open Settings > Security.')}</li>
             <li>{tr('Cliquez sur "Supprimer mon compte".', 'Click "Delete my account".')}</li>
             <li>
               {tr(

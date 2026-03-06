@@ -105,7 +105,7 @@ export default function Privacy() {
               </h2>
               <p>
                 {tr(
-                  'Depuis Parametres > Securite, vous pouvez exporter vos donnees (JSON) et supprimer votre compte. Vous pouvez aussi demander rectification, limitation ou opposition en contactant bankquest.pro@gmail.com.',
+                  'Depuis Paramètres > Sécurité, vous pouvez exporter vos données (JSON) et supprimer votre compte. Vous pouvez aussi demander rectification, limitation ou opposition en contactant bankquest.pro@gmail.com.',
                   'From Settings > Security, you can export your data (JSON) and delete your account. You can also request rectification, restriction or objection by contacting bankquest.pro@gmail.com.'
                 )}
               </p>

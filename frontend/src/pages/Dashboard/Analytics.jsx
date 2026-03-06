@@ -27,7 +27,7 @@ import {
 
 const FOLLOWUP_LABELS = {
   a_contacter: 'A contacter',
-  rdv_planifie: 'RDV planifie',
+  rdv_planifie: 'RDV planifié',
   en_cours: 'En cours',
   clos: 'Clos'
 }
@@ -303,7 +303,7 @@ export default function Analytics() {
           onClick={loadAnalytics}
           className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition"
         >
-          {tr('Reessayer', 'Retry')}
+          {tr('Réessayer', 'Retry')}
         </button>
       </div>
     )
@@ -402,7 +402,7 @@ export default function Analytics() {
                   <strong>{pipeline.completed}</strong>
                 </div>
                 <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
-                  <span>RDV planifies</span>
+                  <span>RDV planifiés</span>
                   <strong>{pipeline.rdvPlanifie}</strong>
                 </div>
                 <div className="flex justify-between rounded-lg bg-gray-50 px-4 py-3">
@@ -518,7 +518,7 @@ export default function Analytics() {
               >
                 <option value="all">{tr('Tous suivis', 'All follow-ups')}</option>
                 <option value="a_contacter">{tr('A contacter', 'To contact')}</option>
-                <option value="rdv_planifie">{tr('RDV planifie', 'Meeting scheduled')}</option>
+                <option value="rdv_planifie">{tr('RDV planifié', 'Meeting scheduled')}</option>
                 <option value="en_cours">{tr('En cours', 'In progress')}</option>
               </select>
               <div className="relative">
