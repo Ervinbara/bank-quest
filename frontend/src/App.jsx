@@ -3,6 +3,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import SuperAdminRoute from '@/components/SuperAdminRoute'
+import PublicOnlyRoute from '@/components/PublicOnlyRoute'
 
 // Pages publiques
 import Home from './pages/Home'
@@ -51,9 +52,30 @@ function App() {
           <Route path="/account-deletion" element={<AccountDeletion />} />
           
           {/* Routes d'authentification */}
-          <Route path="/auth/login" element={<Login />} />
-          <Route path="/auth/register" element={<Register />} />
-          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route
+            path="/auth/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/auth/register"
+            element={
+              <PublicOnlyRoute>
+                <Register />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/auth/forgot-password"
+            element={
+              <PublicOnlyRoute>
+                <ForgotPassword />
+              </PublicOnlyRoute>
+            }
+          />
           <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* Routes Dashboard (protégées) */}

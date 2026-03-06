@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom'
-import { Clock3, Target, TrendingUp, Settings, ArrowRight, ClipboardList, BarChart3, Send, CheckCircle2 } from 'lucide-react'
+﻿import { Link } from 'react-router-dom'
+import { Clock3, Target, TrendingUp, ArrowRight } from 'lucide-react'
 import Header from '@/components/Layout/Header'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function Home() {
-  const { t } = useLanguage()
+  const { t, tr } = useLanguage()
 
   return (
     <div className="min-h-screen">
@@ -19,23 +19,28 @@ export default function Home() {
               <span className="text-sm font-semibold">{t('home.badge')}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              {t('home.titleLine1')}
+              {tr('Préparez vos rendez-vous en 5 minutes, pas en 45.', 'Prepare meetings in 5 minutes, not 45.')}
               <br />
-              {t('home.titleLine2')}
+              {tr('Conseillez mieux. Convertissez mieux.', 'Advise better. Convert better.')}
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">{t('home.subtitle')}</p>
+            <p className="text-lg sm:text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">
+              {tr(
+                'FinMate transforme les réponses client en plan d’entretien clair: priorités, risques et opportunités.',
+                'FinMate turns client answers into a clear meeting plan: priorities, risks, and opportunities.'
+              )}
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <Link
                 to="/demo"
                 className="w-full sm:w-auto text-center bg-white text-emerald-700 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-2xl transition transform hover:-translate-y-1"
               >
-                {t('home.ctaDemo')}
+                {tr('Voir une démo en 60 secondes', 'Watch a 60-second demo')}
               </Link>
               <Link
                 to="/auth/register"
                 className="w-full sm:w-auto text-center bg-transparent border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-white/10 transition"
               >
-                {t('home.ctaRegister')}
+                {tr('Lancer une simulation client', 'Run a client simulation')}
               </Link>
             </div>
 
@@ -61,17 +66,19 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 finance-animate-in">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
-              {t('home.workflowBadge', 'Workflow')}
+              {tr('Démo conseiller', 'Advisor demo')}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.workflowTitle')}</h2>
-            <p className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+              {tr('Comment vous utilisez FinMate au quotidien', 'How you use FinMate every day')}
+            </h2>
+            <p className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto">
+              {tr('Un parcours simple en 3 étapes, orienté rendez-vous et conversion.', 'A simple 3-step flow focused on meetings and conversion.')}
+            </p>
           </div>
 
           <div className="relative grid md:grid-cols-3 gap-6 md:gap-4">
-            {/* Connector line (desktop only) */}
             <div className="hidden md:block absolute top-[52px] left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-0.5 bg-gradient-to-r from-emerald-200 via-teal-300 to-emerald-200 z-0" />
 
-            {/* Step 1 */}
             <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-1">
               <div className="relative mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-200">
@@ -80,10 +87,12 @@ export default function Home() {
                 <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">1</span>
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.prepTitle')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.prepDesc')}</p>
+              <p className="text-slate-500 text-sm leading-relaxed">{tr('J’envoie un questionnaire en 1 clic.', 'I send a questionnaire in 1 click.')}</p>
+              <p className="mt-2 text-xs font-semibold text-emerald-700">
+                {tr('Gain: qualification immédiate avant l’appel.', 'Gain: instant qualification before the call.')}
+              </p>
             </div>
 
-            {/* Step 2 */}
             <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-2">
               <div className="relative mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-teal-200">
@@ -92,10 +101,14 @@ export default function Home() {
                 <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">2</span>
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.prioritiesTitle')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.prioritiesDesc')}</p>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                {tr('Je reçois un score, 3 priorités et les points de vigilance.', 'I get a score, top 3 priorities, and risk points.')}
+              </p>
+              <p className="mt-2 text-xs font-semibold text-emerald-700">
+                {tr('Gain: préparation plus rapide et rendez-vous plus pertinent.', 'Gain: faster prep and more relevant meetings.')}
+              </p>
             </div>
 
-            {/* Step 3 */}
             <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-3">
               <div className="relative mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-200">
@@ -104,7 +117,12 @@ export default function Home() {
                 <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">3</span>
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.followUpTitle')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.followUpDesc')}</p>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                {tr('Je relance au bon moment et je compare la progression au fil des rendez-vous.', 'I follow up at the right time and track progress across meetings.')}
+              </p>
+              <p className="mt-2 text-xs font-semibold text-emerald-700">
+                {tr('Gain: meilleure conversion et suivi portefeuille structuré.', 'Gain: better conversion and structured portfolio follow-up.')}
+              </p>
             </div>
           </div>
         </div>
@@ -114,68 +132,42 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 finance-animate-in">
             <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
-              {t('home.whyBadge', 'Fonctionnalités')}
+              {tr('Impact business', 'Business impact')}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.whyTitle')}</h2>
-            <p className="text-lg sm:text-xl text-slate-500">{t('home.whySubtitle')}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+              {tr('Pourquoi les conseillers adoptent FinMate', 'Why advisors adopt FinMate')}
+            </h2>
+            <p className="text-lg sm:text-xl text-slate-500">{tr('Moins de friction, plus de valeur en rendez-vous.', 'Less friction, more value in every meeting.')}</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* f1 */}
-            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-emerald-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-1">
-              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-teal-400" />
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-5 group-hover:bg-emerald-100 transition-colors">
-                <ClipboardList className="w-6 h-6 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f1Title')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f1Desc')}</p>
-              <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded', 'Inclus')}</span>
-              </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 finance-animate-in finance-animate-delay-1">
+              <p className="text-4xl font-extrabold text-emerald-700 mb-2">-30%</p>
+              <p className="text-sm text-slate-600">{tr('Temps de préparation par RDV', 'Meeting prep time')}</p>
             </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 finance-animate-in finance-animate-delay-2">
+              <p className="text-4xl font-extrabold text-emerald-700 mb-2">+22%</p>
+              <p className="text-sm text-slate-600">{tr('Conversion rendez-vous', 'Meeting conversion')}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 finance-animate-in finance-animate-delay-3">
+              <p className="text-4xl font-extrabold text-emerald-700 mb-2">+2h</p>
+              <p className="text-sm text-slate-600">{tr('Gagnées par conseiller / semaine', 'Saved per advisor / week')}</p>
+            </div>
+          </div>
 
-            {/* f2 */}
-            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-teal-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-2">
-              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-teal-500 to-cyan-400" />
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mb-5 group-hover:bg-teal-100 transition-colors">
-                <BarChart3 className="w-6 h-6 text-teal-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f2Title')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f2Desc')}</p>
-              <div className="mt-4 flex items-center gap-1.5 text-teal-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded', 'Inclus')}</span>
-              </div>
-            </div>
-
-            {/* f3 */}
-            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-emerald-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-3">
-              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-emerald-400 to-teal-500" />
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-5 group-hover:bg-emerald-100 transition-colors">
-                <Send className="w-6 h-6 text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f3Title')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f3Desc')}</p>
-              <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded', 'Inclus')}</span>
-              </div>
-            </div>
-
-            {/* f4 */}
-            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-slate-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-4">
-              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-slate-400 to-slate-600" />
-              <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center mb-5 group-hover:bg-slate-100 transition-colors">
-                <Settings className="w-6 h-6 text-slate-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f4Title')}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f4Desc')}</p>
-              <div className="mt-4 flex items-center gap-1.5 text-slate-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{t('home.featureIncluded', 'Inclus')}</span>
-              </div>
-            </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-5 text-center text-emerald-900 font-semibold">
+            {tr(
+              'Ce n’est pas un quiz. C’est un pré-diagnostic commercial pour mieux conseiller et mieux convertir.',
+              'This is not just a quiz. It is a pre-sales diagnosis to advise better and convert better.'
+            )}
+          </div>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/demo" className="btn-primary px-5 py-2.5">
+              {tr('Voir une fiche client réelle', 'See a real client profile')}
+            </Link>
+            <Link to="/auth/register" className="btn-secondary px-5 py-2.5">
+              {tr('Créer mon compte', 'Create my account')}
+            </Link>
           </div>
         </div>
       </section>
@@ -197,9 +189,7 @@ export default function Home() {
             </div>
 
             <div className="bg-gradient-to-br from-emerald-600 to-teal-500 text-white rounded-2xl p-8 transform md:scale-105 shadow-2xl animate-sheen">
-              <div className="bg-amber-300 text-slate-900 text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">
-                {t('home.popular')}
-              </div>
+              <div className="bg-amber-300 text-slate-900 text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">{t('home.popular')}</div>
               <h3 className="text-2xl font-bold mb-2">Pro</h3>
               <p className="text-emerald-100 mb-6">{t('home.proDesc')}</p>
               <div className="text-4xl font-bold mb-6">
@@ -260,5 +250,3 @@ export default function Home() {
     </div>
   )
 }
-
-
