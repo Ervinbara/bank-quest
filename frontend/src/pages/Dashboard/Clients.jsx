@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -57,11 +57,14 @@ export default function Clients() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [filtersCollapsed, setFiltersCollapsed] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(9)
   const [updatingFollowupByClient, setUpdatingFollowupByClient] = useState({})
   const [isMobile, setIsMobile] = useState(false)
+  const latestRequestIdRef = useRef(0)
+  const previousIsMobileRef = useRef(null)
   const planAccess = getPlanAccess(advisor?.plan)
   const remainingClientSlots = getRemainingClientSlots({
     plan: planAccess.code,
@@ -71,6 +74,9 @@ export default function Clients() {
 
   const loadClients = useCallback(async () => {
     if (!advisor?.id) return
+
+    const requestId = latestRequestIdRef.current + 1
+    latestRequestIdRef.current = requestId
 
     try {
       setLoading(true)
@@ -83,6 +89,7 @@ export default function Clients() {
         followupFilter: activeFollowupFilter,
         searchTerm
       })
+      if (latestRequestIdRef.current !== requestId) return
       setClients(data?.items || [])
       setTotalItems(data?.totalItems || 0)
       setStats(
@@ -97,10 +104,13 @@ export default function Clients() {
         }
       )
     } catch (err) {
+      if (latestRequestIdRef.current !== requestId) return
       console.error('Erreur chargement clients:', err)
       setError(tr('Impossible de charger les clients', 'Unable to load clients'))
     } finally {
-      setLoading(false)
+      if (latestRequestIdRef.current === requestId) {
+        setLoading(false)
+      }
     }
   }, [advisor?.id, page, pageSize, activeStatusFilter, activeFollowupFilter, searchTerm, tr])
 
@@ -123,12 +133,24 @@ export default function Clients() {
     const applyMobileState = () => {
       const mobile = window.innerWidth < 768
       setIsMobile(mobile)
-      if (mobile) setFiltersCollapsed(true)
+      if (previousIsMobileRef.current === null) {
+        setFiltersCollapsed(mobile)
+      } else if (!previousIsMobileRef.current && mobile) {
+        setFiltersCollapsed(true)
+      }
+      previousIsMobileRef.current = mobile
     }
     applyMobileState()
     window.addEventListener('resize', applyMobileState)
     return () => window.removeEventListener('resize', applyMobileState)
   }, [])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearchTerm(searchInput.trim())
+    }, 250)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
 
   useEffect(() => {
     const quickAction = searchParams.get('quick')
@@ -210,7 +232,7 @@ export default function Clients() {
 
   const paginatedClients = useMemo(() => clients, [clients])
 
-  if (loading) {
+  if (loading && clients.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -316,6 +338,20 @@ export default function Clients() {
           </div>
         ) : null}
 
+        <div>
+          <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Recherche', 'Search')}</p>
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={tr('Nom ou email client...', 'Client name or email...')}
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        </div>
+
         <button
           onClick={() => setFiltersCollapsed((prev) => !prev)}
           className="w-full flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 transition"
@@ -329,20 +365,6 @@ export default function Clients() {
 
         {!filtersCollapsed ? (
           <div className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">{tr('Recherche', 'Search')}</p>
-              <div className="relative">
-                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={tr('Nom ou email client...', 'Client name or email...')}
-                  className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <p className="text-sm font-semibold text-gray-700">{tr('Filtrer par quiz', 'Filter by quiz')}</p>
