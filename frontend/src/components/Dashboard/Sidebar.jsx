@@ -7,21 +7,28 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext'
 
 /* ── Logo SVG inline ─────────────────────────────────────────── */
+function BrandGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 min-w-[32px] block">
+      <rect width="32" height="32" rx="9" fill="#0f766e" />
+      <rect width="32" height="32" rx="9" fill="url(#fm-grad)" fillOpacity="0.75" />
+      <path d="M9 10h10M9 16h7M9 22h10" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="23" cy="22" r="3.5" fill="white" fillOpacity="0.9" />
+      <path d="M21.5 22h3M23 20.5v3" stroke="url(#fm-grad)" strokeWidth="1.8" strokeLinecap="round" />
+      <defs>
+        <linearGradient id="fm-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0f766e" />
+          <stop offset="1" stopColor="#047857" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
 function FinMateLogo({ collapsed }) {
   return (
     <Link to="/" className="flex items-center gap-2.5 min-w-0">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-        <rect width="32" height="32" rx="9" fill="url(#fm-grad)" />
-        <path d="M9 10h10M9 16h7M9 22h10" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="23" cy="22" r="3.5" fill="white" fillOpacity="0.9" />
-        <path d="M21.5 22h3M23 20.5v3" stroke="url(#fm-grad)" strokeWidth="1.8" strokeLinecap="round" />
-        <defs>
-          <linearGradient id="fm-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#0f766e" />
-            <stop offset="1" stopColor="#047857" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <BrandGlyph />
       {!collapsed && (
         <span className="text-lg font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent tracking-tight">
           FinMate
@@ -147,7 +154,16 @@ export default function Sidebar({
     <div className="flex flex-col h-full">
       {/* Header logo */}
       <div className={`flex items-center justify-between border-b border-slate-100 ${collapsed ? 'px-3 py-4' : 'px-4 py-4'}`}>
-        <FinMateLogo collapsed={collapsed} />
+        {mobileOpen ? (
+          <Link to="/" onClick={onClose} className="flex items-center gap-2.5 min-w-0">
+            <BrandGlyph />
+            <span className="text-lg font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent tracking-tight">
+              FinMate
+            </span>
+          </Link>
+        ) : (
+          <FinMateLogo collapsed={collapsed} />
+        )}
         {/* Bouton fermer sur mobile, bouton collapse sur desktop */}
         {mobileOpen ? (
           <button
