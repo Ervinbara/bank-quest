@@ -66,7 +66,7 @@
     box-shadow: 0 2px 6px rgba(6, 95, 70, 0.22), 0 8px 20px rgba(6, 95, 70, 0.2);
   }
   .btn-primary:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.97);
     box-shadow: 0 1px 3px rgba(6, 95, 70, 0.18);
   }
 
@@ -172,6 +172,50 @@
   .finance-animate-delay-2 { animation-delay: 110ms; }
   .finance-animate-delay-3 { animation-delay: 160ms; }
 
+  /* Item FAB avec scale + pop */
+  .fm-fab-item {
+    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.42, 0.64, 1);
+  }
+  /* Bouton FAB rotation */
+  .fm-fab-btn {
+    transition: transform 0.3s cubic-bezier(0.34, 1.32, 0.64, 1), box-shadow 0.2s ease;
+  }
+  /* Nav tab press feedback */
+  .fm-tab {
+    @apply transition-all duration-150 active:scale-90;
+  }
+  /* Sidebar collapse/expand label fade */
+  .fm-label-fade {
+    transition: opacity 0.15s ease, max-width 0.22s cubic-bezier(0.22, 0.68, 0.12, 1);
+  }
+
+  /* ─── Overlay modal ──────────────────────────────────── */
+  .fm-overlay {
+    transition: opacity 0.24s ease;
+  }
+  /* ─── Panneau modal ──────────────────────────────────── */
+  .fm-panel {
+    transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 0.68, 0.12, 1);
+  }
+
+  /* ─── Chevron rotatif (accordéons) ──────────────────── */
+  .fm-chevron {
+    transition: transform 0.22s cubic-bezier(0.22, 0.68, 0.12, 1);
+  }
+  .fm-chevron-open {
+    transform: rotate(180deg);
+  }
+
+  /* ─── Stagger delays étendus ─────────────────────────── */
+  .finance-animate-delay-4 { animation-delay: 210ms; }
+  .finance-animate-delay-5 { animation-delay: 260ms; }
+  .finance-animate-delay-6 { animation-delay: 310ms; }
+
+  /* ─── Section de page avec fade doux ────────────────── */
+  .fm-section {
+    animation: fm-rise-in 0.38s cubic-bezier(0.22, 0.68, 0.12, 1) both;
+  }
+
   /* ─── Chip filtre ────────────────────────────────────── */
   .finance-chip {
     @apply rounded-full text-xs font-semibold px-3 py-1 select-none transition-colors duration-150;
@@ -190,15 +234,19 @@
   /* ─── Sidebar nav item ───────────────────────────────── */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm
-           text-slate-600 transition-all duration-150 select-none;
+           text-slate-600 select-none;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
   }
   .nav-item:hover {
     @apply bg-slate-100 text-slate-900;
   }
+  .nav-item:active {
+    transform: scale(0.97);
+  }
   .nav-item.active {
     @apply text-white;
     background: linear-gradient(135deg, var(--fm-brand-1) 0%, var(--fm-brand-2) 100%);
-    box-shadow: 0 2px 8px rgba(6, 95, 70, 0.22);
+    box-shadow: 0 2px 10px rgba(6, 95, 70, 0.25);
   }
 
   /* ─── Page header ────────────────────────────────────── */
@@ -224,12 +272,21 @@
 
 /* ─── Keyframes ──────────────────────────────────────────── */
 @keyframes fm-rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fm-slide-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes fm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fm-pop-in {
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }

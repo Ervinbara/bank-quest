@@ -25,26 +25,25 @@ export default function PaginationControls({
     page: labels.page || 'Page'
   }
 
+  const btnBase = 'inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed'
+
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-white p-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
         <label className="flex items-center gap-2">
           <span className="font-medium">{text.itemsPerPage}</span>
           <select
             value={pageSize}
             onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
-            className="rounded-md border border-gray-300 px-2 py-1 bg-white"
+            className="rounded-lg border border-slate-200 px-2 py-1 bg-white text-slate-700 transition-colors focus:outline-none focus:border-emerald-400"
           >
             {pageSizeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+              <option key={option} value={option}>{option}</option>
             ))}
           </select>
         </label>
-
-        <span>
-          {text.showing} <strong>{start}-{end}</strong> {text.of} <strong>{totalItems}</strong>
+        <span className="tabular-nums">
+          {text.showing} <strong>{start}–{end}</strong> {text.of} <strong>{totalItems}</strong>
         </span>
       </div>
 
@@ -53,13 +52,13 @@ export default function PaginationControls({
           type="button"
           onClick={() => canPrev && onPageChange?.(page - 1)}
           disabled={!canPrev}
-          className="inline-flex min-h-[40px] items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className={`${btnBase} ${canPrev ? 'hover:bg-slate-50 hover:border-slate-300' : ''}`}
         >
           <ChevronLeft className="w-4 h-4" />
           {text.prev}
         </button>
 
-        <span className="text-sm text-gray-700 min-w-[84px] text-center">
+        <span className="text-sm text-slate-500 tabular-nums min-w-[72px] text-center">
           {text.page} {page}/{totalPages}
         </span>
 
@@ -67,7 +66,7 @@ export default function PaginationControls({
           type="button"
           onClick={() => canNext && onPageChange?.(page + 1)}
           disabled={!canNext}
-          className="inline-flex min-h-[40px] items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className={`${btnBase} ${canNext ? 'hover:bg-slate-50 hover:border-slate-300' : ''}`}
         >
           {text.next}
           <ChevronRight className="w-4 h-4" />

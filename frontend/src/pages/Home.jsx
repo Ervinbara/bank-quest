@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Clock3, Target, TrendingUp, Settings, ArrowRight } from 'lucide-react'
+import { Clock3, Target, TrendingUp, Settings, ArrowRight, ClipboardList, BarChart3, Send, CheckCircle2 } from 'lucide-react'
 import Header from '@/components/Layout/Header'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -57,60 +57,124 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="solution" className="py-20">
+      <section id="solution" className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">{t('home.workflowTitle')}</h2>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
+          <div className="text-center mb-16 finance-animate-in">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
+              {t('home.workflowBadge') || 'Workflow'}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.workflowTitle')}</h2>
+            <p className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto">{t('home.workflowSubtitle')}</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="text-center card finance-animate-in finance-animate-delay-1">
-              <Clock3 className="w-12 h-12 mx-auto mb-4 text-emerald-700" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{t('home.prepTitle')}</h3>
-              <p className="text-gray-600">{t('home.prepDesc')}</p>
+          <div className="relative grid md:grid-cols-3 gap-6 md:gap-4">
+            {/* Connector line (desktop only) */}
+            <div className="hidden md:block absolute top-[52px] left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-0.5 bg-gradient-to-r from-emerald-200 via-teal-300 to-emerald-200 z-0" />
+
+            {/* Step 1 */}
+            <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-1">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <Clock3 className="w-8 h-8 text-white" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">1</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.prepTitle')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.prepDesc')}</p>
             </div>
-            <div className="text-center card finance-animate-in finance-animate-delay-2">
-              <Target className="w-12 h-12 mx-auto mb-4 text-emerald-700" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{t('home.prioritiesTitle')}</h3>
-              <p className="text-gray-600">{t('home.prioritiesDesc')}</p>
+
+            {/* Step 2 */}
+            <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-2">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-teal-200">
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">2</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.prioritiesTitle')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.prioritiesDesc')}</p>
             </div>
-            <div className="text-center card finance-animate-in finance-animate-delay-3">
-              <TrendingUp className="w-12 h-12 mx-auto mb-4 text-emerald-700" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{t('home.followUpTitle')}</h3>
-              <p className="text-gray-600">{t('home.followUpDesc')}</p>
+
+            {/* Step 3 */}
+            <div className="relative z-10 bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300 finance-animate-in finance-animate-delay-3">
+              <div className="relative mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <TrendingUp className="w-8 h-8 text-white" />
+                </div>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">3</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">{t('home.followUpTitle')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.followUpDesc')}</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="features" className="py-20">
+      <section id="features" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">{t('home.whyTitle')}</h2>
-            <p className="text-lg sm:text-xl text-gray-600">{t('home.whySubtitle')}</p>
+          <div className="text-center mb-16 finance-animate-in">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 mb-4">
+              {t('home.whyBadge') || 'Fonctionnalités'}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{t('home.whyTitle')}</h2>
+            <p className="text-lg sm:text-xl text-slate-500">{t('home.whySubtitle')}</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="card finance-animate-in finance-animate-delay-1">
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('home.f1Title')}</h3>
-              <p className="text-gray-600">{t('home.f1Desc')}</p>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* f1 */}
+            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-emerald-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-1">
+              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-teal-400" />
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-5 group-hover:bg-emerald-100 transition-colors">
+                <ClipboardList className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f1Title')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f1Desc')}</p>
+              <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+              </div>
             </div>
 
-            <div className="card finance-animate-in finance-animate-delay-2">
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('home.f2Title')}</h3>
-              <p className="text-gray-600">{t('home.f2Desc')}</p>
+            {/* f2 */}
+            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-teal-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-2">
+              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-teal-500 to-cyan-400" />
+              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mb-5 group-hover:bg-teal-100 transition-colors">
+                <BarChart3 className="w-6 h-6 text-teal-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f2Title')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f2Desc')}</p>
+              <div className="mt-4 flex items-center gap-1.5 text-teal-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+              </div>
             </div>
 
-            <div className="card finance-animate-in finance-animate-delay-3">
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('home.f3Title')}</h3>
-              <p className="text-gray-600">{t('home.f3Desc')}</p>
+            {/* f3 */}
+            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-emerald-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-3">
+              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-emerald-400 to-teal-500" />
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-5 group-hover:bg-emerald-100 transition-colors">
+                <Send className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f3Title')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f3Desc')}</p>
+              <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+              </div>
             </div>
 
-            <div className="card finance-animate-in finance-animate-delay-2">
-              <Settings className="w-12 h-12 text-emerald-700 mb-4" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">{t('home.f4Title')}</h3>
-              <p className="text-gray-600">{t('home.f4Desc')}</p>
+            {/* f4 */}
+            <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm p-8 overflow-hidden hover:border-slate-200 hover:shadow-md transition-all duration-300 finance-animate-in finance-animate-delay-4">
+              <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-slate-400 to-slate-600" />
+              <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center mb-5 group-hover:bg-slate-100 transition-colors">
+                <Settings className="w-6 h-6 text-slate-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">{t('home.f4Title')}</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{t('home.f4Desc')}</p>
+              <div className="mt-4 flex items-center gap-1.5 text-slate-600 text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('home.featureIncluded') || 'Inclus'}</span>
+              </div>
             </div>
           </div>
         </div>

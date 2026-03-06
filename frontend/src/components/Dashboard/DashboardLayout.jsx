@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import Sidebar from './Sidebar'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings, Plus, X, FileText } from 'lucide-react'
+import { LogOut, User, Loader2, Menu, LayoutDashboard, Users, Link2, BarChart3, Settings, Plus, FileText } from 'lucide-react'
 
 const SIDEBAR_STORAGE_KEY = 'finmate-sidebar-collapsed'
 const ROUTE_CONTEXT = [
@@ -183,29 +183,39 @@ export default function DashboardLayout() {
       </div>
 
       <div className="md:hidden fixed bottom-[5.5rem] right-4 z-30 flex flex-col items-end gap-2">
-        {mobileQuickOpen
-          ? quickActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <Link
-                  key={action.key}
-                  to={action.to}
-                  onClick={() => setMobileQuickOpen(false)}
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-lg"
-                >
-                  <Icon className="w-4 h-4" />
-                  {action.label}
-                </Link>
-              )
-            })
-          : null}
+        {/* Items toujours montés, animés via opacity + transform */}
+        {quickActions.map((action, i) => {
+          const Icon = action.icon
+          const delay = mobileQuickOpen
+            ? `${i * 55}ms`
+            : `${(quickActions.length - 1 - i) * 35}ms`
+          return (
+            <Link
+              key={action.key}
+              to={action.to}
+              onClick={() => setMobileQuickOpen(false)}
+              className="fm-fab-item inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-lg"
+              style={{
+                opacity: mobileQuickOpen ? 1 : 0,
+                transform: mobileQuickOpen ? 'scale(1) translateY(0)' : 'scale(0.82) translateY(8px)',
+                transitionDelay: delay,
+                pointerEvents: mobileQuickOpen ? 'auto' : 'none',
+              }}
+            >
+              <Icon className="w-4 h-4" />
+              {action.label}
+            </Link>
+          )
+        })}
+        {/* Bouton FAB — le + pivote en × sans changer d'icône */}
         <button
           type="button"
           onClick={() => setMobileQuickOpen((prev) => !prev)}
-          className="h-12 w-12 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-xl flex items-center justify-center"
-          aria-label={t('Actions rapides', 'Quick actions')}
+          className="fm-fab-btn h-12 w-12 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-xl flex items-center justify-center"
+          style={{ transform: mobileQuickOpen ? 'rotate(45deg)' : 'rotate(0deg)' }}
+          aria-label={tr('Actions rapides', 'Quick actions')}
         >
-          {mobileQuickOpen ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          <Plus className="w-5 h-5" />
         </button>
       </div>
 
@@ -219,11 +229,14 @@ export default function DashboardLayout() {
                 key={tab.to}
                 to={tab.to}
                 title={tab.label}
-                className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-semibold transition ${
+                className={`fm-tab flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-semibold ${
                   active ? 'text-emerald-700 bg-emerald-50' : 'text-gray-500'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon
+                  className="w-4 h-4 transition-transform duration-200"
+                  style={{ transform: active ? 'scale(1.15)' : 'scale(1)' }}
+                />
                 <span className="w-full truncate text-center text-[9px] leading-tight">{tab.shortLabel}</span>
               </Link>
             )

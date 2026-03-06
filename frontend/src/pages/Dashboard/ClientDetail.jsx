@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   Calendar,
   ChevronDown,
-  ChevronUp,
   CheckCircle2,
   Copy,
   History,
@@ -638,7 +637,7 @@ export default function ClientDetail() {
                 onClick={() => setIsTimelineCollapsed((prev) => !prev)}
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 self-start sm:self-auto"
               >
-                {isTimelineCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                <ChevronDown className={`w-4 h-4 fm-chevron ${isTimelineCollapsed ? '' : 'fm-chevron-open'}`} />
                 {isTimelineCollapsed ? 'Deplier' : 'Plier'}
               </button>
             </div>
@@ -701,7 +700,7 @@ export default function ClientDetail() {
                 onClick={() => setIsRelanceCollapsed((prev) => !prev)}
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-semibold text-indigo-800 hover:bg-indigo-100 self-start sm:self-auto"
               >
-                {isRelanceCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                <ChevronDown className={`w-4 h-4 fm-chevron ${isRelanceCollapsed ? '' : 'fm-chevron-open'}`} />
                 {isRelanceCollapsed ? 'Deplier' : 'Plier'}
               </button>
             </div>

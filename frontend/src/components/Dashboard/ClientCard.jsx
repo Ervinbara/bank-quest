@@ -29,7 +29,7 @@ export default function ClientCard({ client, onClick, footerAction }) {
   return (
     <div
       onClick={onClick ? () => onClick(client) : undefined}
-      className={`surface-glass p-5 finance-animate-in flex flex-col gap-4 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`surface-glass p-5 finance-animate-in flex flex-col gap-4 transition-transform duration-200 hover:-translate-y-0.5 ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* ── En-tête : avatar + nom + badge statut ── */}
       <div className="flex items-start justify-between gap-3">

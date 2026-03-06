@@ -26,12 +26,14 @@ export default function ClientDetailModal({ client, onClose }) {
   }
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    <div
+      className="fm-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      style={{ animation: 'fm-fade 0.22s ease both' }}
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        style={{ animation: 'fm-pop-in 0.3s cubic-bezier(0.22, 0.68, 0.12, 1) both' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
