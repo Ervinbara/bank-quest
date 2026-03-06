@@ -32,7 +32,7 @@ const translations = {
       themeLabel: 'Choisissez un thème'
     },
     home: {
-      badge: 'FinMate for financial advisors',
+      badge: 'FinMate pour les conseillers financiers',
       workflowBadge: 'Workflow simplifié',
       whyBadge: 'Vos avantages',
       featureIncluded: 'Inclus',

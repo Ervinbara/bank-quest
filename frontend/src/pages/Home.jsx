@@ -19,14 +19,14 @@ export default function Home() {
               <span className="text-sm font-semibold">{t('home.badge')}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              {tr('Préparez vos rendez-vous en 5 minutes, pas en 45.', 'Prepare meetings in 5 minutes, not 45.')}
+              {tr('Qualifiez vos clients plus vite.', 'Qualify your clients faster.')}
               <br />
-              {tr('Conseillez mieux. Convertissez mieux.', 'Advise better. Convert better.')}
+              {tr('Convertissez mieux vos rendez-vous.', 'Convert your meetings better.')}
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">
               {tr(
-                'FinMate transforme les réponses client en plan d’entretien clair: priorités, risques et opportunités.',
-                'FinMate turns client answers into a clear meeting plan: priorities, risks, and opportunities.'
+                'FinMate aide les conseillers financiers à structurer la découverte client avec des questionnaires intelligents, un scoring clair et des insights exploitables.',
+                'FinMate helps financial advisors structure client discovery with smart questionnaires, clear scoring, and actionable insights.'
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
