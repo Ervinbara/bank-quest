@@ -182,7 +182,7 @@ export default function DashboardLayout() {
         </main>
       </div>
 
-      <div className="md:hidden fixed bottom-[5.5rem] right-4 z-30 flex flex-col items-end gap-2">
+      <div className="fm-mobile-fab md:hidden fixed bottom-[5.5rem] right-4 z-30 flex flex-col items-end gap-2">
         {/* Items toujours montés, animés via opacity + transform */}
         {quickActions.map((action, i) => {
           const Icon = action.icon
@@ -219,7 +219,7 @@ export default function DashboardLayout() {
         </button>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-emerald-100 bg-white/95 backdrop-blur-xl overflow-hidden pb-[calc(env(safe-area-inset-bottom)+2px)]">
+      <nav className="fm-mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-emerald-100 bg-white/95 backdrop-blur-xl overflow-hidden pb-[calc(env(safe-area-inset-bottom)+2px)]">
         <div className="grid grid-cols-5 gap-0.5 px-1.5 py-1">
           {mobileTabs.map((tab) => {
             const Icon = tab.icon

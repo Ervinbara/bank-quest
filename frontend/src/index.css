@@ -198,6 +198,17 @@
     transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 0.68, 0.12, 1);
   }
 
+  /* Quand une modal est ouverte, neutraliser les éléments fixes mobiles qui peuvent recouvrir la modal */
+  body.fm-modal-open .fm-mobile-fab {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  body.fm-modal-open .fm-mobile-bottom-nav {
+    z-index: 20;
+  }
+
   /* ─── Chevron rotatif (accordéons) ──────────────────── */
   .fm-chevron {
     transition: transform 0.22s cubic-bezier(0.22, 0.68, 0.12, 1);

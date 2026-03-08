@@ -1,6 +1,17 @@
+import { useEffect } from 'react'
 import { X, Award, AlertCircle, Mail, Calendar, TrendingUp } from 'lucide-react'
 
 export default function ClientDetailModal({ client, onClose }) {
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    if (client) {
+      document.body.classList.add('fm-modal-open')
+    } else {
+      document.body.classList.remove('fm-modal-open')
+    }
+    return () => document.body.classList.remove('fm-modal-open')
+  }, [client])
+
   if (!client) return null
 
   const isCompleted = client.quiz_status === 'completed'
@@ -27,7 +38,7 @@ export default function ClientDetailModal({ client, onClose }) {
 
   return (
     <div
-      className="fm-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fm-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-[90] p-4"
       style={{ animation: 'fm-fade 0.22s ease both' }}
       onClick={onClose}
     >

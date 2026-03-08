@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X, Upload, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { importClientsBatch } from '@/services/clientService'
 import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
@@ -124,6 +124,16 @@ export default function ImportClientsModal({
     onClose()
   }
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    if (isOpen) {
+      document.body.classList.add('fm-modal-open')
+    } else {
+      document.body.classList.remove('fm-modal-open')
+    }
+    return () => document.body.classList.remove('fm-modal-open')
+  }, [isOpen])
+
   const handleFile = async (file) => {
     if (!file) return
 
@@ -243,7 +253,7 @@ export default function ImportClientsModal({
 
   return (
     <div
-      className="fm-overlay fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 pt-[max(12px,env(safe-area-inset-top))] pb-[max(12px,env(safe-area-inset-bottom))] sm:p-4"
+      className="fm-overlay fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-[90] p-2 pt-[max(12px,env(safe-area-inset-top))] pb-[max(12px,env(safe-area-inset-bottom))] sm:p-4"
       style={{ opacity: isOpen ? 1 : 0, pointerEvents: isOpen ? 'auto' : 'none' }}
       aria-hidden={!isOpen}
       inert={!isOpen ? '' : undefined}

@@ -25,6 +25,16 @@ export default function DashboardGuide({ guide }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [open])
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined
+    if (open) {
+      document.body.classList.add('fm-modal-open')
+    } else {
+      document.body.classList.remove('fm-modal-open')
+    }
+    return () => document.body.classList.remove('fm-modal-open')
+  }, [open])
+
   const openGuide = () => {
     setIndex(0)
     setOpen(true)
@@ -37,6 +47,7 @@ export default function DashboardGuide({ guide }) {
   return (
     <>
       <button
+        type="button"
         onClick={openGuide}
         className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 transition"
       >
@@ -45,9 +56,12 @@ export default function DashboardGuide({ guide }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:items-center sm:pt-4">
-          <button className="absolute inset-0 bg-black/50" onClick={closeGuide} aria-label={tr('Fermer', 'Close')} />
-          <div className="relative w-full max-w-2xl max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-emerald-100 bg-white p-6 shadow-2xl sm:max-h-[85vh]">
+        <div className="fixed inset-0 z-[90] flex items-start justify-center p-4 pt-16 sm:items-center sm:pt-4">
+          <button type="button" className="absolute inset-0 bg-black/50" onClick={closeGuide} aria-label={tr('Fermer', 'Close')} />
+          <div
+            className="relative w-full max-w-2xl max-h-[calc(100vh-5rem)] overflow-y-auto rounded-2xl border border-emerald-100 bg-white p-6 shadow-2xl sm:max-h-[85vh]"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{pick(guide.title, language)}</h3>
@@ -56,6 +70,7 @@ export default function DashboardGuide({ guide }) {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={closeGuide}
                 className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
                 aria-label={tr('Fermer', 'Close')}
@@ -82,6 +97,7 @@ export default function DashboardGuide({ guide }) {
               <div className="flex items-center gap-2">
                 {slides.map((_, dotIndex) => (
                   <button
+                    type="button"
                     key={dotIndex}
                     onClick={() => setIndex(dotIndex)}
                     className={`h-2.5 w-2.5 rounded-full transition ${
@@ -93,6 +109,7 @@ export default function DashboardGuide({ guide }) {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={prev}
                   disabled={index === 0}
                   className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
@@ -101,6 +118,7 @@ export default function DashboardGuide({ guide }) {
                   {tr('Precedent', 'Previous')}
                 </button>
                 <button
+                  type="button"
                   onClick={index === slides.length - 1 ? closeGuide : next}
                   className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                 >
