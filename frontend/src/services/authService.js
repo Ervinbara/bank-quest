@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import { FUNNEL_ACTIONS, recordFunnelMilestone } from '@/services/auditService'
+import { runWithNetworkGuard } from '@/lib/networkGuard'
 
 const LEGAL_VERSION = '2026-03-02'
 const AUTH_CALLBACK_PATH = '/auth/callback'
+const SUPER_ADMIN_EMAILS = new Set(['ervinbara17@gmail.com'])
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
 
@@ -40,11 +42,13 @@ const buildAdvisorPayload = ({
   marketingOptIn = false
 }) => {
   const acceptedAt = new Date().toISOString()
+  const normalizedEmail = normalizeEmail(email)
   return {
-    email: normalizeEmail(email),
+    email: normalizedEmail,
     name,
     company,
     phone,
+    role: SUPER_ADMIN_EMAILS.has(normalizedEmail) ? 'super_admin' : 'advisor',
     terms_version: LEGAL_VERSION,
     privacy_policy_version: LEGAL_VERSION,
     terms_accepted_at: acceptedAt,
@@ -99,10 +103,17 @@ const ensureAdvisorForAuthenticatedEmail = async ({
 export const login = async (email, password) => {
   try {
     const normalizedEmail = normalizeEmail(email)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password
-    })
+    const { data, error } = await runWithNetworkGuard(
+      () =>
+        supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password
+        }),
+      {
+        timeoutMessage: 'Connexion trop lente. Reessayez.',
+        fallbackMessage: 'Connexion impossible pour le moment'
+      }
+    )
 
     if (error) throw error
 
@@ -133,16 +144,23 @@ export const login = async (email, password) => {
 export const loginWithGoogle = async () => {
   try {
     const redirectTo = buildAuthCallbackUrl('/dashboard')
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-        queryParams: {
-          prompt: 'select_account'
-        }
+    const { data, error } = await runWithNetworkGuard(
+      () =>
+        supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+            queryParams: {
+              prompt: 'select_account'
+            }
+          }
+        }),
+      {
+        timeoutMessage: 'Google OAuth met trop de temps a demarrer',
+        fallbackMessage: "Impossible de demarrer l'authentification Google"
       }
-    })
+    )
 
     if (error) throw error
 
@@ -165,18 +183,25 @@ export const register = async (userData) => {
     }
 
     const normalizedEmail = normalizeEmail(userData.email)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password: userData.password,
-      options: {
-        emailRedirectTo: buildAuthCallbackUrl('/dashboard'),
-        data: {
-          legal_version: LEGAL_VERSION,
-          terms_accepted_at: new Date().toISOString(),
-          privacy_accepted_at: new Date().toISOString()
-        }
+    const { data: authData, error: authError } = await runWithNetworkGuard(
+      () =>
+        supabase.auth.signUp({
+          email: normalizedEmail,
+          password: userData.password,
+          options: {
+            emailRedirectTo: buildAuthCallbackUrl('/dashboard'),
+            data: {
+              legal_version: LEGAL_VERSION,
+              terms_accepted_at: new Date().toISOString(),
+              privacy_accepted_at: new Date().toISOString()
+            }
+          }
+        }),
+      {
+        timeoutMessage: "Inscription trop lente. Verifiez la connexion puis reessayez.",
+        fallbackMessage: 'Inscription indisponible pour le moment'
       }
-    })
+    )
 
     if (authError) throw authError
 
@@ -216,7 +241,10 @@ export const register = async (userData) => {
 
 // Deconnexion
 export const logout = async () => {
-  const { error } = await supabase.auth.signOut()
+  const { error } = await runWithNetworkGuard(() => supabase.auth.signOut(), {
+    timeoutMessage: 'Deconnexion trop lente',
+    fallbackMessage: 'Impossible de se deconnecter pour le moment'
+  })
   if (error) throw error
 }
 
@@ -224,13 +252,20 @@ export const resendSignupConfirmation = async (email) => {
   const normalizedEmail = normalizeEmail(email)
   if (!normalizedEmail) throw new Error("L'email est requis")
 
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email: normalizedEmail,
-    options: {
-      emailRedirectTo: buildAuthCallbackUrl('/dashboard')
+  const { error } = await runWithNetworkGuard(
+    () =>
+      supabase.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: buildAuthCallbackUrl('/dashboard')
+        }
+      }),
+    {
+      timeoutMessage: "Renvoi de confirmation trop lent. Reessayez d'ici quelques instants.",
+      fallbackMessage: "Impossible de renvoyer l'email de confirmation"
     }
-  })
+  )
 
   if (error) {
     throw new Error(normalizeAuthError(error))
@@ -263,16 +298,26 @@ export const isUserAuthenticated = async () => {
 }
 
 export const refreshSession = async () => {
-  const { data, error } = await supabase.auth.refreshSession()
+  const { data, error } = await runWithNetworkGuard(() => supabase.auth.refreshSession(), {
+    timeoutMessage: 'Rafraichissement de session trop lent',
+    fallbackMessage: 'Session indisponible temporairement'
+  })
   if (error) throw error
   return data.session
 }
 
 export const reauthenticateUser = async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
+  const { data, error } = await runWithNetworkGuard(
+    () =>
+      supabase.auth.signInWithPassword({
+        email,
+        password
+      }),
+    {
+      timeoutMessage: 'Re-authentification trop lente',
+      fallbackMessage: 'Re-authentification indisponible'
+    }
+  )
   if (error) throw error
   return data
 }
@@ -298,7 +343,10 @@ export const getSession = async () => {
   const {
     data: { session },
     error
-  } = await supabase.auth.getSession()
+  } = await runWithNetworkGuard(() => supabase.auth.getSession(), {
+    timeoutMessage: 'Chargement de session trop lent',
+    fallbackMessage: 'Impossible de verifier la session'
+  })
   if (error) throw error
   return session
 }

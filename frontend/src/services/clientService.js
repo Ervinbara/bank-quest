@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { getPlanAccess, getRemainingClientSlots } from '@/lib/planAccess'
 import { FUNNEL_ACTIONS, recordFunnelMilestone } from '@/services/auditService'
+import { runWithNetworkGuard } from '@/lib/networkGuard'
 
 const generateInvitationToken = () => {
   const array = new Uint8Array(16)
@@ -1103,91 +1104,101 @@ export const importClientsBatch = async ({ advisorId, clients }) => {
 
 // Lister les liens d'invitation d'un conseiller
 export const getAdvisorInvitationLinks = async (advisorId) => {
-  if (!advisorId) throw new Error('Conseiller introuvable')
+  return runWithNetworkGuard(
+    async () => {
+      if (!advisorId) throw new Error('Conseiller introuvable')
 
-  const { data: clients, error: clientsError } = await supabase
-    .from('clients')
-    .select('id, name, email, quiz_status, created_at, completed_at')
-    .eq('advisor_id', advisorId)
-    .order('created_at', { ascending: false })
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name, email, quiz_status, created_at, completed_at')
+        .eq('advisor_id', advisorId)
+        .order('created_at', { ascending: false })
 
-  if (clientsError) throw clientsError
-  if (!clients || clients.length === 0) return []
+      if (clientsError) throw clientsError
+      if (!clients || clients.length === 0) return []
 
-  const clientIds = clients.map((client) => client.id)
+      const clientIds = clients.map((client) => client.id)
 
-  let { data: invitations, error: invitationsError } = await supabase
-    .from('client_invitations')
-    .select('client_id, token, questionnaire_id, expires_at, revoked_at, updated_at')
-    .in('client_id', clientIds)
+      let { data: invitations, error: invitationsError } = await supabase
+        .from('client_invitations')
+        .select('client_id, token, questionnaire_id, expires_at, revoked_at, updated_at')
+        .in('client_id', clientIds)
 
-  if (invitationsError && isMissingInvitationQuestionnaireColumnError(invitationsError)) {
-    const fallback = await supabase
-      .from('client_invitations')
-      .select('client_id, token, expires_at, revoked_at, updated_at')
-      .in('client_id', clientIds)
-    invitations = fallback.data
-    invitationsError = fallback.error
-  }
+      if (invitationsError && isMissingInvitationQuestionnaireColumnError(invitationsError)) {
+        const fallback = await supabase
+          .from('client_invitations')
+          .select('client_id, token, expires_at, revoked_at, updated_at')
+          .in('client_id', clientIds)
+        invitations = fallback.data
+        invitationsError = fallback.error
+      }
 
-  if (invitationsError && !isMissingInvitationsTableError(invitationsError)) throw invitationsError
+      if (invitationsError && !isMissingInvitationsTableError(invitationsError)) throw invitationsError
 
-  const invitationByClientId = new Map((invitations || []).map((item) => [item.client_id, item]))
-  const useLegacyMode = !!invitationsError && isMissingInvitationsTableError(invitationsError)
-  const questionnaireIds = [...new Set((invitations || []).map((item) => item.questionnaire_id).filter(Boolean))]
-  const questionnaireNameById = new Map()
+      const invitationByClientId = new Map((invitations || []).map((item) => [item.client_id, item]))
+      const useLegacyMode = !!invitationsError && isMissingInvitationsTableError(invitationsError)
+      const questionnaireIds = [
+        ...new Set((invitations || []).map((item) => item.questionnaire_id).filter(Boolean))
+      ]
+      const questionnaireNameById = new Map()
 
-  if (questionnaireIds.length > 0) {
-    const { data: questionnaires, error: questionnairesError } = await supabase
-      .from('advisor_questionnaires')
-      .select('id, name')
-      .in('id', questionnaireIds)
+      if (questionnaireIds.length > 0) {
+        const { data: questionnaires, error: questionnairesError } = await supabase
+          .from('advisor_questionnaires')
+          .select('id, name')
+          .in('id', questionnaireIds)
 
-    if (!questionnairesError) {
-      ;(questionnaires || []).forEach((item) => {
-        questionnaireNameById.set(item.id, item.name)
-      })
-    }
-  }
-
-  return clients.map((client) => {
-    if (useLegacyMode) {
-      const legacyToken = buildLegacyToken(client.id)
-        return {
-          ...client,
-          invitation: {
-            token: legacyToken,
-            questionnaireId: null,
-            questionnaireName: 'Questionnaire standard',
-            expiresAt: null,
-            revokedAt: null,
-            updatedAt: client.created_at,
-          inviteUrl: buildInviteUrl(client.id, legacyToken),
-          legacyMode: true
+        if (!questionnairesError) {
+          ;(questionnaires || []).forEach((item) => {
+            questionnaireNameById.set(item.id, item.name)
+          })
         }
       }
-    }
 
-    const invitation = invitationByClientId.get(client.id)
-
-    return {
-      ...client,
-      invitation: invitation
-        ? {
-            token: invitation.token,
-            questionnaireId: invitation.questionnaire_id || null,
-            questionnaireName: invitation.questionnaire_id
-              ? questionnaireNameById.get(invitation.questionnaire_id) || 'Questionnaire personnalise'
-              : 'Questionnaire standard',
-            expiresAt: invitation.expires_at,
-            revokedAt: invitation.revoked_at,
-            updatedAt: invitation.updated_at,
-            inviteUrl: buildInviteUrl(client.id, invitation.token),
-            legacyMode: false
+      return clients.map((client) => {
+        if (useLegacyMode) {
+          const legacyToken = buildLegacyToken(client.id)
+          return {
+            ...client,
+            invitation: {
+              token: legacyToken,
+              questionnaireId: null,
+              questionnaireName: 'Questionnaire standard',
+              expiresAt: null,
+              revokedAt: null,
+              updatedAt: client.created_at,
+              inviteUrl: buildInviteUrl(client.id, legacyToken),
+              legacyMode: true
+            }
           }
-        : null
+        }
+
+        const invitation = invitationByClientId.get(client.id)
+
+        return {
+          ...client,
+          invitation: invitation
+            ? {
+                token: invitation.token,
+                questionnaireId: invitation.questionnaire_id || null,
+                questionnaireName: invitation.questionnaire_id
+                  ? questionnaireNameById.get(invitation.questionnaire_id) || 'Questionnaire personnalise'
+                  : 'Questionnaire standard',
+                expiresAt: invitation.expires_at,
+                revokedAt: invitation.revoked_at,
+                updatedAt: invitation.updated_at,
+                inviteUrl: buildInviteUrl(client.id, invitation.token),
+                legacyMode: false
+              }
+            : null
+        }
+      })
+    },
+    {
+      timeoutMessage: 'Chargement des invitations trop lent',
+      fallbackMessage: "Impossible de charger les liens d'invitation"
     }
-  })
+  )
 }
 
 // Regenerer le lien d'invitation d'un client
@@ -1488,59 +1499,67 @@ export const getQuizClient = async (clientId, token) => {
 
 // Recuperer les informations publiques d'un client pour le quiz avec token seul
 export const getQuizClientByToken = async (token) => {
-  if (!token) throw new Error("Lien d'invitation incomplet")
-  const quizClient = createQuizSupabaseClient(token)
+  return runWithNetworkGuard(
+    async () => {
+      if (!token) throw new Error("Lien d'invitation incomplet")
+      const quizClient = createQuizSupabaseClient(token)
 
-  let { data: invitation, error: invitationError } = await quizClient
-    .from('client_invitations')
-    .select('client_id, token, questionnaire_id, expires_at, revoked_at')
-    .eq('token', token)
-    .maybeSingle()
+      let { data: invitation, error: invitationError } = await quizClient
+        .from('client_invitations')
+        .select('client_id, token, questionnaire_id, expires_at, revoked_at')
+        .eq('token', token)
+        .maybeSingle()
 
-  if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
-    const fallback = await quizClient
-      .from('client_invitations')
-      .select('client_id, token, expires_at, revoked_at')
-      .eq('token', token)
-      .maybeSingle()
-    invitation = fallback.data
-    invitationError = fallback.error
-  }
+      if (invitationError && isMissingInvitationQuestionnaireColumnError(invitationError)) {
+        const fallback = await quizClient
+          .from('client_invitations')
+          .select('client_id, token, expires_at, revoked_at')
+          .eq('token', token)
+          .maybeSingle()
+        invitation = fallback.data
+        invitationError = fallback.error
+      }
 
-  if (invitationError) {
-    if (isMissingInvitationsTableError(invitationError)) {
-      throw new Error("Lien d'invitation invalide")
+      if (invitationError) {
+        if (isMissingInvitationsTableError(invitationError)) {
+          throw new Error("Lien d'invitation invalide")
+        }
+        throw invitationError
+      }
+
+      if (!invitation) throw new Error("Lien d'invitation invalide")
+      if (invitation.revoked_at) throw new Error("Lien d'invitation revoque")
+      if (invitation.expires_at && new Date(invitation.expires_at).getTime() < Date.now()) {
+        throw new Error("Lien d'invitation expire")
+      }
+
+      const { data: client, error: clientError } = await quizClient
+        .from('clients')
+        .select('id, name, email, quiz_status, score, completed_at')
+        .eq('id', invitation.client_id)
+        .single()
+
+      if (clientError) throw clientError
+
+      const questionnaire = await getQuestionnaireDetails(invitation.questionnaire_id)
+
+      return {
+        client,
+        invitation: {
+          clientId: invitation.client_id,
+          token: invitation.token,
+          questionnaireId: invitation.questionnaire_id || null,
+          questionnaire,
+          expiresAt: invitation.expires_at,
+          revokedAt: invitation.revoked_at
+        }
+      }
+    },
+    {
+      timeoutMessage: "Verification du lien d'invitation trop lente",
+      fallbackMessage: "Impossible d'ouvrir ce lien d'invitation"
     }
-    throw invitationError
-  }
-
-  if (!invitation) throw new Error("Lien d'invitation invalide")
-  if (invitation.revoked_at) throw new Error("Lien d'invitation revoque")
-  if (invitation.expires_at && new Date(invitation.expires_at).getTime() < Date.now()) {
-    throw new Error("Lien d'invitation expire")
-  }
-
-  const { data: client, error: clientError } = await quizClient
-    .from('clients')
-    .select('id, name, email, quiz_status, score, completed_at')
-    .eq('id', invitation.client_id)
-    .single()
-
-  if (clientError) throw clientError
-
-  const questionnaire = await getQuestionnaireDetails(invitation.questionnaire_id)
-
-  return {
-    client,
-    invitation: {
-      clientId: invitation.client_id,
-      token: invitation.token,
-      questionnaireId: invitation.questionnaire_id || null,
-      questionnaire,
-      expiresAt: invitation.expires_at,
-      revokedAt: invitation.revoked_at
-    }
-  }
+  )
 }
 
 // Soumettre un quiz client (score + insights)
@@ -1552,30 +1571,39 @@ export const submitClientQuizResult = async ({
   weaknesses,
   questionResponses
 }) => {
-  if (!clientId) throw new Error('Client introuvable')
-  if (!token) throw new Error("Lien d'invitation invalide")
+  return runWithNetworkGuard(
+    async () => {
+      if (!clientId) throw new Error('Client introuvable')
+      if (!token) throw new Error("Lien d'invitation invalide")
 
-  const quizClient = createQuizSupabaseClient(token)
-  const response = await quizClient.functions.invoke('submit-quiz-result', {
-    body: {
-      clientId,
-      token,
-      score,
-      strengths: strengths || [],
-      weaknesses: weaknesses || [],
-      questionResponses: Array.isArray(questionResponses) ? questionResponses : []
+      const quizClient = createQuizSupabaseClient(token)
+      const response = await quizClient.functions.invoke('submit-quiz-result', {
+        body: {
+          clientId,
+          token,
+          score,
+          strengths: strengths || [],
+          weaknesses: weaknesses || [],
+          questionResponses: Array.isArray(questionResponses) ? questionResponses : []
+        }
+      })
+
+      if (response.error) {
+        const details = await extractFunctionErrorMessage(response.error, 'Impossible de soumettre le quiz')
+        throw new Error(details)
+      }
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || 'Impossible de soumettre le quiz')
+      }
+
+      return response.data.client
+    },
+    {
+      timeoutMs: 20000,
+      timeoutMessage: 'Enregistrement du quiz trop lent, reessayez',
+      fallbackMessage: "Impossible d'enregistrer le quiz pour le moment"
     }
-  })
-
-  if (response.error) {
-    const details = await extractFunctionErrorMessage(response.error, 'Impossible de soumettre le quiz')
-    throw new Error(details)
-  }
-  if (!response.data?.success) {
-    throw new Error(response.data?.error || 'Impossible de soumettre le quiz')
-  }
-
-  return response.data.client
+  )
 }
 
 // S'abonner aux changements clients/insights d'un conseiller

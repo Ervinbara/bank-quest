@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { clientQuizQuestions } from '@/data/clientQuizQuestions'
+import { runWithNetworkGuard } from '@/lib/networkGuard'
 
 const DEFAULT_OPTIONS = [
   { label: 'Jamais', points: 1 },
@@ -769,43 +770,53 @@ export const ensureAdvisorQuestionnaires = async (advisorId) => {
 }
 
 export const getAdvisorQuestionnaires = async (advisorId) => {
-  if (!advisorId) return []
+  return runWithNetworkGuard(
+    async () => {
+      if (!advisorId) return []
 
-  await ensureAdvisorQuestionnaires(advisorId)
+      await ensureAdvisorQuestionnaires(advisorId)
 
-  const { data: questionnaires, error } = await supabase
-    .from('advisor_questionnaires')
-    .select('id, advisor_id, name, description, is_default, created_at, updated_at')
-    .eq('advisor_id', advisorId)
-    .order('created_at', { ascending: true })
+      const { data: questionnaires, error } = await supabase
+        .from('advisor_questionnaires')
+        .select('id, advisor_id, name, description, is_default, created_at, updated_at')
+        .eq('advisor_id', advisorId)
+        .order('created_at', { ascending: true })
 
-  if (error) {
-    if (isMissingQuestionnaireTableError(error)) return []
-    throw error
-  }
+      if (error) {
+        if (isMissingQuestionnaireTableError(error)) return []
+        throw error
+      }
 
-  if (!questionnaires || questionnaires.length === 0) return []
+      if (!questionnaires || questionnaires.length === 0) return []
 
-  const ids = questionnaires.map((item) => item.id)
-  const { data: questions, error: questionsError } = await supabase
-    .from('advisor_questionnaire_questions')
-    .select('id, questionnaire_id, question_text, concept, prompt_translations, concept_translations, theme, order_index, options')
-    .in('questionnaire_id', ids)
-    .order('order_index', { ascending: true })
+      const ids = questionnaires.map((item) => item.id)
+      const { data: questions, error: questionsError } = await supabase
+        .from('advisor_questionnaire_questions')
+        .select(
+          'id, questionnaire_id, question_text, concept, prompt_translations, concept_translations, theme, order_index, options'
+        )
+        .in('questionnaire_id', ids)
+        .order('order_index', { ascending: true })
 
-  if (questionsError) throw questionsError
+      if (questionsError) throw questionsError
 
-  const byQuestionnaire = new Map()
-  ;(questions || []).forEach((row) => {
-    const existing = byQuestionnaire.get(row.questionnaire_id) || []
-    existing.push(mapQuestionRow(row))
-    byQuestionnaire.set(row.questionnaire_id, existing)
-  })
+      const byQuestionnaire = new Map()
+      ;(questions || []).forEach((row) => {
+        const existing = byQuestionnaire.get(row.questionnaire_id) || []
+        existing.push(mapQuestionRow(row))
+        byQuestionnaire.set(row.questionnaire_id, existing)
+      })
 
-  return questionnaires.map((questionnaire) => ({
-    ...questionnaire,
-    questions: byQuestionnaire.get(questionnaire.id) || []
-  }))
+      return questionnaires.map((questionnaire) => ({
+        ...questionnaire,
+        questions: byQuestionnaire.get(questionnaire.id) || []
+      }))
+    },
+    {
+      timeoutMessage: 'Chargement des questionnaires trop lent',
+      fallbackMessage: 'Impossible de charger les questionnaires'
+    }
+  )
 }
 
 export const createAdvisorQuestionnaireFromTemplate = async ({ advisorId, templateKey, customName }) => {

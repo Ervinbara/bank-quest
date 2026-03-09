@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { getPlanAccess, getRemainingInvitationEmails } from '@/lib/planAccess'
+import { runWithNetworkGuard } from '@/lib/networkGuard'
 
 export const INVITE_LINK_PLACEHOLDER = '{{invite_link}}'
 
@@ -110,104 +111,113 @@ export const sendInvitationEmail = async ({
   inviteLink,
   template
 }) => {
-  const rendered = renderEmailTemplate(template || DEFAULT_EMAIL_TEMPLATE, {
-    clientName,
-    advisorName,
-    advisorEmail,
-    inviteLink
-  })
-
-  const {
-    data: { session }
-  } = await supabase.auth.getSession()
-
-  if (!session?.access_token) {
-    throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
-  }
-
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-  const email = String(user?.email || '').toLowerCase()
-  if (!email) {
-    throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
-  }
-
-  const { data: advisor, error: advisorError } = await supabase
-    .from('advisors')
-    .select('plan')
-    .ilike('email', email)
-    .maybeSingle()
-
-  if (advisorError) throw advisorError
-
-  const planAccess = getPlanAccess(advisor?.plan || 'none')
-  if (!planAccess.canSendInvitationEmails) {
-    throw new Error("L'envoi d'email d'invitation est reserve aux plans payants.")
-  }
-
-  let data
-  let error
-
-  const extractFunctionErrorMessage = async (fnError, fallbackMessage) => {
-    const context = fnError?.context
-    if (!context) return fnError?.message || fallbackMessage
-
-    try {
-      const clone = context.clone ? context.clone() : context
-      const asJson = await clone.json()
-      return asJson?.error || asJson?.message || fnError?.message || fallbackMessage
-    } catch {
-      try {
-        const asText = await context.text()
-        if (!asText) return fnError?.message || fallbackMessage
-        try {
-          const parsed = JSON.parse(asText)
-          return parsed?.error || parsed?.message || fnError?.message || fallbackMessage
-        } catch {
-          return asText
-        }
-      } catch {
-        return fnError?.message || fallbackMessage
-      }
-    }
-  }
-
-  try {
-    const response = await supabase.functions.invoke('send-invitation-email', {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`
-      },
-      body: {
-        toEmail,
+  return runWithNetworkGuard(
+    async () => {
+      const rendered = renderEmailTemplate(template || DEFAULT_EMAIL_TEMPLATE, {
         clientName,
         advisorName,
         advisorEmail,
-        inviteLink,
-        subject: rendered.subject,
-        body: rendered.body
+        inviteLink
+      })
+
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
       }
-    })
-    data = response.data
-    error = response.error
-  } catch (invokeError) {
-    const details = await extractFunctionErrorMessage(
-      invokeError,
-      "Edge Function non disponible ou mal configuree"
-    )
-    throw new Error(details)
-  }
 
-  if (error) {
-    const details = await extractFunctionErrorMessage(error, "Echec de l'envoi email")
-    throw new Error(details)
-  }
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      const email = String(user?.email || '').toLowerCase()
+      if (!email) {
+        throw new Error('Session utilisateur invalide. Reconnectez-vous puis reessayez.')
+      }
 
-  if (!data?.success) {
-    throw new Error(data?.error || "Echec de l'envoi email")
-  }
+      const { data: advisor, error: advisorError } = await supabase
+        .from('advisors')
+        .select('plan')
+        .ilike('email', email)
+        .maybeSingle()
 
-  return data
+      if (advisorError) throw advisorError
+
+      const planAccess = getPlanAccess(advisor?.plan || 'none')
+      if (!planAccess.canSendInvitationEmails) {
+        throw new Error("L'envoi d'email d'invitation est reserve aux plans payants.")
+      }
+
+      let data
+      let error
+
+      const extractFunctionErrorMessage = async (fnError, fallbackMessage) => {
+        const context = fnError?.context
+        if (!context) return fnError?.message || fallbackMessage
+
+        try {
+          const clone = context.clone ? context.clone() : context
+          const asJson = await clone.json()
+          return asJson?.error || asJson?.message || fnError?.message || fallbackMessage
+        } catch {
+          try {
+            const asText = await context.text()
+            if (!asText) return fnError?.message || fallbackMessage
+            try {
+              const parsed = JSON.parse(asText)
+              return parsed?.error || parsed?.message || fnError?.message || fallbackMessage
+            } catch {
+              return asText
+            }
+          } catch {
+            return fnError?.message || fallbackMessage
+          }
+        }
+      }
+
+      try {
+        const response = await supabase.functions.invoke('send-invitation-email', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          },
+          body: {
+            toEmail,
+            clientName,
+            advisorName,
+            advisorEmail,
+            inviteLink,
+            subject: rendered.subject,
+            body: rendered.body
+          }
+        })
+        data = response.data
+        error = response.error
+      } catch (invokeError) {
+        const details = await extractFunctionErrorMessage(
+          invokeError,
+          "Edge Function non disponible ou mal configuree"
+        )
+        throw new Error(details)
+      }
+
+      if (error) {
+        const details = await extractFunctionErrorMessage(error, "Echec de l'envoi email")
+        throw new Error(details)
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || "Echec de l'envoi email")
+      }
+
+      return data
+    },
+    {
+      timeoutMs: 20000,
+      timeoutMessage: "L'envoi de l'email prend trop de temps",
+      fallbackMessage: "Impossible d'envoyer l'email d'invitation"
+    }
+  )
 }
 
 export const getInvitationEmailQuotaStatus = async ({ advisorId, advisorPlan }) => {

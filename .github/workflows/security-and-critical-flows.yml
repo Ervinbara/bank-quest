@@ -1,0 +1,71 @@
+name: Security and Critical Flows
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+
+jobs:
+  rls-audit:
+    if: ${{ secrets.SUPABASE_DB_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run blocking RLS audit
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          ISSUES=$(psql "$DATABASE_URL" -t -A -f supabase/sql/rls_audit_ci.sql | tr -d '[:space:]')
+          echo "RLS blocking issues: $ISSUES"
+          if [ "$ISSUES" != "0" ]; then
+            echo "Blocking RLS issues detected."
+            exit 1
+          fi
+
+      - name: Upload full RLS audit artifact
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p artifacts
+          psql "$DATABASE_URL" -f supabase/sql/rls_audit_report.sql > artifacts/rls_audit_report.txt
+
+      - name: Publish audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-audit-report
+          path: artifacts/rls_audit_report.txt
+
+  critical-flows-smoke:
+    if: ${{ secrets.VITE_SUPABASE_URL != '' && secrets.VITE_SUPABASE_ANON_KEY != '' && secrets.TEST_ADVISOR_EMAIL != '' && secrets.TEST_ADVISOR_PASSWORD != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run critical flow smoke tests
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          TEST_ADVISOR_EMAIL: ${{ secrets.TEST_ADVISOR_EMAIL }}
+          TEST_ADVISOR_PASSWORD: ${{ secrets.TEST_ADVISOR_PASSWORD }}
+          TEST_SECONDARY_ADVISOR_EMAIL: ${{ secrets.TEST_SECONDARY_ADVISOR_EMAIL }}
+          TEST_SECONDARY_ADVISOR_PASSWORD: ${{ secrets.TEST_SECONDARY_ADVISOR_PASSWORD }}
+        run: npm run test:critical
